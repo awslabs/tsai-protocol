@@ -1,0 +1,407 @@
+# Copyright Amazon.com Inc. or its affiliates.
+# SPDX-License-Identifier: Apache-2.0
+
+openapi: 3.1.0
+info:
+  title: TSAI Trust Authority API
+  version: 1.0.0-mvp
+  description: |
+    Trust Authority API for issuing and refreshing TSAI credentials (T0/T1 only).
+  contact:
+    name: TSAI Working Group
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
+
+tags:
+  - name: credentials
+    description: Credential issuance and refresh
+  - name: metadata
+    description: Trust Authority metadata and discovery
+
+paths:
+  /challenges:
+    get:
+      summary: Get authentication challenge
+      description: |
+        Returns a random challenge nonce for proof-of-control authentication.
+        Challenges are single-use and expire after 5 minutes.
+      operationId: getChallenge
+      tags:
+        - credentials
+      responses:
+        '200':
+          description: Challenge generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Challenge'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /credentials/issue:
+    post:
+      summary: Issue new credential
+      description: |
+        Issues a new TSAI credential for an agent. Agent must prove control
+        of the DID by signing a challenge obtained from /challenges.
+      operationId: issueCredential
+      tags:
+        - credentials
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IssueRequest'
+      responses:
+        '201':
+          description: Credential issued successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CredentialResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /credentials/refresh:
+    post:
+      summary: Refresh existing credential
+      description: |
+        Refreshes an existing credential with updated expiry time.
+        Agent must provide current valid credential and proof of control.
+      operationId: refreshCredential
+      tags:
+        - credentials
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+      responses:
+        '200':
+          description: Credential refreshed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CredentialResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '410':
+          $ref: '#/components/responses/Gone'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /metadata:
+    get:
+      summary: Get Trust Authority metadata
+      description: |
+        Returns metadata about the Trust Authority including supported tiers,
+        DID methods, endpoints, and policies.
+      operationId: getMetadata
+      tags:
+        - metadata
+      responses:
+        '200':
+          description: Metadata retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TAMetadata'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+components:
+  schemas:
+    Challenge:
+      type: object
+      required:
+        - challenge
+        - expiresAt
+      properties:
+        challenge:
+          type: string
+          description: Random nonce (hex-encoded, minimum 32 bytes)
+          example: a1b2c3d4e5f67890abcdef1234567890abcdef1234567890abcdef1234567890
+        expiresAt:
+          type: string
+          format: date-time
+          example: '2026-01-23T10:05:00Z'
+
+    ProofOfControl:
+      type: object
+      required:
+        - type
+        - created
+        - verificationMethod
+        - proofPurpose
+        - challenge
+        - proofValue
+      properties:
+        type:
+          type: string
+          enum:
+            - Ed25519Signature2020
+            - JsonWebSignature2020
+          example: Ed25519Signature2020
+        created:
+          type: string
+          format: date-time
+          example: '2026-01-23T10:00:00Z'
+        verificationMethod:
+          type: string
+          description: DID URL referencing signing key
+          example: 'did:web:acme-corp.com:agents:agent123#key-1'
+        proofPurpose:
+          type: string
+          enum:
+            - authentication
+          example: authentication
+        challenge:
+          type: string
+          example: a1b2c3d4e5f67890abcdef1234567890abcdef1234567890abcdef1234567890
+        proofValue:
+          type: string
+          description: Base64url-encoded signature
+          example: z5...
+
+    IssueRequest:
+      type: object
+      required:
+        - agentDid
+        - operatorDid
+        - requestedTier
+        - proofOfControl
+      properties:
+        agentDid:
+          type: string
+          example: 'did:web:acme-corp.com:agents:agent123'
+        operatorDid:
+          type: string
+          description: Must be did:web
+          pattern: '^did:web:'
+          example: 'did:web:acme-corp.com'
+        requestedTier:
+          type: string
+          enum:
+            - T0
+            - T1
+          example: T1
+        proofOfControl:
+          $ref: '#/components/schemas/ProofOfControl'
+
+    RefreshRequest:
+      type: object
+      required:
+        - currentCredential
+        - proofOfControl
+      properties:
+        currentCredential:
+          type: string
+          description: Existing VC-JWT
+          example: eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9...
+        proofOfControl:
+          $ref: '#/components/schemas/ProofOfControl'
+
+    CredentialResponse:
+      type: object
+      required:
+        - credential
+        - format
+        - tier
+        - issuedAt
+        - expiresAt
+        - credentialId
+      properties:
+        credential:
+          type: string
+          description: VC-JWT
+          example: eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9...
+        format:
+          type: string
+          enum:
+            - vc-jwt
+          example: vc-jwt
+        tier:
+          type: string
+          enum:
+            - T0
+            - T1
+          description: Issued tier (may differ from requested)
+          example: T1
+        issuedAt:
+          type: string
+          format: date-time
+          example: '2026-01-23T10:00:00Z'
+        expiresAt:
+          type: string
+          format: date-time
+          example: '2026-01-23T14:00:00Z'
+        credentialId:
+          type: string
+          format: uri
+          example: 'urn:uuid:a1b2c3d4-e5f6-7890-abcd-ef1234567890'
+
+    TAMetadata:
+      type: object
+      required:
+        - tsaiVersion
+        - issuer
+        - name
+        - supportedTiers
+        - supportedDIDMethods
+        - endpoints
+      properties:
+        tsaiVersion:
+          type: string
+          example: '1.0'
+        issuer:
+          type: string
+          example: 'did:web:trust-authority.example:tsai:ta'
+        name:
+          type: string
+          example: Example Trust Authority
+        description:
+          type: string
+          example: Professional trust authority for agentic commerce
+        supportedTiers:
+          type: array
+          items:
+            type: string
+            enum:
+              - T0
+              - T1
+          example:
+            - T0
+            - T1
+        supportedDIDMethods:
+          type: array
+          items:
+            type: string
+          example:
+            - 'did:web'
+            - 'did:key'
+            - 'did:wba'
+        endpoints:
+          type: object
+          required:
+            - issue
+            - refresh
+            - challenges
+          properties:
+            issue:
+              type: string
+              format: uri
+            refresh:
+              type: string
+              format: uri
+            challenges:
+              type: string
+              format: uri
+
+    Error:
+      type: object
+      required:
+        - error
+        - error_description
+      properties:
+        error:
+          type: string
+          example: invalid_request
+        error_description:
+          type: string
+          example: agentDid must be a valid DID
+
+  responses:
+    BadRequest:
+      description: Invalid request format or parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: invalid_request
+            error_description: agentDid must be a valid DID
+
+    Unauthorized:
+      description: Authentication failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: invalid_proof
+            error_description: Signature verification failed
+
+    Forbidden:
+      description: Agent not eligible or credential revoked
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: insufficient_qualification
+            error_description: Agent does not meet T1 requirements
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: credential_not_found
+            error_description: No credential found with this ID
+
+    Gone:
+      description: Resource permanently unavailable
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: credential_expired
+            error_description: Credential expired, request new issuance
+
+    RateLimitExceeded:
+      description: Rate limit exceeded
+      headers:
+        Retry-After:
+          description: Seconds until retry allowed
+          schema:
+            type: integer
+            example: 45
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: rate_limit_exceeded
+            error_description: Maximum 10 requests per minute
+
+    ServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: server_error
+            error_description: Credential signing service unavailable

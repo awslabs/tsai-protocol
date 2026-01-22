@@ -1,0 +1,35 @@
+{
+  "$comment": "Copyright Amazon.com Inc. or its affiliates. SPDX-License-Identifier: Apache-2.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tsai.example.org/schemas/mcp-capability-tsai.json",
+  "title": "MCP TSAI Capability Declaration",
+  "description": "TSAI capability declaration in MCP initialization response",
+  "type": "object",
+  "required": [
+    "required",
+    "minimumTier",
+    "trustedAuthorities"
+  ],
+  "properties": {
+    "required": {
+      "type": "boolean",
+      "description": "Whether TSAI credentials are mandatory"
+    },
+    "minimumTier": {
+      "type": "string",
+      "enum": ["T0", "T1", "T2", "T3"],
+      "description": "Minimum trust tier accepted"
+    },
+    "trustedAuthorities": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "pattern": "^did:web:",
+        "description": "Trust Authority DID"
+      },
+      "description": "List of accepted TA DIDs"
+    }
+  },
+  "additionalProperties": false
+}
