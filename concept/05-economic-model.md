@@ -13,19 +13,19 @@ SPDX-License-Identifier: Apache-2.0
 
 ## Overview
 
-TSAI creates a market for trust by reducing information asymmetry between agents and platforms. Trust Authorities provide standardized trust infrastructure that benefits both sides. The economic model works because TAs address a coordination problem: platforms need to trust agents, agents need to prove legitimacy, and neither can solve this efficiently alone.
+TSAI creates a market for trust by reducing information asymmetry between Agents and Service Providers. Trust Authorities provide standardized trust infrastructure that benefits both sides. The economic model works because TAs address a coordination problem: Service Providers need to trust Agents, Agents need to prove legitimacy, and neither can solve this efficiently alone.
 
 ---
 
 ## Value Creation
 
-### For Platforms
+### For Service Providers
 
-Platforms gain access to verified agents without building trust infrastructure themselves. Manual vetting is expensive and doesn't scale. Bot detection systems are costly and catch legitimate agents alongside bad actors. TSAI verification scales automatically. Platforms also reduce fraud losses, improve service quality through reputation signals, and enable new business models such as agent-accessible APIs and automated commerce.
+Service Providers gain access to verified Agents without building trust infrastructure themselves. Manual vetting is expensive and doesn't scale. Bot detection systems are costly and catch legitimate Agents alongside bad actors. TSAI verification scales automatically. Service Providers also reduce fraud losses, improve service quality through reputation signals, and enable new business models such as Agent-accessible APIs and automated commerce.
 
 ### For Agents
 
-Agents gain portable trust that works across platforms. Without credentials, agents face unreliable access, must disguise traffic as human browsing, and rebuild reputation on each platform. With credentials, agents get more predictable access, reputation that transfers across platforms, and access to higher-value opportunities. The credential cost must be justified by the market access value it provides.
+Agents gain portable trust that works across Service Providers. Without credentials, Agents face unreliable access, must disguise traffic as human browsing, and rebuild reputation with each Service Provider. With credentials, Agents get more predictable access, reputation that transfers across Service Providers, and access to higher-value opportunities. The credential cost must be justified by the market access value it provides.
 
 ### For Trust Authorities
 
@@ -51,9 +51,9 @@ TAs can offer value-added services beyond basic credentials. Expedited verificat
 
 ### Network Effects
 
-TSAI exhibits two-sided market dynamics. More platforms accepting credentials makes credentials more valuable for agents, driving agent adoption. More agents with credentials makes platforms more confident in agent traffic, driving platform adoption. This creates a positive feedback loop.
+TSAI exhibits two-sided market dynamics. More Service Providers accepting credentials makes credentials more valuable for Agents, driving Agent adoption. More Agents with credentials makes Service Providers more confident in Agent traffic, driving Service Provider adoption. This creates a positive feedback loop.
 
-Same-side effects amplify growth. When industry leaders adopt TSAI, competitors face pressure to follow. When successful agents carry credentials, others follow for market access and social proof.
+Same-side effects amplify growth. When industry leaders adopt TSAI, competitors face pressure to follow. When successful Agents carry credentials, others follow for market access and social proof.
 
 ### Regulatory Tailwinds
 
@@ -61,7 +61,7 @@ Compliance frameworks that reference TSAI turn adoption from optional to require
 
 ### Technology Integration
 
-Protocol integration (MCP, A2A, AP2 adopting TSAI) makes trust signaling a built-in expectation. Platform vendor integration (major platforms adding TSAI support) reduces implementation friction. Development tool integration (agent frameworks including TSAI by default) makes credentials automatic for developers.
+Protocol integration (MCP, A2A, AP2 adopting TSAI) makes trust signaling a built-in expectation. Integration by Service Provider vendors (major Service Providers adding TSAI support) reduces implementation friction. Development tool integration (Agent frameworks including TSAI by default) makes credentials automatic for developers.
 
 ---
 
@@ -75,7 +75,7 @@ Market concentration will emerge over time, with some TAs capturing larger share
 
 ### Barriers to Entry
 
-High barriers protect established TAs: brand reputation takes time to build, platform partnerships create network effects, monitoring infrastructure requires investment, regulatory compliance demands operational maturity, and technology development needs expertise.
+High barriers protect established TAs: brand reputation takes time to build, partnerships with Service Providers create network effects, monitoring infrastructure requires investment, regulatory compliance demands operational maturity, and technology development needs expertise.
 
 Low barriers enable competition: open protocol prevents proprietary lock-in, standard W3C VCs provide existing tools, and automated verification keeps operational costs manageable for basic tiers.
 
@@ -91,11 +91,11 @@ A TA's viability depends on achieving sufficient scale to cover infrastructure c
 
 ### For the Ecosystem
 
-TSAI succeeds when all parties capture value. Platforms gain fraud reduction and service quality improvements that exceed implementation costs. Agents gain market access that justifies credential fees. TAs serve many agents with sustainable margins. The value created must exceed the value captured, making participation rational for all parties.
+TSAI succeeds when all parties capture value. Service Providers gain fraud reduction and service quality improvements that exceed implementation costs. Agents gain market access that justifies credential fees. TAs serve many Agents with sustainable margins. The value created must exceed the value captured, making participation rational for all parties.
 
 ### Critical Success Factors
 
-Economic viability requires low-friction entry at basic tiers, clear return on investment for agents, tangible benefits for platforms, network effects that create exponential value as adoption grows, and external forces (regulatory, technological) that drive adoption beyond individual incentives.
+Economic viability requires low-friction entry at basic tiers, clear return on investment for Agents, tangible benefits for Service Providers, network effects that create exponential value as adoption grows, and external forces (regulatory, technological) that drive adoption beyond individual incentives.
 
 ---
 
@@ -103,4 +103,4 @@ Economic viability requires low-friction entry at basic tiers, clear return on i
 
 TSAI is infrastructure for the agentic economy. Like payment processors or identity providers, TAs provide essential trust infrastructure that enables commerce at scale. The economic model is sustainable when it creates value by reducing information asymmetry, captures value through tiered pricing that reflects service levels, leverages network effects in a two-sided market, supports competition through differentiation, and benefits from regulatory and technological forces driving adoption.
 
-The opportunity exists because agents and platforms face a coordination problem that neither can solve efficiently alone. The business model draws from proven trust and verification services. The timing aligns with the emergence of agentic AI as a significant technology trend.
+The opportunity exists because Agents and Service Providers face a coordination problem that neither can solve efficiently alone. The business model draws from proven trust and verification services. The timing aligns with the emergence of agentic AI as a significant technology trend.

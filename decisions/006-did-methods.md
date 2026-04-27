@@ -54,7 +54,7 @@ The choice affects:
 **Cons:**
 - No key rotation (critical for TAs)
 - No service endpoints (needed for TA APIs)
-- No discovery mechanism (how do platforms find TAs?)
+- No discovery mechanism (how do Service Providers find TAs?)
 - Not suitable for professional TAs
 
 ---
@@ -125,7 +125,7 @@ The choice affects:
 - Flexible (agents choose)
 
 **Cons:**
-- Platforms must support multiple DID methods
+- Service Providers must support multiple DID methods
 - More complex than single method
 
 ---
@@ -139,13 +139,13 @@ The choice affects:
 **Agents:**
 - **MVP:** `did:key` (simplest, no infrastructure)
 - **Production:** `did:web` (enables key rotation, service endpoints)  
-- **Protocol:** Supports multiple agent DID methods including `did:wba` (platforms must handle all)
+- **Protocol:** Supports multiple Agent DID methods including `did:wba` (Service Providers must handle all)
 
 **Rationale:**
 
 ### Trust Authorities: did:web
 
-TAs already have domains and HTTPS infrastructure. Governance body maintains TA registry with `did:web` identifiers. Platforms can resolve TA DIDs via HTTPS. TAs can update DID documents for key rotation. DID document includes TA API endpoints for real-time verification and revocation status lists.
+TAs already have domains and HTTPS infrastructure. Governance body maintains TA registry with `did:web` identifiers. Service Providers can resolve TA DIDs via HTTPS. TAs can update DID documents for key rotation. DID document includes TA API endpoints for real-time verification and revocation status lists.
 
 ### Agents: did:key (MVP)
 
@@ -172,7 +172,7 @@ TSAI explicitly supports `did:wba` for W3C AI Agent Protocol compatibility. Agen
 
 ### Negative
 
-- **Platform Complexity:** Must support multiple agent DID methods
+- **Complexity on the Service Provider side:** Must support multiple Agent DID methods
 - **Agent Migration:** Agents may need to migrate from did:key to did:web
 - **DNS Dependency:** did:web relies on DNS (centralization)
 
@@ -271,11 +271,11 @@ did:key:z6MkpTHR8VNsBxYAAWHut2Geadd9jSwuBV8xRoAnwWsdvktH
 
 ---
 
-### Platform Implementation
+### Service Provider Implementation
 
 **Must Support:**
-- `did:web` resolution (for TAs and production agents)
-- `did:key` resolution (for MVP agents)
+- `did:web` resolution (for TAs and production Agents)
+- `did:key` resolution (for MVP Agents)
 
 **DID Resolution:**
 - Use standard DID resolution libraries

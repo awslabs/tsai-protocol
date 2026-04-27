@@ -52,7 +52,7 @@ Credentials must balance security and performance:
 **How it works:**
 - TA maintains bitstring (one bit per credential)
 - Bit = 0: valid, Bit = 1: revoked
-- Platforms fetch bitstring, check credential's bit
+- Service Providers fetch bitstring, check credential's bit
 - Bitstring cached (reduces TA load)
 
 **Pros:**
@@ -71,10 +71,10 @@ Credentials must balance security and performance:
 
 ### TA Real-Time API (T3)
 
-**Description:** Platform queries TA API for credential status.
+**Description:** The Service Provider queries the TA API for credential status.
 
 **How it works:**
-- Platform sends credential ID to TA API
+- The Service Provider sends credential ID to TA API
 - TA returns: valid/revoked + current stake/reputation + constraints
 - Real-time verification (no caching)
 
@@ -267,7 +267,7 @@ Agents refresh credentials before expiry via TA REST API for credential renewal.
 
 ---
 
-### Platforms
+### Service Providers
 
 **Verification:**
 - Check credential expiry (always)

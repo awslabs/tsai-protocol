@@ -27,7 +27,7 @@ The choice fundamentally shapes the protocol's performance, security, governance
 
 ### Option 1: Blockchain-based Trust
 
-**Description:** Store credentials and reputation on blockchain; agents and platforms interact with smart contracts.
+**Description:** Store credentials and reputation on blockchain; Agents and Service Providers interact with smart contracts.
 
 **Pros:**
 - Decentralized (no single point of control)
@@ -81,7 +81,7 @@ The choice fundamentally shapes the protocol's performance, security, governance
 - High barriers to entry (favors established organizations)
 - Centralized attack surface (each TA is a target)
 - Regulatory pressure (governments can compel TAs)
-- Potential for commercial pressure from large platforms
+- Potential for commercial pressure from large Service Providers
 
 ---
 
@@ -114,7 +114,7 @@ Trust evaluation requires professional infrastructure, 24/7 operations, substant
 
 Target of millions to billions of agent interactions daily requires:
 - 10,000+ credential issuances/sec per TA
-- 100,000+ verifications/sec per platform (offline)
+- 100,000+ verifications/sec per Service Provider (offline)
 - Proven scaling patterns (CDN, caching, load balancing)
 
 Blockchain's limited throughput (10-1000 tx/sec) and increasing gas costs cannot achieve required scale.
@@ -125,13 +125,13 @@ Blockchain's limited throughput (10-1000 tx/sec) and increasing gas costs cannot
 
 ### Distributed Control
 
-**Platform TA allowlists:**
-- Platforms independently choose which TAs to trust
-- No mandatory TA (platforms decide)
+**Service Provider TA allowlists:**
+- Service Providers independently choose which TAs to trust
+- No mandatory TA (each Service Provider decides)
 
 **Multiple TA credentials:**
 - Agents can obtain credentials from multiple TAs
-- T3 operations can require credentials from multiple TAs (platform policy)
+- T3 operations can require credentials from multiple TAs (a Service Provider's policy)
 
 **TA revocation:**
 - Governance body can revoke TA accreditation for policy violations
@@ -171,10 +171,10 @@ Blockchain's limited throughput (10-1000 tx/sec) and increasing gas costs cannot
 **Graceful degradation:**
 - System continues operating with reduced functionality during TA outages
 - Cached credentials remain valid until expiry
-- Platforms can fall back to lower trust tiers
+- Service Providers can fall back to lower trust tiers
 
 **Multiple TA support:**
-- Agents and platforms can work with multiple TAs simultaneously
+- Agents and Service Providers can work with multiple TAs simultaneously
 - No single point of failure
 
 ---
@@ -214,7 +214,7 @@ Blockchain's limited throughput (10-1000 tx/sec) and increasing gas costs cannot
 - Published evaluation methodology
 - Audit logging and reporting
 
-**Platform Integration:**
+**Service Provider Integration:**
 - Maintain TA allowlist (which TAs to trust)
 - Implement offline verification for T0/T1
 - Implement online verification for T2/T3

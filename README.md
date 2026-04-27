@@ -5,15 +5,15 @@ SPDX-License-Identifier: Apache-2.0
 
 # Trust Signals for Agentic Interactions (TSAI)
 
-**An open protocol enabling AI agents to prove legitimacy through verifiable credentials**
+**An open protocol enabling AI Agents to prove legitimacy through verifiable credentials**
 
 ## Overview
 
-As agentic AI systems proliferated through 2025 and 2026, platforms faced an impossible choice: block all agent traffic and lose valuable transactions, or accept unverified requests and risk fraud and abuse. Agents representing legitimate users found themselves blocked or forced to disguise their traffic. TSAI provides the missing trust layer, enabling platforms to make informed access decisions and enabling well-behaved agents to distinguish themselves.
+As agentic AI systems proliferated through 2025 and 2026, Service Providers faced an impossible choice: block all Agent traffic and lose valuable transactions, or accept unverified requests and risk fraud and abuse. Agents representing legitimate users found themselves blocked or forced to disguise their traffic. TSAI provides the missing trust layer, enabling Service Providers to make informed access decisions and enabling well-behaved Agents to distinguish themselves.
 
-TSAI works through a three-party model. Independent Trust Authorities evaluate agent behavior and issue cryptographically signed credentials based on W3C Verifiable Credentials. Agents present these credentials when accessing services. Platforms verify credentials offline and make access decisions based on verified trust signals—identity, reputation, economic stake, and authorization constraints. The protocol uses a tiered approach (T0-T3) matching trust signals to risk levels: basic identity verification for browsing, reputation signals for transactions, economic accountability for high-value operations, and fine-grained constraints for critical systems.
+TSAI works through a three-party model. Independent Trust Authorities evaluate Agent behavior and issue cryptographically signed credentials based on W3C Verifiable Credentials. Agents present these credentials when accessing services. Service Providers verify credentials offline and make access decisions based on verified trust signals—identity, reputation, economic stake, and authorization constraints. The protocol uses a tiered approach (T0-T3) matching trust signals to risk levels: basic identity verification for browsing, reputation signals for transactions, economic accountability for high-value operations, and fine-grained constraints for critical systems.
 
-Built on open standards (W3C Verifiable Credentials, DIDs, VC-JOSE-COSE), TSAI complements existing agentic protocols like MCP and A2A without replacing them. The protocol is designed for incremental adoption—platforms can start with simple offline verification (T0/T1) and add complexity only when needed. An independent foundation will assume governance in 2027 to ensure broad industry participation and vendor neutrality.
+Built on open standards (W3C Verifiable Credentials, DIDs, VC-JOSE-COSE), TSAI complements existing agentic protocols like MCP and A2A without replacing them. The protocol is designed for incremental adoption—Service Providers can start with simple offline verification (T0/T1) and add complexity only when needed. An independent foundation will assume governance in 2027 to ensure broad industry participation and vendor neutrality.
 
 ---
 
@@ -21,7 +21,7 @@ Built on open standards (W3C Verifiable Credentials, DIDs, VC-JOSE-COSE), TSAI c
 
 ### Concept Documentation (`concept/`)
 
-High-level protocol design and rationale. These documents define the conceptual foundation for TSAI and are intended for protocol designers, implementers, Trust Authority developers, platform integrators, and security reviewers.
+High-level protocol design and rationale. These documents define the conceptual foundation for TSAI and are intended for protocol designers, implementers, Trust Authority developers, integrators on the Service Provider side, and security reviewers.
 
 - **[00-problem-statement.md](./concept/00-problem-statement.md)** - Problem definition, scope, and boundary conditions
 - **[01-trust-signals.md](./concept/01-trust-signals.md)** - Catalog of potential trust signals (comprehensive, not all normative)
@@ -31,7 +31,7 @@ High-level protocol design and rationale. These documents define the conceptual 
 
 ### Architecture Specification (`architecture/`)
 
-Normative technical specification defining the TSAI protocol. These documents specify conformance requirements for Trust Authorities, agents, and platforms implementing TSAI.
+Normative technical specification defining the TSAI protocol. These documents specify conformance requirements for Trust Authorities, Agents, and Service Providers implementing TSAI.
 
 - **[01-introduction.md](./architecture/01-introduction.md)** - Scope, conformance classes, terminology, and design rationale
 - **[02-tsai-ontology.md](./architecture/02-tsai-ontology.md)** - JSON-LD ontology defining Agent and Operator classes with operatedBy relationship
@@ -53,13 +53,18 @@ Normative technical specification defining the TSAI protocol. These documents sp
 
 Documented design decisions with rationale and alternatives considered:
 
-- **[001-protocol-scope.md](./decisions/001-protocol-scope.md)** - Signaling vs. enforcement boundary
+- **[001-agent-delegation-mechanism.md](./decisions/001-agent-delegation-mechanism.md)** - Whether and how Agents delegate to other Agents
 - **[002-centralized-trust-authorities.md](./decisions/002-centralized-trust-authorities.md)** - Professional TAs vs. web-of-trust
 - **[003-w3c-verifiable-credentials.md](./decisions/003-w3c-verifiable-credentials.md)** - Standards-based credential format
 - **[004-tiered-trust-model.md](./decisions/004-tiered-trust-model.md)** - Four-tier approach matching signals to risk
-- **[005-signaling-vs-enforcement.md](./decisions/005-signaling-vs-enforcement.md)** - Protocol defines signals, platforms decide
-- **[006-did-methods.md](./decisions/006-did-methods.md)** - DID method selection for TAs and agents
+- **[005-signaling-vs-enforcement.md](./decisions/005-signaling-vs-enforcement.md)** - Protocol defines signals, Service Providers decide
+- **[006-did-methods.md](./decisions/006-did-methods.md)** - DID method selection for TAs and Agents
 - **[007-short-lived-credentials.md](./decisions/007-short-lived-credentials.md)** - Expiry times by tier and rationale
+- **[008-user-privacy-and-sybil-prevention.md](./decisions/008-user-privacy-and-sybil-prevention.md)** - End-user delegation deferred to v2.0
+- **[009-timestamp-based-replay-prevention.md](./decisions/009-timestamp-based-replay-prevention.md)** - Timestamp-based freshness for T0/T1
+- **[010-fail-closed-with-degraded-mode.md](./decisions/010-fail-closed-with-degraded-mode.md)** - Fail-closed verification with degraded-mode fallback
+- **[011-ta-operational-transparency.md](./decisions/011-ta-operational-transparency.md)** - TA-published operational status reports
+- **[012-service-provider-terminology.md](./decisions/012-service-provider-terminology.md)** - "Service Provider" terminology and conventions
 
 ---
 
@@ -84,11 +89,11 @@ Documented design decisions with rationale and alternatives considered:
 
 ## Key Principles
 
-- **TSAI signals, platforms decide** - Protocol defines trust signals; platforms interpret them and make access decisions
+- **TSAI signals, Service Providers decide** - Protocol defines trust signals; Service Providers interpret them and make access decisions
 - **Lightweight yet secure** - Offline verification for common cases (T0/T1), real-time for high-stakes (T2/T3)
 - **Standards-based** - W3C Verifiable Credentials, DIDs, VC-JOSE-COSE for interoperability
 - **Incremental adoption** - Start simple (T0), add complexity only when needed
-- **Honest about limitations** - Credentials don't prevent LLM vulnerabilities or all agent misbehavior
+- **Honest about limitations** - Credentials don't prevent LLM vulnerabilities or all Agent misbehavior
 - **Vendor-neutral governance** - Independent foundation with multi-stakeholder participation
 
 ---

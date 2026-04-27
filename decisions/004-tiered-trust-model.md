@@ -59,7 +59,7 @@ A single trust level cannot serve all use cases efficiently. Low-risk scenarios 
 
 **Verification:**
 - Same as T0 (offline)
-- Platform interprets reputation
+- The Service Provider interprets reputation
 - Revocation recommended but optional
 
 **Use Cases:**
@@ -105,7 +105,7 @@ A single trust level cannot serve all use cases efficiently. Low-risk scenarios 
 **Verification:**
 - VP + challenge-response
 - Real-time TA verification required
-- Platform enforces constraints
+- The Service Provider enforces constraints
 
 **Use Cases:**
 - High-value transactions
@@ -120,7 +120,7 @@ A single trust level cannot serve all use cases efficiently. Low-risk scenarios 
 
 ### Option 1: Single Trust Level
 
-**Description:** All agents have same credential type; platforms decide how to interpret.
+**Description:** All Agents have same credential type; Service Providers decide how to interpret.
 
 **Pros:**
 - Simplest protocol
@@ -129,7 +129,7 @@ A single trust level cannot serve all use cases efficiently. Low-risk scenarios 
 
 **Cons:**
 - No performance optimization (all credentials same size)
-- No clear guidance for platforms
+- No clear guidance for Service Providers
 - Doesn't scale to diverse use cases
 - Either too heavy for low-risk or too light for high-risk
 
@@ -161,23 +161,23 @@ A single trust level cannot serve all use cases efficiently. Low-risk scenarios 
 - Incremental adoption path
 - Risk-calibrated trust
 - Serves diverse use cases
-- Clear guidance for platforms
+- Clear guidance for Service Providers
 
 **Cons:**
 - More complex than single tier
 - TAs may specialize in specific tiers
-- Platforms must understand tier semantics
+- Service Providers must understand tier semantics
 
 ---
 
 ### Option 4: Continuous Trust Score
 
-**Description:** Single credential with trust score (0-100); platforms set thresholds.
+**Description:** Single credential with trust score (0-100); Service Providers set thresholds.
 
 **Pros:**
 - Maximum flexibility
 - No discrete tiers
-- Platforms decide thresholds
+- Service Providers decide thresholds
 
 **Cons:**
 - No performance optimization
@@ -222,13 +222,13 @@ Implement a **four-tier trust model (T0-T3)** (Option 3) with increasing trust s
 **MVP (T0):**
 - Identity only
 - Simplest possible implementation
-- Solves immediate problem (distinguish verified agents from bots)
-- Low barrier to entry for TAs and platforms
+- Solves immediate problem (distinguish verified Agents from bots)
+- Low barrier to entry for TAs and Service Providers
 
 **Growth (T1-T2):**
 - Add reputation signals (T1)
 - Add economic stake (T2)
-- Platforms adopt incrementally based on needs
+- Service Providers adopt incrementally based on needs
 
 **Maturity (T3):**
 - Full constraint profiles
@@ -247,7 +247,7 @@ Different scenarios need different signals. Browsing (T0) needs only identity wi
 
 - **Performance:** 95%+ of traffic uses lightweight offline verification
 - **Adoption:** Incremental path from simple (T0) to complex (T3)
-- **Flexibility:** Platforms choose appropriate tier for each use case
+- **Flexibility:** Service Providers choose appropriate tier for each use case
 - **Clarity:** Clear semantics for each tier
 - **Scalability:** Optimized for common cases, rigorous for high-stakes
 
@@ -255,7 +255,7 @@ Different scenarios need different signals. Browsing (T0) needs only identity wi
 
 - **Complexity:** Four tiers to understand and implement
 - **TA specialization:** Some TAs may only support lower tiers
-- **Platform burden:** Must implement multiple verification paths
+- **Implementation burden on Service Providers:** Must implement multiple verification paths
 
 ### Neutral
 
@@ -275,7 +275,7 @@ Different scenarios need different signals. Browsing (T0) needs only identity wi
 **Phase 2:**
 - Add T1 (reputation signals)
 - Still offline verification
-- Platforms can make risk-calibrated decisions
+- Service Providers can make risk-calibrated decisions
 
 **Phase 3:**
 - Add T2 (economic stake)
@@ -289,7 +289,7 @@ Different scenarios need different signals. Browsing (T0) needs only identity wi
 - Constraint enforcement
 - Regulated operations support
 
-**Platform Integration:**
+**Service Provider Integration:**
 - Implement offline verification for T0/T1
 - Add challenge-response for T2/T3
 - Add real-time TA queries for T3

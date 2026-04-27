@@ -53,11 +53,11 @@
     },
     "aud": {
       "type": "string",
-      "description": "Platform identifier. HTTP: request URL origin. MCP stdio: server identifier. Push notifications: webhook URL origin."
+      "description": "Service Provider identifier. HTTP: request URL origin. MCP stdio: server identifier. Push notifications: webhook URL origin."
     },
     "iat": {
       "type": "integer",
-      "description": "Issued-at (Unix timestamp). Platforms MUST validate within ±30 seconds of current time."
+      "description": "Issued-at (Unix timestamp). Service Providers MUST validate within ±30 seconds of current time."
     },
     "exp": {
       "type": "integer",
@@ -65,7 +65,7 @@
     },
     "nonce": {
       "type": "string",
-      "description": "Platform-provided nonce. OPTIONAL for T0/T1, REQUIRED for T2/T3. Eliminates replay window when present."
+      "description": "Nonce provided by the Service Provider. OPTIONAL for T0/T1, REQUIRED for T2/T3. Eliminates replay window when present."
     }
   },
   "additionalProperties": false,

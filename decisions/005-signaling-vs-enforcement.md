@@ -13,12 +13,12 @@ SPDX-License-Identifier: Apache-2.0
 
 ## Context
 
-The protocol must define its scope: what TSAI specifies vs. what platforms implement. Two philosophical approaches:
+The protocol must define its scope: what TSAI specifies vs. what Service Providers implement. Two philosophical approaches:
 
-1. **Enforcement framework:** Protocol mandates how platforms must use trust signals and enforce constraints
-2. **Signaling protocol:** Protocol defines trust signals; platforms decide how to use them
+1. **Enforcement framework:** Protocol mandates how Service Providers must use trust signals and enforce constraints
+2. **Signaling protocol:** Protocol defines trust signals; Service Providers decide how to use them
 
-This decision affects protocol complexity, platform flexibility, adoption barriers, and security model.
+This decision affects protocol complexity, Service Provider flexibility, adoption barriers, and security model.
 
 ---
 
@@ -26,38 +26,38 @@ This decision affects protocol complexity, platform flexibility, adoption barrie
 
 ### Option 1: Enforcement Framework
 
-**Description:** Protocol mandates how platforms must use trust signals and enforce constraints.
+**Description:** Protocol mandates how Service Providers must use trust signals and enforce constraints.
 
 **Pros:**
-- Consistent behavior across platforms
+- Consistent behavior across Service Providers
 - Clear security guarantees
-- Easier for agents (predictable behavior)
+- Easier for Agents (predictable behavior)
 
 **Cons:**
 - Complex protocol (must specify enforcement details)
-- Inflexible (platforms can't adapt to their needs)
+- Inflexible (Service Providers can't adapt to their needs)
 - Stifles innovation (no experimentation)
 - False security (protocol can't actually enforce)
-- High adoption barrier (platforms must implement exactly as specified)
+- High adoption barrier (Service Providers must implement exactly as specified)
 
 ---
 
 ### Option 2: Signaling Protocol
 
-**Description:** Protocol defines trust signals; platforms decide how to use them.
+**Description:** Protocol defines trust signals; Service Providers decide how to use them.
 
 **Pros:**
 - Simple protocol (focused on credentials)
-- Flexible (platforms adapt to their needs)
+- Flexible (Service Providers adapt to their needs)
 - Enables innovation (experimentation encouraged)
 - Honest scope (explicit about limitations)
-- Lower adoption barrier (integrate as fits platform)
+- Lower adoption barrier (each Service Provider integrates as fits its systems)
 
 **Cons:**
-- Inconsistent behavior across platforms
+- Inconsistent behavior across Service Providers
 - No guaranteed enforcement
-- Agents face different policies per platform
-- Requires platform expertise
+- Agents face different policies across Service Providers
+- Requires expertise on the Service Provider side
 
 ---
 
@@ -81,7 +81,7 @@ This decision affects protocol complexity, platform flexibility, adoption barrie
 
 TSAI is a **signaling protocol** (Option 2), not an enforcement framework.
 
-**Core principle:** "TSAI signals, platforms decide."
+**Core principle:** "TSAI signals, Service Providers decide."
 
 **Protocol specifies:**
 - Credential structure and format
@@ -89,34 +89,34 @@ TSAI is a **signaling protocol** (Option 2), not an enforcement framework.
 - Verification mechanisms (how to check authenticity)
 - Standard constraint profiles (for interoperability)
 
-**Platform decides:**
+**The Service Provider decides:**
 - Which TAs to trust (allowlist)
 - How to interpret trust signals
 - Whether to enforce constraints
 - What access to grant
-- How to monitor and respond to agent behavior
+- How to monitor and respond to Agent behavior
 
 **Rationale:**
 
 ### Protocol Simplicity
 
-Signaling approach keeps protocol focused on credential format and claim semantics. No need to specify platform architecture or implementation. Platforms integrate TSAI in ways that fit their systems. Protocol remains focused and maintainable.
+The signaling approach keeps the protocol focused on credential format and claim semantics. No need to specify Service Provider architecture or implementation. Each Service Provider integrates TSAI in ways that fit its systems. The protocol remains focused and maintainable.
 
-### Platform Flexibility
+### Service Provider Flexibility
 
-Different platforms have different needs. High-security platforms use strict interpretation and enforce all constraints. Experimental platforms use signals for monitoring only with gradual enforcement rollout. Discovery platforms use reputation for ranking and ignore constraints. Signaling approach enables all these use cases.
+Different Service Providers have different needs. High-security Service Providers use strict interpretation and enforce all constraints. Experimental Service Providers use signals for monitoring only with gradual enforcement rollout. Discovery-oriented Service Providers use reputation for ranking and ignore constraints. The signaling approach enables all these use cases.
 
 ### Evolution and Learning
 
-Ecosystem needs to learn how to interpret reputation scores, when to require economic stake, which constraints to enforce, and how to balance security and usability. Signaling approach allows platforms to experiment with different interpretations. Best practices emerge from implementation experience. Protocol doesn't need to change as practices evolve.
+The ecosystem needs to learn how to interpret reputation scores, when to require economic stake, which constraints to enforce, and how to balance security and usability. The signaling approach allows Service Providers to experiment with different interpretations. Best practices emerge from implementation experience. The protocol doesn't need to change as practices evolve.
 
 ### Honest Scope
 
-Reality: Protocol cannot enforce anything—only platforms can. Signaling approach is explicit about what protocol provides (trust signals) and doesn't provide (behavioral guarantees). Prevents false security assumptions. Honest about limitations.
+Reality: the protocol cannot enforce anything — only Service Providers can. The signaling approach is explicit about what the protocol provides (trust signals) and doesn't provide (behavioral guarantees). This prevents false security assumptions and is honest about limitations.
 
 ### Security Model
 
-TSAI provides cryptographic authenticity, semantic clarity, and revocation mechanisms. TSAI does NOT provide guarantee agent will behave correctly, enforcement of constraints, or protection against all attacks. Security model: TSAI signals enable informed decisions, platforms implement defense-in-depth.
+TSAI provides cryptographic authenticity, semantic clarity, and revocation mechanisms. TSAI does NOT guarantee that an Agent will behave correctly, enforce constraints, or protect against all attacks. Security model: TSAI signals enable informed decisions, Service Providers implement defense-in-depth.
 
 ---
 
@@ -129,20 +129,20 @@ TSAI provides cryptographic authenticity, semantic clarity, and revocation mecha
 - Max transaction value: €500
 - Rate limit: 100 requests/hour
 
-TA asserts agent is authorized for this profile."
+The TA asserts the Agent is authorized for this profile."
 
-### Platform Decides
+### The Service Provider Decides
 
-**Questions platforms answer:**
+**Questions a Service Provider answers:**
 - Do I enforce these constraints? (Recommended: yes)
 - How do I enforce? (API gateway, middleware, application layer)
-- What if agent exceeds? (Reject, log, alert, revoke)
+- What if an Agent exceeds the constraint? (Reject, log, alert, revoke)
 - Do I trust this TA's assertion? (Check TA allowlist)
-- Do I require additional constraints? (Platform-specific rules)
+- Do I require additional constraints? (Rules specific to the Service Provider)
 
 ### Recommendations Document Suggests
 
-"Platforms should enforce constraint profiles to limit damage from compromised agents. See implementation patterns in section X."
+"Service Providers should enforce constraint profiles to limit damage from compromised Agents. See implementation patterns in section X."
 
 **Note:** Recommendations are non-normative (guidance, not requirements).
 
@@ -153,23 +153,23 @@ TA asserts agent is authorized for this profile."
 ### Positive
 
 - **Simple protocol:** Focused on credential format and semantics
-- **Platform flexibility:** Integrate TSAI in ways that fit existing systems
-- **Innovation:** Platforms experiment with different interpretations
+- **Flexibility:** Each Service Provider integrates TSAI in ways that fit its existing systems
+- **Innovation:** Service Providers experiment with different interpretations
 - **Evolution:** Best practices emerge without protocol changes
 - **Honest scope:** Explicit about what protocol provides and doesn't provide
 
 ### Negative
 
-- **Inconsistent behavior:** Different platforms interpret signals differently
-- **No guaranteed enforcement:** Platforms may ignore constraints
-- **Agent complexity:** Must understand different platform policies
-- **Security variability:** Platform security depends on implementation quality
+- **Inconsistent behavior:** Different Service Providers interpret signals differently
+- **No guaranteed enforcement:** Service Providers may ignore constraints
+- **Agent complexity:** Must understand different Service Provider policies
+- **Security variability:** Depends on the implementation quality of each Service Provider
 
 ### Neutral
 
 - **Recommendations document:** Captures best practices (non-normative)
 - **Ecosystem learning:** Practices evolve based on implementation experience
-- **Platform responsibility:** Platforms own security decisions and outcomes
+- **Responsibility:** Service Providers own security decisions and outcomes
 
 ---
 
@@ -188,12 +188,12 @@ TA asserts agent is authorized for this profile."
 - Multi-TA trust policies
 - Monitoring and incident response
 
-**Platform Implementation:**
+**Service Provider Implementation:**
 - Choose which TAs to trust (allowlist)
 - Decide how to interpret signals (policy)
 - Implement verification (offline/online)
 - Enforce constraints (recommended)
-- Monitor agent behavior (required)
+- Monitor Agent behavior (required)
 
 **TA Implementation:**
 - Issue credentials with trust signals
@@ -207,4 +207,4 @@ TA asserts agent is authorized for this profile."
 
 - TSAI Design Considerations (concept/archive/01-design-considerations.md)
 - TSAI High-Level Concept (concept/02-high-level-concept.md)
-- "TSAI signals, platforms decide" principle
+- "TSAI signals, Service Providers decide" principle

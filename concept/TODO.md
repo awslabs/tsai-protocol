@@ -19,7 +19,7 @@ Open work items, organized by document or workstream.
 
 - TA credential issuance service (T0/T1)
 - Agent SDK: credential lifecycle, VP-JWT creation, refresh (TypeScript, Python)
-- Platform verifier library: VP-JWT parsing, DID resolution, signature verification
+- Verifier library: VP-JWT parsing, DID resolution, signature verification
 - Test vectors for each tier (valid, invalid, edge cases)
 
 ## Implementation Guide (Non-Normative)
@@ -41,7 +41,7 @@ Open work items, organized by document or workstream.
 
 ## Security
 
-- BitstringStatusList privacy: revocation checking leaks platform identity to TA via HTTP logs; recommend caching proxies or CDN-served status lists
+- BitstringStatusList privacy: revocation checking leaks Service Provider identity to TA via HTTP logs; recommend caching proxies or CDN-served status lists
 - DNSSEC for T2/T3: strengthen from SHOULD to MUST given `did:web` DNS dependency
 
 ## Recommendations Document (Non-Normative)
@@ -85,10 +85,21 @@ Open work items, organized by document or workstream.
 
 ## Feedback Protocol (Post-MVP)
 
-- Standardized schema for platform-to-TA misbehavior reports
+- Standardized schema for misbehavior reports from Service Providers to TAs
 - Feedback authentication
 - Reputation update mechanics
 - Privacy considerations
+
+## User-Level Identification and Sybil Prevention (Post-MVP)
+
+- Service Providers managing scarce resources (e.g., ticketing, limited inventory, queue-based access) need assurance that Agents represent distinct end users — not one user operating many Agents to gain unfair advantage
+- TSAI v1.0 provides operator accountability (T0) and agent reputation (T1) but not end-user uniqueness
+- ADR 008 explores six approaches ranging from pairwise TA-issued credentials to ZK proofs; none selected for v1.0
+- Key design tension: user privacy (unlinkable pseudonyms, minimal disclosure) vs. Sybil prevention (verifiable uniqueness)
+- Gather requirements from early-adopter Service Providers to inform v2.0 design
+- Explore hybrid approaches: TSAI Operator/Agent identity + user verification managed by the Service Provider as complementary layers
+- Evaluate maturity of privacy-preserving technologies (BBS+, ZK proofs) for feasibility in v2.0 timeframe
+- Consider whether a non-normative guidance document on Sybil prevention at the Service Provider layer could bridge the gap before v2.0
 
 ## Agent Delegation (Post-MVP)
 

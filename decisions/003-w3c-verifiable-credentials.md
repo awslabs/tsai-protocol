@@ -116,14 +116,14 @@ Adopt **W3C Verifiable Credentials Data Model 2.0** (Option 3) as the credential
 - Future-proof (W3C maintenance and evolution)
 
 **Perfect Conceptual Fit:**
-- Issuer (TA) → Holder (Agent) → Verifier (Platform)
+- Issuer (TA) → Holder (Agent) → Verifier (Service Provider)
 - Exactly matches TSAI's three-party model
 - Native support for trust signal use case
 
 **Interoperability:**
 - Works with broader identity/trust ecosystems
 - Agents can present TSAI credentials alongside other VCs
-- Platforms can verify multiple credential types with same infrastructure
+- Service Providers can verify multiple credential types with same infrastructure
 
 ### Future-Proof Extensibility
 
@@ -190,7 +190,7 @@ Adopt **W3C Verifiable Credentials Data Model 2.0** (Option 3) as the credential
 ### Phase 1: VC-JWT (MVP)
 
 - Use VC-JWT encoding (JWT-compatible)
-- Minimal disruption for platforms
+- Minimal disruption for Service Providers
 - Leverage existing JWT libraries
 - Good performance for T0/T1
 
@@ -224,7 +224,7 @@ Adopt **W3C Verifiable Credentials Data Model 2.0** (Option 3) as the credential
 **Mitigation:**
 - VC-JWT compact serialization
 - Compression for transport
-- Caching at platforms
+- Caching at Service Providers
 - Acceptable for trust use case (not high-frequency data)
 
 ### JSON-LD Processing

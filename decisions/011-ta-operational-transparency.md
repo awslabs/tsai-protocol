@@ -39,7 +39,7 @@ Governance body operates TA registry, monitors TA behavior, enforces accreditati
 
 ### Option 3: TA Self-Attestation via Operational Status Reports
 
-TAs publish signed, machine-readable operational status reports at a well-known endpoint. Reports contain aggregate statistics, not individual credential data. Platforms consume reports as part of TA trust evaluation.
+TAs publish signed, machine-readable operational status reports at a well-known endpoint. Reports contain aggregate statistics, not individual credential data. Service Providers consume reports as part of TA trust evaluation.
 
 **Decision:** Accepted.
 
@@ -47,7 +47,7 @@ TAs publish signed, machine-readable operational status reports at a well-known 
 
 ## Decision
 
-Require TAs to publish signed operational status reports at `/.well-known/tsai-ta-status`. Reports use aggregate statistics to enable platform-driven TA accountability without compromising credential-level privacy or requiring new infrastructure.
+Require TAs to publish signed operational status reports at `/.well-known/tsai-ta-status`. Reports use aggregate statistics to enable accountability driven by Service Providers without compromising credential-level privacy or requiring new infrastructure.
 
 See Architecture Section 7.7 for the normative specification.
 
@@ -57,8 +57,8 @@ See Architecture Section 7.7 for the normative specification.
 
 - Aggregate statistics reveal TA operational patterns (issuance spikes, zero revocations, stale key rotation) without exposing individual credential data
 - Self-attestation is the only mechanism requiring no new infrastructure or actors
-- A compromised TA could falsify reports, but: falsified reports create verifiable discrepancies if platforms collectively observe more credentials than reported; a TA that stops publishing or publishes stale reports is itself a signal
-- Aligns with "TSAI signals, platforms decide" — platforms already choose which TAs to trust (ADR 002); status reports give them data for informed decisions
+- A compromised TA could falsify reports, but: falsified reports create verifiable discrepancies if Service Providers collectively observe more credentials than reported; a TA that stops publishing or publishes stale reports is itself a signal
+- Aligns with "TSAI signals, Service Providers decide" — Service Providers already choose which TAs to trust (ADR 002); status reports give them data for informed decisions
 
 ---
 
@@ -66,7 +66,7 @@ See Architecture Section 7.7 for the normative specification.
 
 ### Positive
 
-- Platforms gain data for TA trust decisions without new infrastructure
+- Service Providers gain data for TA trust decisions without new infrastructure
 - Privacy preserved (aggregate data only)
 - Minimal TA burden (report generation from existing operational data)
 - Detects systemic TA compromise or misbehavior
@@ -75,7 +75,7 @@ See Architecture Section 7.7 for the normative specification.
 
 - Self-reported data can be falsified by a compromised TA
 - Cannot detect individual fraudulent credentials
-- Effectiveness depends on platforms consuming and acting on reports
+- Effectiveness depends on Service Providers consuming and acting on reports
 
 ### Accepted Residual Risks
 

@@ -31,7 +31,7 @@ Use **fail-closed with degraded mode**:
 - **Fail closed** on security failures (invalid signatures, expired credentials, etc.)
 - **Allow degraded mode** for infrastructure failures (DID resolution, revocation checks)
 - **Require clear indication** when operating in degraded mode
-- **Platform decides** whether to accept degraded credentials (policy, not protocol)
+- **The Service Provider decides** whether to accept degraded credentials (policy, not protocol)
 
 ---
 
@@ -77,12 +77,12 @@ Use **fail-closed with degraded mode**:
 - Security-first (never accept invalid credentials)
 - Availability during infrastructure outages
 - Clear trust level indication
-- Platform retains control (can reject degraded credentials)
+- The Service Provider retains control (can reject degraded credentials)
 - Aligns with operational reality
 
 **Cons:**
 - More complex than always fail closed/open
-- Requires platforms to handle degraded mode
+- Requires Service Providers to handle degraded mode
 - Potential for misuse if warnings ignored
 
 ---
@@ -93,7 +93,7 @@ Use **fail-closed with degraded mode** (Option 3):
 - **Fail closed** on security failures (invalid signatures, expired credentials, etc.)
 - **Allow degraded mode** for infrastructure failures (DID resolution, revocation checks)
 - **Require clear indication** when operating in degraded mode
-- **Platform decides** whether to accept degraded credentials (policy, not protocol)
+- **The Service Provider decides** whether to accept degraded credentials (policy, not protocol)
 
 ---
 
@@ -103,7 +103,7 @@ Use **fail-closed with degraded mode** (Option 3):
 - Invalid signature → Reject (credential is forged or tampered)
 - Expired credential → Reject (credential is no longer valid)
 - Revoked credential → Reject (TA explicitly revoked trust)
-- Invalid VP signature → Reject (agent doesn't control DID)
+- Invalid VP signature → Reject (Agent doesn't control DID)
 - Timestamp outside tolerance → Reject (replay attack or clock issue)
 
 **Infrastructure failures MAY allow degraded mode:**
@@ -114,14 +114,14 @@ Use **fail-closed with degraded mode** (Option 3):
 **Why this works:**
 - T0/T1 designed for offline verification (DID caching is expected)
 - Revocation is optional for T0/T1 (short expiry provides protection)
-- Platforms can implement circuit breakers and fallbacks
+- Service Providers can implement circuit breakers and fallbacks
 - Clear warnings enable informed decisions
 
 **Degraded mode requirements:**
-- Platform MUST indicate degraded trust level
-- Platform MUST log degraded operation
-- Platform SHOULD limit degraded mode duration
-- Platform decides whether to accept (policy decision)
+- The Service Provider MUST indicate degraded trust level
+- The Service Provider MUST log degraded operation
+- The Service Provider SHOULD limit degraded mode duration
+- The Service Provider decides whether to accept (policy decision)
 
 ---
 
@@ -132,23 +132,23 @@ Use **fail-closed with degraded mode** (Option 3):
 - Maintains availability during infrastructure outages
 - Clear trust level indication enables informed decisions
 - Aligns with T0/T1 offline verification model
-- Platforms retain control over risk acceptance
+- Service Providers retain control over risk acceptance
 
 **Negative:**
 - More complex than simple fail closed/open
-- Platforms must implement degraded mode handling
+- Service Providers must implement degraded mode handling
 - Risk of warnings being ignored
 - Requires monitoring and alerting infrastructure
 
 **Neutral:**
 - T2/T3 will have stricter requirements (no degraded mode for revocation)
-- Degraded mode policies are platform-specific (not protocol-mandated)
+- Degraded mode policies are specific to each Service Provider (not protocol-mandated)
 
 ---
 
 ## Implementation Notes
 
-**For Platforms:**
+**For Service Providers:**
 
 **Fail closed on:**
 - Signature verification failures
@@ -198,13 +198,13 @@ Use **fail-closed with degraded mode** (Option 3):
 
 **Mitigations:**
 - Limit cache duration (recommend 5-15 minutes for DID documents)
-- Require platforms to log and monitor degraded mode
+- Require Service Providers to log and monitor degraded mode
 - T2/T3 will not allow degraded mode for critical checks
 - Circuit breakers prevent sustained degraded operation
 - Multiple TAs provide redundancy
 
 **Attack scenarios:**
-- **DDoS TA infrastructure:** Platforms degrade, but still verify signatures (cached keys)
+- **DDoS TA infrastructure:** Service Providers degrade, but still verify signatures (cached keys)
 - **DNS hijacking:** DNSSEC and HTTPS mitigate
 - **Compromise TA domain:** Multiple TAs provide redundancy, governance body can alert
 
