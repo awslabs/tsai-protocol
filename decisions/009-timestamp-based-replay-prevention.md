@@ -7,7 +7,8 @@ SPDX-License-Identifier: Apache-2.0
 
 **Status:** Accepted  
 **Date:** 2026-01-27  
-**Deciders:** TSAI Working Group
+**Deciders:** TSAI Working Group  
+**Amended by:** [ADR 012 — Service Provider Terminology](./012-service-provider-terminology.md)
 
 ---
 
@@ -25,7 +26,7 @@ T0/T1 credentials require replay attack prevention to ensure a stolen Verifiable
 
 Use **timestamp-based replay prevention** for T0/T1 credentials:
 - Agent includes current timestamp in VP
-- The Service Provider validates the timestamp is within ±30 seconds of current time
+- Platform validates timestamp is within ±30 seconds of current time
 - No per-request state or nonce management required
 - Replay window limited to ~1 minute
 
@@ -35,7 +36,7 @@ Use **timestamp-based replay prevention** for T0/T1 credentials:
 
 ### Option 1: Challenge-Response with Rotating Nonces (Rejected)
 
-**Description:** The Service Provider publishes a rotating challenge (e.g., hourly/daily nonce); the Agent includes it in the VP.
+**Description:** Platform publishes rotating challenge (e.g., hourly/daily nonce), agent includes in VP.
 
 **Pros:**
 - Strong replay prevention
@@ -51,7 +52,7 @@ Use **timestamp-based replay prevention** for T0/T1 credentials:
 
 ### Option 2: Per-Request Challenge-Response
 
-**Description:** The Service Provider generates a unique challenge per request; the Agent responds with the signed challenge.
+**Description:** Platform generates unique challenge per request, agent responds with signed challenge.
 
 **Pros:**
 - Strongest replay prevention
@@ -59,7 +60,7 @@ Use **timestamp-based replay prevention** for T0/T1 credentials:
 
 **Cons:**
 - Requires two round-trips (challenge request, response)
-- The Service Provider must manage per-request state
+- Platform must manage per-request state
 - Adds latency and failure points
 - Overkill for T0/T1 use cases
 
@@ -67,7 +68,7 @@ Use **timestamp-based replay prevention** for T0/T1 credentials:
 
 ### Option 3: Timestamp-Based
 
-**Description:** The Agent includes the current timestamp in the VP; the Service Provider validates freshness.
+**Description:** Agent includes current timestamp in VP, platform validates freshness.
 
 **Pros:**
 - Single request (no extra round-trips)
@@ -87,7 +88,7 @@ Use **timestamp-based replay prevention** for T0/T1 credentials:
 
 Use **timestamp-based replay prevention** (Option 3) for T0/T1 credentials:
 - Agent includes current timestamp in VP
-- The Service Provider validates the timestamp is within ±30 seconds of current time
+- Platform validates timestamp is within ±30 seconds of current time
 - No per-request state or nonce management required
 - Replay window limited to ~1 minute
 
@@ -106,20 +107,20 @@ Use **timestamp-based replay prevention** (Option 3) for T0/T1 credentials:
 **Replay window analysis:**
 - ±30 second tolerance = ~1 minute replay window
 - T0/T1 use cases (browsing, search) can tolerate this
-- Service Providers can optionally track VP signatures to prevent replay within window
+- Platforms can optionally track VP signatures to prevent replay within window
 - T2/T3 will use stronger mechanisms (challenge-response, real-time verification)
 
 **Clock synchronization:**
 - Modern systems use NTP by default
 - ±30 seconds accommodates minor drift
-- Service Providers should monitor clock sync and alert on failures
+- Platforms should monitor clock sync and alert on failures
 
 ---
 
 ## Consequences
 
 **Positive:**
-- Simple implementation for Service Providers and Agents
+- Simple implementation for platforms and agents
 - No state management or nonce infrastructure
 - Single request flow (better UX, fewer failure points)
 - Aligns with offline verification model for T0/T1
@@ -129,11 +130,11 @@ Use **timestamp-based replay prevention** (Option 3) for T0/T1 credentials:
 - Requires NTP synchronization (operational dependency)
 - ~1 minute replay window (acceptable for T0/T1, not for T2/T3)
 - Clock drift could cause false rejections or extended replay windows
-- Service Providers must monitor clock synchronization
+- Platforms must monitor clock synchronization
 
 **Neutral:**
 - T2/T3 will need stronger replay prevention (challenge-response or real-time verification)
-- Service Providers can optionally implement VP signature tracking for additional protection
+- Platforms can optionally implement VP signature tracking for additional protection
 
 ---
 
@@ -144,14 +145,14 @@ Use **timestamp-based replay prevention** (Option 3) for T0/T1 credentials:
 - Ensure system clock is NTP-synchronized
 - Handle timestamp validation errors gracefully
 
-**For Service Providers:**
+**For Platforms:**
 - Validate VP timestamp is within ±30 seconds
 - Monitor NTP synchronization status
 - Optionally track VP signatures to prevent replay within time window
 - Log timestamp validation failures for debugging
 
 **For TAs:**
-- Document clock synchronization requirements for Operators
+- Document clock synchronization requirements for operators
 - Provide guidance on NTP configuration
 
 ---

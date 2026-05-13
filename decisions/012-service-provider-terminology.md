@@ -46,7 +46,7 @@ Adopt the W3C Verifiable Credentials canonical role name directly.
 
 Adopt a business-oriented term that matches how prospective implementers describe themselves, with a documented bridge to the W3C Verifier role.
 
-**Pros:** Matches implementer self-identification; covers the full range of actors (services, APIs, merchants, middleware, other Agents acting in a service role); neutralises the A2A "Service Agent" collision (the mapping becomes Service Agent ↔ Service Provider, which is clearer than the previous Platform ↔ Service Agent); consistent with the term already leaking into business-facing documents.
+**Pros:** Matches implementer self-identification; covers the full range of actors (services, APIs, merchants, middleware, other Agents acting in a service role); neutralizes the A2A "Service Agent" collision (the mapping becomes Service Agent ↔ Service Provider, which is clearer than the previous Platform ↔ Service Agent); consistent with the term already leaking into business-facing documents.
 **Cons:** Two words. "Service" is a somewhat overloaded word in the broader ecosystem (MCP servers, AWS services, A2A Service Agents). Mitigated by the Title-case convention and by avoiding the bare word "service" as a TSAI role term.
 
 **Decision:** Accepted.
@@ -73,7 +73,7 @@ Common English uses of the same words remain lowercase. "The user opens a browse
 
 ### Actor vs. component
 
-The Service Provider is the actor — the party, organisation, or entity. The component inside a Service Provider's stack that performs credential verification is called a **verifier** (lowercase). This distinction allows accurate description of cases where verification is delegated to infrastructure — for example, a CDN or edge gateway acting as a verifier on behalf of its customer Service Providers.
+The Service Provider is the actor — the party, organization, or entity. The component inside a Service Provider's stack that performs credential verification is called a **verifier** (lowercase). This distinction allows accurate description of cases where verification is delegated to infrastructure — for example, a CDN or edge gateway acting as a verifier on behalf of its customer Service Providers.
 
 ### Cross-standard mapping
 

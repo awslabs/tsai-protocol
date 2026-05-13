@@ -7,7 +7,8 @@ SPDX-License-Identifier: Apache-2.0
 
 **Status:** Accepted  
 **Date:** 2026-01-22  
-**Deciders:** TAP Working Group
+**Deciders:** TAP Working Group  
+**Amended by:** [ADR 012 — Service Provider Terminology](./012-service-provider-terminology.md)
 
 ---
 
@@ -116,14 +117,14 @@ Adopt **W3C Verifiable Credentials Data Model 2.0** (Option 3) as the credential
 - Future-proof (W3C maintenance and evolution)
 
 **Perfect Conceptual Fit:**
-- Issuer (TA) → Holder (Agent) → Verifier (Service Provider)
+- Issuer (TA) → Holder (Agent) → Verifier (Platform)
 - Exactly matches TSAI's three-party model
 - Native support for trust signal use case
 
 **Interoperability:**
 - Works with broader identity/trust ecosystems
 - Agents can present TSAI credentials alongside other VCs
-- Service Providers can verify multiple credential types with same infrastructure
+- Platforms can verify multiple credential types with same infrastructure
 
 ### Future-Proof Extensibility
 
@@ -190,7 +191,7 @@ Adopt **W3C Verifiable Credentials Data Model 2.0** (Option 3) as the credential
 ### Phase 1: VC-JWT (MVP)
 
 - Use VC-JWT encoding (JWT-compatible)
-- Minimal disruption for Service Providers
+- Minimal disruption for platforms
 - Leverage existing JWT libraries
 - Good performance for T0/T1
 
@@ -224,7 +225,7 @@ Adopt **W3C Verifiable Credentials Data Model 2.0** (Option 3) as the credential
 **Mitigation:**
 - VC-JWT compact serialization
 - Compression for transport
-- Caching at Service Providers
+- Caching at platforms
 - Acceptable for trust use case (not high-frequency data)
 
 ### JSON-LD Processing

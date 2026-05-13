@@ -891,5 +891,5 @@ Service Agent SHOULD return 401 (authentication takes precedence over authorizat
 - W3C AI Agent Protocol Specification: https://w3c-cg.github.io/ai-agent-protocol/protocol.html
 - MCP Protocol Specification: https://github.com/modelcontextprotocol/modelcontextprotocol
 - A2A Protocol Specification: https://github.com/a2aproject/A2A
-- TSAI Credential Format: [Section 2](./03-credential-format.md)
-- TSAI Verification: [Section 3](./03-verification.md)
+- TSAI Credential Format: [Section 3](./03-credential-format.md)
+- TSAI Verification: [Section 4](./04-verification.md)

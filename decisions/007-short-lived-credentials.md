@@ -7,7 +7,8 @@ SPDX-License-Identifier: Apache-2.0
 
 **Status:** Accepted  
 **Date:** 2026-01-22  
-**Deciders:** TSAI Working Group
+**Deciders:** TSAI Working Group  
+**Amended by:** [ADR 012 — Service Provider Terminology](./012-service-provider-terminology.md)
 
 ---
 
@@ -52,7 +53,7 @@ Credentials must balance security and performance:
 **How it works:**
 - TA maintains bitstring (one bit per credential)
 - Bit = 0: valid, Bit = 1: revoked
-- Service Providers fetch bitstring, check credential's bit
+- Platforms fetch bitstring, check credential's bit
 - Bitstring cached (reduces TA load)
 
 **Pros:**
@@ -71,10 +72,10 @@ Credentials must balance security and performance:
 
 ### TA Real-Time API (T3)
 
-**Description:** The Service Provider queries the TA API for credential status.
+**Description:** Platform queries TA API for credential status.
 
 **How it works:**
-- The Service Provider sends credential ID to TA API
+- Platform sends credential ID to TA API
 - TA returns: valid/revoked + current stake/reputation + constraints
 - Real-time verification (no caching)
 
@@ -267,7 +268,7 @@ Agents refresh credentials before expiry via TA REST API for credential renewal.
 
 ---
 
-### Service Providers
+### Platforms
 
 **Verification:**
 - Check credential expiry (always)

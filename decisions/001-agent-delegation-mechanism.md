@@ -7,7 +7,8 @@ SPDX-License-Identifier: Apache-2.0
 
 **Status:** Accepted  
 **Date:** 2026-01-22  
-**Deciders:** TSAI Working Group
+**Deciders:** TSAI Working Group  
+**Amended by:** [ADR 012 — Service Provider Terminology](./012-service-provider-terminology.md)
 
 ---
 
@@ -16,7 +17,7 @@ SPDX-License-Identifier: Apache-2.0
 Multi-agent architectures require agents to delegate tasks to other agents and establish trust chains. The protocol must support scenarios where:
 
 1. Agent A calls Agent B's API and B needs to verify A's legitimacy
-2. Agent A delegates a subtask to Agent B, and Service Providers need to know B is authorized by A
+2. Agent A delegates a subtask to Agent B, and platforms need to know B is authorized by A
 3. Chains of agents (A → B → C) collaborate, requiring transitive authorization
 
 Without delegation support, each agent operates independently with no way to express "Agent B is acting on behalf of Agent A."
@@ -86,7 +87,7 @@ Without delegation support, each agent operates independently with no way to exp
 
 **Cons:**
 - Not a standard pattern (custom protocol)
-- Service Providers must verify two signatures
+- Platforms must verify two signatures
 
 ---
 
@@ -98,20 +99,20 @@ Without delegation support, each agent operates independently with no way to exp
 - Sufficient for independent agent-to-agent interactions
 
 **Phase 2+ (Optional Extension):** W3C Authorization Capabilities (ZCAP-LD) (Option 2)
-- Agents can issue delegation credentials to other Agents
+- Agents can issue delegation credentials to other agents
 - Delegation credentials specify authorized actions, scope, and duration
-- Service Providers verify: TA credential + delegation chain
-- Optional protocol extension (Service Providers choose whether to support)
+- Platforms verify: TA credential + delegation chain
+- Optional protocol extension (platforms choose whether to support)
 
 ---
 
 ## Rationale
 
-**Start simple:** MVP doesn't require delegation support. Most early use cases involve Agents directly accessing Service Providers, not complex multi-agent workflows.
+**Start simple:** MVP doesn't require delegation support. Most early use cases involve agents directly accessing platforms, not complex multi-agent workflows.
 
 **Standards-based future:** W3C ZCAP-LD provides a proven, standards-based delegation mechanism. Adopting it as an optional extension allows the ecosystem to mature before adding complexity.
 
-**Optional, not mandatory:** Service Providers can choose whether to support delegation. This keeps the core protocol simple while enabling advanced use cases.
+**Optional, not mandatory:** Platforms can choose whether to support delegation. This keeps the core protocol simple while enabling advanced use cases.
 
 **Early introduction possible:** ZCAP-LD could be introduced as early as Phase 2 if demand exists, as it doesn't conflict with the core protocol.
 
@@ -123,11 +124,11 @@ Without delegation support, each agent operates independently with no way to exp
 - Simple MVP enables rapid adoption
 - Standards-based delegation path for future
 - Clear separation between core protocol and extensions
-- Service Providers can adopt delegation incrementally
+- Platforms can adopt delegation incrementally
 
 **Negative:**
 - Multi-agent workflows not fully supported in MVP
-- Service Providers must implement delegation verification if they want to support it
+- Platforms must implement delegation verification if they want to support it
 - Delegation credentials add verification complexity
 
 **Neutral:**
@@ -140,14 +141,14 @@ Without delegation support, each agent operates independently with no way to exp
 
 **MVP:**
 - No changes to core protocol
-- Each Agent presents its own TSAI credential
-- Agent-to-agent calls treated the same as Agent-to-Service-Provider calls
+- Each agent presents own TSAI credential
+- Agent-to-agent calls treated same as agent-to-platform calls
 
 **Phase 2+ (ZCAP-LD Extension):**
 - Define delegation credential format (based on W3C ZCAP-LD)
 - Specify delegation chain verification algorithm
 - Add delegation examples to architecture document
-- Update Service Provider integration guidance
+- Update platform integration guidance
 
 **TODO:**
 - Research W3C ZCAP-LD specification details

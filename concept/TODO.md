@@ -92,7 +92,7 @@ Open work items, organized by document or workstream.
 
 ## User-Level Identification and Sybil Prevention (Post-MVP)
 
-- Service Providers managing scarce resources (e.g., ticketing, limited inventory, queue-based access) need assurance that Agents represent distinct end users — not one user operating many Agents to gain unfair advantage
+- Service Providers managing scarce resources (e.g., ticketing, limited inventory, queue-based access) need assurance that Agents represent distinct end users — not one User operating many Agents to gain unfair advantage
 - TSAI v1.0 provides operator accountability (T0) and agent reputation (T1) but not end-user uniqueness
 - ADR 008 explores six approaches ranging from pairwise TA-issued credentials to ZK proofs; none selected for v1.0
 - Key design tension: user privacy (unlinkable pseudonyms, minimal disclosure) vs. Sybil prevention (verifiable uniqueness)

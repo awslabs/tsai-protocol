@@ -518,7 +518,7 @@ Verification requirements are specified normatively in Section 3 (04-verificatio
 - Agent interactions with other Service Providers
 - Full history of Agent behavior (only aggregated reputation)
 - Other credentials the Agent holds
-- User identity (TSAI is Agent-to-Service-Provider, not User-to-Service-Provider)
+- User identity (TSAI operates between Agent and Service Provider, not between User and Service Provider)
 
 **Tracking Across Service Providers:**
 - Service Providers cannot track Agents across other Service Providers (unless the Agent uses the same DID)
