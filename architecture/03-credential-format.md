@@ -190,10 +190,10 @@ These claims describe the behavioral track record of a specific agent, tracked p
 - Higher is better
 - 0 = no reputation data, 100 = excellent reputation
 - TA-specific: methodology varies by TA, scores are not comparable across TAs
-- Platforms SHOULD use the component signals below for cross-TA comparisons
+- Service Providers SHOULD use the component signals below for cross-TA comparisons
 
 **`reputation.interactionCount`** (integer, ≥0)
-- Total number of interactions evaluated by TA for this agent
+- Total number of interactions evaluated by TA for this Agent
 - Used to assess confidence in component signals
 
 **`reputation.successRate`** (number, 0-1)
@@ -345,8 +345,8 @@ TAs MAY include additional trust signals beyond the standardized claims defined 
 - TAs MUST NOT use another TA's namespace
 - Signal values MAY be any JSON-compatible type (string, number, boolean, object, array)
 - TAs SHOULD document their custom signals at `/.well-known/tsai-ta-signals` or equivalent discoverable endpoint
-- Platforms MUST ignore TA-specific signals they do not recognize (forward compatibility)
-- Platforms MAY use TA-specific signals in trust decisions when they understand the issuing TA's signal semantics
+- Service Providers MUST ignore TA-specific signals they do not recognize (forward compatibility)
+- Service Providers MAY use TA-specific signals in trust decisions when they understand the issuing TA's signal semantics
 - TA-specific signals MUST NOT duplicate or contradict standardized claims
 
 **Example in credential:**
@@ -371,7 +371,7 @@ TAs MAY include additional trust signals beyond the standardized claims defined 
 }
 ```
 
-**Rationale:** TAs compete on evaluation methodology. Proprietary signals enable differentiation without fragmenting the interoperable baseline. The FQDN namespace prevents collisions and makes signal provenance self-evident. Platforms that trust a specific TA can leverage its custom signals; others safely ignore them.
+**Rationale:** TAs compete on evaluation methodology. Proprietary signals enable differentiation without fragmenting the interoperable baseline. The FQDN namespace prevents collisions and makes signal provenance self-evident. Service Providers that trust a specific TA can leverage its custom signals; others safely ignore them.
 
 ---
 
@@ -728,7 +728,7 @@ The status list credential contains a compressed bitstring where:
 - Bit = 0: Credential is valid
 - Bit = 1: Credential is revoked
 
-Platforms check revocation by:
+Service Providers check revocation by:
 1. Fetching the status list credential
 2. Decompressing the bitstring
 3. Checking the bit at `statusListIndex`
@@ -745,7 +745,7 @@ See W3C BitstringStatusList specification for full details.
 **Current version:** `1.0`
 
 **Version compatibility:**
-- Platforms MUST reject credentials with unknown `tsaiVersion`
+- Service Providers MUST reject credentials with unknown `tsaiVersion`
 - Minor version changes (e.g., 1.0 → 1.1) MUST be backward compatible
 - Major version changes (e.g., 1.0 → 2.0) MAY break compatibility
 
@@ -769,7 +769,7 @@ See W3C BitstringStatusList specification for full details.
 - Present credentials for appropriate tier based on use case
 - Prove possession via Verifiable Presentation (see Section 3)
 
-**Platforms MUST:**
+**Service Providers MUST:**
 - Verify credential signature against TA's DID document
 - Check credential expiry
 - Check revocation status for T2/T3

@@ -7,7 +7,8 @@ SPDX-License-Identifier: Apache-2.0
 
 **Status:** Proposed  
 **Date:** 2026-03-17  
-**Deciders:** TSAI Working Group
+**Deciders:** TSAI Working Group  
+**Amended by:** [ADR 012 — Service Provider Terminology](./012-service-provider-terminology.md)
 
 ---
 

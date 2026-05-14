@@ -569,7 +569,7 @@ Content-Type: application/json
 
 **Mitigation:**
 - Multiple TAs provide redundancy
-- Platforms can pin trusted TA DIDs
+- Service Providers can pin trusted TA DIDs
 - Governance body monitors TA behavior
 - Credential transparency logs (future consideration)
 
@@ -622,10 +622,12 @@ The W3C AI Agent Protocol and TSAI use different terminology for similar concept
 | W3C AI Agent Protocol | TSAI Equivalent | Description |
 |----------------------|-----------------|-------------|
 | Personal Agent | Agent | Serves individual users, acts on their behalf |
-| Service Agent | Platform | Provides services to other agents |
+| Service Agent | Service Provider | Provides services to other Agents |
 | Search Agent | Out of scope | Discovery service (not covered by TSAI) |
 
-**Clarification:** When discussing both protocols together, "agent" may refer to either W3C Personal Agents or TSAI Agents. Context determines meaning.
+**Clarification on "Agent":** When discussing both protocols together, "Agent" may refer to either a W3C Personal Agent or a TSAI Agent. Context determines meaning.
+
+**Clarification on "Service Agent" vs. "Service Provider":** These similar-sounding terms name distinct concepts. A W3C "Service Agent" is an Agent in the W3C sense; a TSAI "Service Provider" is the TSAI actor that receives and verifies credentials. When a W3C Service Agent receives a TSAI credential, it is acting as a TSAI Service Provider. The same physical component can therefore be a W3C Service Agent and a TSAI Service Provider simultaneously, depending on which protocol is being discussed.
 
 ### 4.7.3 Identity Layer Compatibility
 
@@ -889,5 +891,5 @@ Service Agent SHOULD return 401 (authentication takes precedence over authorizat
 - W3C AI Agent Protocol Specification: https://w3c-cg.github.io/ai-agent-protocol/protocol.html
 - MCP Protocol Specification: https://github.com/modelcontextprotocol/modelcontextprotocol
 - A2A Protocol Specification: https://github.com/a2aproject/A2A
-- TSAI Credential Format: [Section 2](./02-credential-format.md)
-- TSAI Verification: [Section 3](./03-verification.md)
+- TSAI Credential Format: [Section 3](./03-credential-format.md)
+- TSAI Verification: [Section 4](./04-verification.md)

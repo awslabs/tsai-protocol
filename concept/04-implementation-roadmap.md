@@ -21,7 +21,7 @@ The approach follows five guiding principles: start simple and add complexity on
 
 ## Phase 0: Proof of Concept (Weeks 1-4)
 
-Phase 0 validates core technical concepts with minimal implementation. The goal is to prove that W3C Verifiable Credentials can work for agent trust signaling, that basic tier enforcement is feasible, and that platforms can integrate without excessive complexity.
+Phase 0 validates core technical concepts with minimal implementation. The goal is to prove that W3C Verifiable Credentials can work for Agent trust signaling, that basic tier enforcement is feasible, and that Service Providers can integrate without excessive complexity.
 
 ### Deliverables
 
@@ -34,7 +34,7 @@ Phase 0 validates core technical concepts with minimal implementation. The goal 
 **Reference Implementation:**
 - TA credential issuance service (basic)
 - DID Document hosting (`did:web`)
-- Platform verification library (VC support)
+- Verifier library (VC support)
 - Agent credential management (basic)
 - Simple test suite
 
@@ -50,7 +50,7 @@ Phase 0 validates core technical concepts with minimal implementation. The goal 
 
 ### Success Criteria
 
-Success means issuing and verifying T0/T1 credentials, basic tier enforcement working, security review identifying no critical flaws, and 2-3 pilot platforms successfully integrating.
+Success means issuing and verifying T0/T1 credentials, basic tier enforcement working, security review identifying no critical flaws, and 2-3 pilot Service Providers successfully integrating.
 
 Known limitations at this phase: single TA, no real-time validation, limited monitoring, manual incident response, and no formal audits.
 
@@ -80,7 +80,7 @@ Phase 1 delivers production-grade security for early adopters. This phase comple
 - BitstringStatusList publication
 - Monitoring and alerting
 
-**Platform Integration:**
+**Service Provider Integration:**
 - Complete verification library (VC support)
 - DID resolution
 - Tier enforcement framework
@@ -110,7 +110,7 @@ Phase 1 delivers production-grade security for early adopters. This phase comple
 
 ### Success Criteria
 
-Success means 10+ platforms integrated, 100+ agents using credentials, real-time validation working for T2/T3, no critical security incidents, SOC 2 Type I certification for the TA, and passing an external security audit.
+Success means 10+ Service Providers integrated, 100+ Agents using credentials, real-time validation working for T2/T3, no critical security incidents, SOC 2 Type I certification for the TA, and passing an external security audit.
 
 Performance targets: credential issuance latency <500ms, verification latency <100ms (offline) or <200ms (online), TA uptime >99.9%, and false positive rate <1%.
 
@@ -137,7 +137,7 @@ Phase 2 scales security and functionality for a growing ecosystem. Multiple inde
 - Security monitoring dashboard
 - Threat intelligence integration
 
-**Platform Capabilities:**
+**Service Provider Capabilities:**
 - Advanced tier enforcement
 - Constraint validation
 - Multi-TA verification
@@ -168,7 +168,7 @@ Phase 2 scales security and functionality for a growing ecosystem. Multiple inde
 
 ### Success Criteria
 
-Success means 50+ platforms integrated, 1,000+ agents using credentials, multiple independent TAs operational, multi-TA credential handling working for T3, no major security incidents, SOC 2 Type II achieved, and multiple independent security audits passed.
+Success means 50+ Service Providers integrated, 1,000+ Agents using credentials, multiple independent TAs operational, multi-TA credential handling working for T3, no major security incidents, SOC 2 Type II achieved, and multiple independent security audits passed.
 
 Performance targets: credential issuance latency <300ms, verification latency <50ms (offline) or <150ms (online), TA uptime >99.95%, false positive rate <0.5%, and revocation propagation <1 minute for T2/T3.
 
@@ -195,7 +195,7 @@ Phase 3 achieves advanced security and global scale. The protocol adds privacy-p
 - Advanced privacy features (BBS+)
 - Formal security verification
 
-**Platform Capabilities:**
+**Service Provider Capabilities:**
 - Advanced constraint enforcement
 - Real-time risk assessment
 - Automated compliance reporting
@@ -226,7 +226,7 @@ Phase 3 achieves advanced security and global scale. The protocol adds privacy-p
 
 ### Success Criteria
 
-Success means 200+ platforms integrated, 10,000+ agents using credentials, 5+ independent TAs operational, global scale achieved with millions of daily interactions, no critical security incidents, regulatory compliance certifications obtained, and academic security research published.
+Success means 200+ Service Providers integrated, 10,000+ Agents using credentials, 5+ independent TAs operational, global scale achieved with millions of daily interactions, no critical security incidents, regulatory compliance certifications obtained, and academic security research published.
 
 Performance targets: credential issuance latency <200ms, verification latency <30ms (offline) or <100ms (online), TA uptime >99.99%, false positive rate <0.1%, and revocation propagation <30 seconds for T2/T3.
 

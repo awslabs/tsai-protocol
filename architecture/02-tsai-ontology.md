@@ -124,4 +124,4 @@ Each agent has exactly one operator for clear accountability (one party operatio
 - W3C Verifiable Credentials Data Model 2.0
 - W3C Decentralized Identifiers (DIDs)
 - JSON-LD 1.1
-- TSAI Credential Format (architecture/02-credential-format.md)
+- TSAI Credential Format (architecture/03-credential-format.md)

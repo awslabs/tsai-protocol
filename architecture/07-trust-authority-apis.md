@@ -14,7 +14,7 @@ SPDX-License-Identifier: Apache-2.0
 
 ## 7.1 Overview
 
-The Trust Authority API enables agents to obtain verifiable credentials and platforms to verify credential status. The normative API specification is defined in OpenAPI format at [`openapi/trust-authority-api.yaml`](openapi/trust-authority-api.yaml). This document explains the design rationale and operational context.
+The Trust Authority API enables Agents to obtain verifiable credentials and Service Providers to verify credential status. The normative API specification is defined in OpenAPI format at [`openapi/trust-authority-api.yaml`](openapi/trust-authority-api.yaml). This document explains the design rationale and operational context.
 
 This MVP specification covers T0 and T1 credentials only. Revocation endpoints and status lists are deferred to Phase 1 (T2/T3 implementation). T0/T1 credentials rely on natural expiry rather than active revocation.
 
@@ -30,7 +30,7 @@ Challenges are single-use and expire after 5 minutes. This prevents replay attac
 
 ## 7.3 Credential Lifecycle
 
-Agents request credentials just-in-time rather than maintaining a persistent credential store. When an agent needs to interact with a platform, it requests a credential from the TA at the appropriate tier. The TA evaluates the agent against tier requirements: T0 requires identity verification through KYC, T1 adds reputation data. The TA issues a credential at the highest tier the agent qualifies for, which may be lower than requested if the agent doesn't meet requirements.
+Agents request credentials just-in-time rather than maintaining a persistent credential store. When an Agent needs to interact with a Service Provider, it requests a credential from the TA at the appropriate tier. The TA evaluates the Agent against tier requirements: T0 requires identity verification through KYC, T1 adds reputation data. The TA issues a credential at the highest tier the Agent qualifies for, which may be lower than requested if the Agent doesn't meet requirements.
 
 Credentials are short-lived by design. T0 and T1 credentials expire after 2-4 hours. Short expiry reduces revocation dependency—most credentials naturally expire before revocation becomes necessary. Agents refresh credentials before expiry (recommended at 80% of lifetime) to maintain continuous access. Refresh is faster than issuance because the TA can skip re-evaluation if the agent's status hasn't changed significantly.
 
@@ -76,7 +76,7 @@ Trust Authorities should publish metadata at `/.well-known/tsai-trust-authority`
 
 ### 7.7.1 Status Report Endpoint
 
-Trust Authorities MUST serve a signed JSON document at `/.well-known/tsai-ta-status` over HTTPS. This report provides aggregate operational metrics that enable platforms to assess TA health and detect anomalies without exposing individual credential data.
+Trust Authorities MUST serve a signed JSON document at `/.well-known/tsai-ta-status` over HTTPS. This report provides aggregate operational metrics that enable Service Providers to assess TA health and detect anomalies without exposing individual credential data.
 
 ### 7.7.2 Report Format
 
@@ -138,11 +138,11 @@ Trust Authorities MUST serve a signed JSON document at `/.well-known/tsai-ta-sta
 - Reports MUST NOT contain individual credential data, agent identifiers, or operator information
 - Report counts MUST be accurate within ±5% (to accommodate eventual consistency)
 
-**Platforms:**
-- Platforms SHOULD fetch TA status reports periodically (recommended: daily)
-- Platforms SHOULD alert on anomalies: sudden issuance spikes, zero revocations over extended periods, stale key rotation (>12 months), report staleness (>48 hours)
-- Platforms MAY use status report data in TA trust decisions
-- Platforms MUST NOT require specific metric thresholds in the protocol (thresholds are platform policy)
+**Service Providers:**
+- Service Providers SHOULD fetch TA status reports periodically (recommended: daily)
+- Service Providers SHOULD alert on anomalies: sudden issuance spikes, zero revocations over extended periods, stale key rotation (>12 months), report staleness (>48 hours)
+- Service Providers MAY use status report data in TA trust decisions
+- Service Providers MUST NOT require specific metric thresholds in the protocol (thresholds are a Service Provider's policy)
 
 ### 7.7.5 Privacy
 
@@ -224,10 +224,10 @@ TAs issuing T2/T3 credentials MUST serve an HSM attestation document at `/.well-
 - MAY publish an HSM attestation document
 - HSM usage remains REQUIRED but attestation publication is OPTIONAL
 
-**Platforms:**
-- Platforms verifying T2/T3 credentials SHOULD check the TA's HSM attestation
-- Platforms MAY reject T2/T3 credentials from TAs without a current HSM attestation
-- Platforms MUST NOT require specific HSM vendors or certification levels in the protocol (vendor choice is TA policy)
+**Service Providers:**
+- Service Providers verifying T2/T3 credentials SHOULD check the TA's HSM attestation
+- Service Providers MAY reject T2/T3 credentials from TAs without a current HSM attestation
+- Service Providers MUST NOT require specific HSM vendors or certification levels in the protocol (vendor choice is TA policy)
 
 ### 7.8.7 Limitations
 

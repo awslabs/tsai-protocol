@@ -13,7 +13,7 @@ SPDX-License-Identifier: Apache-2.0
 
 ## Overview
 
-TSAI enables agents to prove legitimacy through W3C Verifiable Credentials issued by independent Trust Authorities and verified by platforms. The protocol uses a three-party model: Trust Authorities evaluate operators and agents and issue signed credentials, agents present credentials to prove legitimacy, and platforms verify credentials and make access decisions.
+TSAI enables Agents to prove legitimacy through W3C Verifiable Credentials issued by independent Trust Authorities and verified by Service Providers. The protocol uses a three-party model: Trust Authorities evaluate Operators and Agents and issue signed credentials, Agents present credentials to prove legitimacy, and Service Providers verify credentials and make access decisions.
 
 TSAI defines four trust tiers (T0-T3) with increasing trust signals and verification rigor. Lower tiers are lightweight and offline; higher tiers add economic stake, constraints, and real-time verification. Trust Authorities may specialize in specific tiers based on their capabilities and business model.
 
@@ -23,23 +23,25 @@ TSAI defines four trust tiers (T0-T3) with increasing trust signals and verifica
 
 ### Operator
 
-An operator is the legal entity—whether a company, organization, or individual—that owns and operates agents. The operator sets the system prompts that define each agent's purpose and constraints, and undergoes KYC verification with a Trust Authority to establish their identity. The operator is legally accountable for all agents they operate and builds reputation through the aggregate behavior of those agents across the ecosystem. For example, "Acme Corporation GmbH" might operate multiple specialized agents (shopping-bot, travel-bot, research-bot), each with its own behavioral track record but all sharing the operator's legal identity and accountability.
+An Operator is the legal entity—whether a company, organization, or individual—that owns and operates Agents. The Operator sets the system prompts that define each Agent's purpose and constraints, and undergoes KYC verification with a Trust Authority to establish their identity. The Operator is legally accountable for all Agents they operate and builds reputation through the aggregate behavior of those Agents across the ecosystem. For example, "Acme Corporation GmbH" might operate multiple specialized Agents (shopping-bot, travel-bot, research-bot), each with its own behavioral track record but all sharing the Operator's legal identity and accountability.
 
 ### Agent
 
-An agent is an LLM-driven program with a DID that makes requests on behalf of an operator. Each agent has a cryptographic identity (DID) and is defined by its system prompt, model, tools, and configuration. Agents act as clients connecting to platforms—whether as MCP clients, A2A participants, or other protocol implementations—and build their own behavioral track records. Multiple invocations of the same agent are assumed to behave uniformly. For example: `did:web:acme-corp.com:agents:shopping-bot`.
+An Agent is an LLM-driven program with a DID that makes requests on behalf of an Operator. Each Agent has a cryptographic identity (DID) and is defined by its system prompt, model, tools, and configuration. Agents act as clients connecting to Service Providers—whether as MCP clients, A2A participants, or other protocol implementations—and build their own behavioral track records. Multiple invocations of the same Agent are assumed to behave uniformly. For example: `did:web:acme-corp.com:agents:shopping-bot`.
 
 ### User
 
-A user is the person using the agent to accomplish tasks. Users provide input to direct the agent's actions but remain separate from both the operator and the agent. User identity and authorization are out of TSAI scope—these are handled separately through OAuth, platform accounts, or other mechanisms.
+A User is the person using the Agent to accomplish tasks. Users provide input to direct the Agent's actions but remain separate from both the Operator and the Agent. User identity and authorization are out of TSAI scope—these are handled separately through OAuth, accounts held with the Service Provider, or other mechanisms.
 
-### Platform
+### Service Provider
 
-A platform is any service or system that agents connect to—whether a merchant MCP server, another agent, an API, or a service. Platforms verify TSAI credentials, make access decisions based on trust signals, and report misbehavior to Trust Authorities.
+A Service Provider is the party that receives a credential from an Agent, verifies it, and decides whether to grant access. In practice a Service Provider may be a merchant system, an API, an MCP server, an A2A Service Agent, infrastructure middleware such as a CDN or edge gateway, or another Agent acting in a service role. Service Providers verify TSAI credentials, interpret trust signals, make access decisions, and report misbehavior to Trust Authorities.
+
+In W3C Verifiable Credentials terms, the Service Provider fulfills the Verifier role. Earlier drafts of this specification called this actor "Platform"; the term was changed for clarity and implementer resonance (see ADR 012).
 
 ### Trust Authority
 
-A Trust Authority is an independent organization that evaluates operators and agents. Trust Authorities verify operator identity through KYC, monitor agent behavior and reputation, issue credentials that bind operator identity to agent DIDs, and maintain revocation status.
+A Trust Authority is an independent organization that evaluates Operators and Agents. Trust Authorities verify Operator identity through KYC, monitor Agent behavior and reputation, issue credentials that bind Operator identity to Agent DIDs, and maintain revocation status.
 
 ---
 
@@ -69,13 +71,13 @@ The operator registers with a Trust Authority, undergoing identity verification 
 
 ### 2. Credential Presentation
 
-The agent wraps the credential in a Verifiable Presentation (VP) and signs the VP with its DID private key to prove possession. The agent presents the VP to the platform when connecting—whether as an MCP client, A2A participant, or through other protocols.
+The Agent wraps the credential in a Verifiable Presentation (VP) and signs the VP with its DID private key to prove possession. The Agent presents the VP to the Service Provider when connecting—whether as an MCP client, A2A participant, or through other protocols.
 
 ### 3. Credential Verification
 
-The platform verifies the TA's signature on the credential (proving authenticity), the agent's signature on the VP (proving the agent controls the DID), that the credential hasn't expired, and that the DID in the credential matches the DID that signed the VP.
+The Service Provider verifies the TA's signature on the credential (proving authenticity), the Agent's signature on the VP (proving the Agent controls the DID), that the credential hasn't expired, and that the DID in the credential matches the DID that signed the VP.
 
-The result: the platform knows the operator's legal identity and accountability, the operator's certifications and economic stake, the agent's behavioral track record, and that the credential is authentic with the agent as its legitimate holder.
+The result: the Service Provider knows the Operator's legal identity and accountability, the Operator's certifications and economic stake, the Agent's behavioral track record, and that the credential is authentic with the Agent as its legitimate holder.
 
 ---
 
@@ -101,14 +103,14 @@ Trust signals build on T0 by adding agent-level basic reputation (score, interac
 
 The operational model is mostly automated with API verification of certifications, light human review for edge cases, affordable pricing for small and medium operators, and static signals only—no continuous monitoring required.
 
-Verification matches T0 (offline VP), with platforms interpreting reputation and certification signals. Revocation check is recommended but optional.
+Verification matches T0 (offline VP), with Service Providers interpreting reputation and certification signals. Revocation check is recommended but optional.
 
 **Verification:**
 - Same as T0 (offline VP)
-- Platform interprets reputation and certification signals
+- Service Provider interprets reputation and certification signals
 - Revocation check recommended but optional
 
-**Security:** Reputation and certifications provide behavioral and operational trust; platforms can set minimum thresholds.
+**Security:** Reputation and certifications provide behavioral and operational trust; Service Providers can set minimum thresholds.
 
 ---
 
@@ -130,7 +132,7 @@ Trust signals build on T2 by adding authorized operations (constraint profile), 
 
 The operational model provides high-touch service with dedicated account management, real-time monitoring and verification, and audit coordination and compliance support. The highest cost reflects this white-glove service.
 
-Verification uses VP plus challenge-response (fresh nonce signed by agent), with real-time TA verification required for revocation, constraints, and stake. Platforms enforce constraints based on credential claims. Short expiry (30 minutes) adds another layer of protection. This provides maximum assurance: real-time verification catches compromised agents immediately, constraint validation ensures agents operate within authorized scope, and human oversight protects critical actions.
+Verification uses VP plus challenge-response (fresh nonce signed by Agent), with real-time TA verification required for revocation, constraints, and stake. Service Providers enforce constraints based on credential claims. Short expiry (30 minutes) adds another layer of protection. This provides maximum assurance: real-time verification catches compromised Agents immediately, constraint validation ensures Agents operate within authorized scope, and human oversight protects critical actions.
 
 ---
 
@@ -150,11 +152,11 @@ Credentials expire in 2-4 hours, reducing revocation dependency. A revocation me
 
 ### Defense in Depth
 
-Credentials prove identity and provide trust signals, but platforms must still monitor agent behavior in real-time. Rate limiting, anomaly detection, and kill switches remain essential. Multiple TAs provide redundancy and competition.
+Credentials prove identity and provide trust signals, but Service Providers must still monitor Agent behavior in real-time. Rate limiting, anomaly detection, and kill switches remain essential. Multiple TAs provide redundancy and competition.
 
 ### Acknowledged Limitations
 
-TSAI does not prevent prompt injection attacks (platforms must defend), agent misbehavior within authorized scope (monitoring required), or LLM hallucination or deception (output validation needed).
+TSAI does not prevent prompt injection attacks (Service Providers must defend), Agent misbehavior within authorized scope (monitoring required), or LLM hallucination or deception (output validation needed).
 
 TSAI provides accountability (know who to hold responsible), trust signals (inform risk-calibrated decisions), and cryptographic proof of legitimacy.
 
@@ -172,27 +174,27 @@ This provides interoperability with the broader identity ecosystem, avoids propr
 
 ## Incremental Adoption Path
 
-Phase 1 (MVP): TAs issue credentials with identity signals (T0), agents present VPs to platforms, platforms verify offline. This solves the problem of distinguishing verified agents from random bots.
+Phase 1 (MVP): TAs issue credentials with identity signals (T0), Agents present VPs to Service Providers, Service Providers verify offline. This solves the problem of distinguishing verified Agents from random bots.
 
-Phase 2: TAs add reputation signals to credentials (T1), platforms make risk-calibrated decisions, still using offline verification.
+Phase 2: TAs add reputation signals to credentials (T1), Service Providers make risk-calibrated decisions, still using offline verification.
 
 Phase 3: TAs include stake and insurance (T2), challenge-response for high-value scenarios, optional real-time TA queries.
 
-Phase 4: Credentials include authorized operations (T3), platforms enforce constraints (platform responsibility), real-time verification for critical operations.
+Phase 4: Credentials include authorized operations (T3), Service Providers enforce constraints (a Service Provider responsibility), real-time verification for critical operations.
 
-Phase 5 (Ecosystem Maturity): Multiple competing TAs, rich reputation methodologies, cross-platform trust portability, integration with MCP, A2A, and AP2 protocols.
+Phase 5 (Ecosystem Maturity): Multiple competing TAs, rich reputation methodologies, trust portability across Service Providers, integration with MCP, A2A, and AP2 protocols.
 
 ---
 
 ## Success Criteria
 
-TSAI succeeds when multiple independent Trust Authorities can issue interoperable credentials, platforms can verify credentials without TA runtime dependency (T0/T1), and credentials are portable across any TSAI-enabled platform. Verification must meet performance requirements: <5ms for T0/T1, <500ms for T2, <5s for T3.
+TSAI succeeds when multiple independent Trust Authorities can issue interoperable credentials, Service Providers can verify credentials without TA runtime dependency (T0/T1), and credentials are portable across any TSAI-enabled Service Provider. Verification must meet performance requirements: <5ms for T0/T1, <500ms for T2, <5s for T3.
 
-The ecosystem succeeds when multiple competing TAs operate (3-10 globally), agents carry portable trust across platforms, platforms welcome agent traffic with confidence, and clear accountability enables dispute resolution.
+The ecosystem succeeds when multiple competing TAs operate (3-10 globally), Agents carry portable trust across Service Providers, Service Providers welcome Agent traffic with confidence, and clear accountability enables dispute resolution.
 
-Adoption succeeds through significant platform adoption across verticals, a growing agent ecosystem using credentials, geographic and vertical TA specialization, and no single TA dominance—healthy competition.
+Adoption succeeds through significant Service Provider adoption across verticals, a growing Agent ecosystem using credentials, geographic and vertical TA specialization, and no single TA dominance—healthy competition.
 
-The protocol must scale to millions or billions of daily interactions, with individual platforms handling thousands to millions of agent requests per day, TAs issuing and managing credentials for thousands to millions of agents, and verification infrastructure scaling horizontally.
+The protocol must scale to millions or billions of daily interactions, with individual Service Providers handling thousands to millions of Agent requests per day, TAs issuing and managing credentials for thousands to millions of Agents, and verification infrastructure scaling horizontally.
 
 ---
 
@@ -214,8 +216,8 @@ TSAI is designed for production use at scale. Performance targets by tier:
 - **T3:** Real-time TA verification for maximum assurance, <5s acceptable for high-value operations with human oversight
 
 **Implementation notes:**
-- Latency targets are for verification only (not including network transport to platform)
-- Platforms should cache DID documents and verification results to meet targets
+- Latency targets are for verification only (not including network transport to the Service Provider)
+- Service Providers should cache DID documents and verification results to meet targets
 - T0/T1 targets assume local verification with cached TA public keys
 - T2/T3 targets assume network round-trip to TA
 
@@ -223,15 +225,15 @@ TSAI is designed for production use at scale. Performance targets by tier:
 
 ## Key Principles
 
-**TSAI signals, platforms decide.** The protocol defines credential format and signal semantics. Platforms interpret signals and make access decisions. Enforcement is platform responsibility, not protocol mandate.
+**TSAI signals, Service Providers decide.** The protocol defines credential format and signal semantics. Service Providers interpret signals and make access decisions. Enforcement is the Service Provider's responsibility, not a protocol mandate.
 
 **Lightweight yet secure.** MVP requires only offline VP verification. Complexity scales with risk through the tiered approach. No TA runtime dependency for common cases.
 
 **Standards-based.** W3C VCs, DIDs, and VC-JOSE-COSE provide existing tooling, libraries, and interoperability with the broader ecosystem.
 
-**Centralized TAs, distributed trust.** Professional TAs (not web-of-trust) with multiple competing authorities. Agents choose TAs, platforms choose which TAs to trust.
+**Centralized TAs, distributed trust.** Professional TAs (not web-of-trust) with multiple competing authorities. Agents choose TAs; Service Providers choose which TAs to trust.
 
-**Honest about limitations.** Credentials don't prevent all agent misbehavior. LLM-specific vulnerabilities require additional defenses. TSAI provides accountability and trust signals, not guarantees.
+**Honest about limitations.** Credentials don't prevent all Agent misbehavior. LLM-specific vulnerabilities require additional defenses. TSAI provides accountability and trust signals, not guarantees.
 
 ---
 
@@ -239,7 +241,7 @@ TSAI is designed for production use at scale. Performance targets by tier:
 
 TSAI complements the W3C AI Agent Protocol, which focuses on agent-to-agent communication, discovery, and description. The W3C protocol provides agent identity (`did:wba` method), agent discovery (`.well-known/agent-descriptions`), agent description (capabilities, interfaces), and A2A communication patterns. TSAI provides trust signaling (reputation, certifications, economic stake), Trust Authority evaluation, verifiable credentials with trust signals, and risk-calibrated access decisions.
 
-Combined value: the W3C protocol enables agents to find and communicate with each other; TSAI enables platforms to trust the agents they communicate with.
+Combined value: the W3C protocol enables Agents to find and communicate with each other; TSAI enables Service Providers to trust the Agents they communicate with.
 
 ### Example: Hotel Booking with Trust Verification
 
@@ -259,12 +261,12 @@ TSAI is a complementary protocol that works alongside existing agentic protocols
 
 TSAI uses centralized Trust Authorities for performance and reliability, not blockchain or web-of-trust. There is no on-chain reputation or distributed ledger, though blockchain may be used for transparency (anchoring TA data). Independent professional Trust Authorities with high barriers to entry ensure operational quality and legal accountability through established entities.
 
-TSAI provides trust signals about agent identity, reputation, and authorization. It does not prevent prompt injection, hallucination, or LLM misbehavior. Platforms must implement defense-in-depth with monitoring, validation, and guardrails.
+TSAI provides trust signals about Agent identity, reputation, and authorization. It does not prevent prompt injection, hallucination, or LLM misbehavior. Service Providers must implement defense-in-depth with monitoring, validation, and guardrails.
 
-TSAI signals trustworthiness; platforms decide how to use those signals. The protocol defines what signals exist and what they mean. Platforms interpret signals and make access decisions. TSAI conveys authorization claims (what the TA asserts the agent is authorized to do), but platforms make access decisions based on those claims. Authorization enforcement is platform responsibility.
+TSAI signals trustworthiness; Service Providers decide how to use those signals. The protocol defines what signals exist and what they mean. Service Providers interpret signals and make access decisions. TSAI conveys authorization claims (what the TA asserts the Agent is authorized to do), but Service Providers make access decisions based on those claims. Authorization enforcement is the Service Provider's responsibility.
 
-Credentials prove identity and provide trust signals, but LLMs are runtime-subvertible through prompt injection, sycophancy, and deception. TSAI provides accountability (know who to hold responsible), not behavioral guarantees. Platforms must monitor agent behavior in real-time.
+Credentials prove identity and provide trust signals, but LLMs are runtime-subvertible through prompt injection, sycophancy, and deception. TSAI provides accountability (know who to hold responsible), not behavioral guarantees. Service Providers must monitor Agent behavior in real-time.
 
-TSAI is one layer in defense-in-depth. Platforms still need rate limiting, anomaly detection, output validation, and kill switches. Trust signals inform decisions; they don't replace security controls.
+TSAI is one layer in defense-in-depth. Service Providers still need rate limiting, anomaly detection, output validation, and kill switches. Trust signals inform decisions; they don't replace security controls.
 
 ---

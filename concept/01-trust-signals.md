@@ -15,7 +15,7 @@ SPDX-License-Identifier: Apache-2.0
 
 This document catalogs potential trust signals available in an agent trust ecosystem. It serves as a comprehensive reference of possible signals, though not all will be included in the TSAI protocol specification. The architecture specification defines which signals are normative for each tier.
 
-Trust signals fall into six categories: identity (who the agent and operator are), behavioral (how the agent has performed), economic (what's at stake), authorization (what the agent is allowed to do), technical (cryptographic proofs), and third-party (external endorsements). Each category provides different dimensions of trustworthiness that platforms can use to make risk-calibrated decisions.
+Trust signals fall into six categories: identity (who the Agent and Operator are), behavioral (how the Agent has performed), economic (what's at stake), authorization (what the Agent is allowed to do), technical (cryptographic proofs), and third-party (external endorsements). Each category provides different dimensions of trustworthiness that Service Providers can use to make risk-calibrated decisions.
 
 ---
 
@@ -69,7 +69,7 @@ Trust signals fall into six categories: identity (who the agent and operator are
 - **Rate limits** - Requests per time period
 - **Data access permissions** - What data agent can access
 - **Time bounds** - Temporal validity of permissions
-- **Domain restrictions** - Which platforms/services
+- **Domain restrictions** - Which Service Providers or services
 - **Geographic restrictions** - Where agent can operate
 - **User consent scope** - What user authorized
 - **Human-in-loop indicators** - Whether human oversight is required
