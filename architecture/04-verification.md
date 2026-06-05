@@ -71,13 +71,13 @@ Verification proceeds in two phases: first verify the VP-JWT envelope (proves th
 **Validation:**
 ```
 currentTime = the Service Provider's current UTC time
-issuanceTime = parse(credential.issuanceDate)
-expirationTime = parse(credential.expirationDate)
+validFromTime = parse(credential.validFrom)
+validUntilTime = parse(credential.validUntil)
 
-if (currentTime < issuanceTime - 30 seconds):
+if (currentTime < validFromTime - 30 seconds):
     reject "Credential not yet valid"
 
-if (currentTime > expirationTime + 30 seconds):
+if (currentTime > validUntilTime + 30 seconds):
     reject "Credential expired"
 
 accept
@@ -197,7 +197,7 @@ Signature: <EdDSA signature over header.payload>
 10. Decode VC-JWT header and payload
 11. Resolve TA DID from `issuer` claim; extract public key referenced by `kid` in VC-JWT header
 12. Verify VC-JWT signature using TA's public key
-13. Validate `issuanceDate` and `expirationDate` (±30 seconds clock skew tolerance, see Section 3.3.2)
+13. Validate `validFrom` and `validUntil` (±30 seconds clock skew tolerance, see Section 3.3.2)
 14. Validate `credentialSubject` fields: Agent DID format, Operator DID format (MUST be `did:web`); optionally resolve Operator DID (see Section 3.3.4)
 15. If `credentialStatus` is present, check revocation (see Section 3.4)
 

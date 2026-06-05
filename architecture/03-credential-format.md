@@ -68,13 +68,13 @@ The following claims are REQUIRED in all TSAI credentials:
 **`issuer`** (string or object, REQUIRED)
 - MUST be the TA's DID (e.g., `did:web:trust-authority.example:tsai:ta`)
 
-**`issuanceDate`** (string, REQUIRED)
+**`validFrom`** (string, REQUIRED)
 - ISO 8601 datetime when credential was issued
 - Format: `YYYY-MM-DDTHH:MM:SSZ`
 
-**`expirationDate`** (string, REQUIRED)
+**`validUntil`** (string, REQUIRED)
 - ISO 8601 datetime when credential expires
-- MUST be after `issuanceDate`
+- MUST be after `validFrom`
 - Expiry duration by tier:
   - T0/T1: 2-4 hours
   - T2: 1 hour
@@ -405,8 +405,8 @@ TAs MAY include additional trust signals beyond the standardized claims defined 
   ],
   "type": ["VerifiableCredential", "TSAICredential", "TSAICredentialT0"],
   "issuer": "did:web:trust-authority.example:tsai:ta",
-  "issuanceDate": "2026-01-23T10:00:00Z",
-  "expirationDate": "2026-01-23T14:00:00Z",
+  "validFrom": "2026-01-23T10:00:00Z",
+  "validUntil": "2026-01-23T14:00:00Z",
   "credentialSubject": {
     "id": "did:key:z6MkpTHR8VNsBxYAAWHut2Geadd9jSwuBV8xRoAnwWsdvktH",
     "type": "Agent",
@@ -460,8 +460,8 @@ TAs MAY include additional trust signals beyond the standardized claims defined 
   ],
   "type": ["VerifiableCredential", "TSAICredential", "TSAICredentialT1"],
   "issuer": "did:web:trust-authority.example:tsai:ta",
-  "issuanceDate": "2026-01-23T10:00:00Z",
-  "expirationDate": "2026-01-23T14:00:00Z",
+  "validFrom": "2026-01-23T10:00:00Z",
+  "validUntil": "2026-01-23T14:00:00Z",
   "credentialSubject": {
     "id": "did:web:acme-corp.com:agents:agent123",
     "type": "Agent",
@@ -525,8 +525,8 @@ TAs MAY include additional trust signals beyond the standardized claims defined 
   ],
   "type": ["VerifiableCredential", "TSAICredential", "TSAICredentialT2"],
   "issuer": "did:web:trust-authority.example:tsai:ta",
-  "issuanceDate": "2026-01-23T10:00:00Z",
-  "expirationDate": "2026-01-23T11:00:00Z",
+  "validFrom": "2026-01-23T10:00:00Z",
+  "validUntil": "2026-01-23T11:00:00Z",
   "credentialSubject": {
     "id": "did:web:acme-corp.com:agents:agent123",
     "type": "Agent",
@@ -611,8 +611,8 @@ TAs MAY include additional trust signals beyond the standardized claims defined 
   ],
   "type": ["VerifiableCredential", "TSAICredential", "TSAICredentialT3"],
   "issuer": "did:web:trust-authority.example:tsai:ta",
-  "issuanceDate": "2026-01-23T10:00:00Z",
-  "expirationDate": "2026-01-23T10:30:00Z",
+  "validFrom": "2026-01-23T10:00:00Z",
+  "validUntil": "2026-01-23T10:30:00Z",
   "credentialSubject": {
     "id": "did:web:acme-corp.com:agents:agent123",
     "type": "Agent",
