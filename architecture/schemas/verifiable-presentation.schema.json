@@ -3,48 +3,39 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://tsai.example.org/schemas/verifiable-presentation.json",
   "title": "TSAI VP-JWT Payload",
-  "description": "JWT payload claims for TSAI Verifiable Presentations (VP-JWT encoding per W3C VC-JOSE-COSE). TSAI 1.0 VP-JWTs MUST NOT include claims beyond those defined in this schema. Future versions may relax this constraint.",
+  "description": "JWT Claims Set for TSAI Verifiable Presentations (VP-JWT encoding per W3C VC-JOSE-COSE). The JWS payload IS the Verifiable Presentation directly: the VP properties (@context, type, verifiableCredential) are top-level claims and there is no `vp` wrapper (VC-JOSE-COSE prohibits the `vc`/`vp` claim names). TSAI 1.0 VP-JWTs MUST NOT include claims beyond those defined in this schema. Future versions may relax this constraint.",
   "type": "object",
   "required": [
-    "vp",
+    "@context",
+    "type",
+    "verifiableCredential",
     "iss",
     "aud",
     "iat",
     "exp"
   ],
   "properties": {
-    "vp": {
-      "type": "object",
-      "required": [
-        "@context",
-        "type",
-        "verifiableCredential"
-      ],
-      "properties": {
-        "@context": {
-          "type": "array",
-          "contains": {
-            "const": "https://www.w3.org/ns/credentials/v2"
-          }
-        },
-        "type": {
-          "type": "array",
-          "contains": {
-            "const": "VerifiablePresentation"
-          }
-        },
-        "verifiableCredential": {
-          "type": "array",
-          "minItems": 1,
-          "maxItems": 1,
-          "items": {
-            "type": "string",
-            "description": "VC-JWT encoded TSAI credential"
-          },
-          "description": "TSAI 1.0 requires exactly one credential per VP"
-        }
+    "@context": {
+      "type": "array",
+      "contains": {
+        "const": "https://www.w3.org/ns/credentials/v2"
+      }
+    },
+    "type": {
+      "type": "array",
+      "contains": {
+        "const": "VerifiablePresentation"
+      }
+    },
+    "verifiableCredential": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 1,
+      "items": {
+        "type": "string",
+        "description": "VC-JWT encoded TSAI credential"
       },
-      "additionalProperties": false
+      "description": "TSAI 1.0 requires exactly one credential per VP"
     },
     "iss": {
       "type": "string",
