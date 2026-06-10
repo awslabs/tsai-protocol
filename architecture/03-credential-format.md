@@ -35,13 +35,13 @@ A TSAI credential is a JWT with the following structure:
 ```json
 {
   "alg": "ES256",
-  "typ": "JWT",
+  "typ": "vc+jwt",
   "kid": "<TA-DID>#<key-id>"
 }
 ```
 
 - `alg` MUST be a supported signature algorithm (ES256, ES384, ES512, EdDSA)
-- `typ` MUST be "JWT"
+- `typ` SHOULD be "vc+jwt" (media type `application/vc+jwt`), per W3C VC-JOSE-COSE
 - `kid` MUST reference the TA's signing key in their DID document
 
 **JWT Payload:**

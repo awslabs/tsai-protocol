@@ -149,7 +149,7 @@ Agents prove possession of credentials by wrapping them in a VP-JWT (JWT-encoded
 Header:
 {
   "alg": "EdDSA",
-  "typ": "JWT",
+  "typ": "vp+jwt",
   "kid": "did:web:acme-corp.com:agents:agent123#key-1"   // Agent's key
 }
 
