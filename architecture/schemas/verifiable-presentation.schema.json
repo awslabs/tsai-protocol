@@ -2,8 +2,8 @@
   "$comment": "Copyright Amazon.com Inc. or its affiliates. SPDX-License-Identifier: Apache-2.0",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://tsai.example.org/schemas/verifiable-presentation.json",
-  "title": "TSAI VP-JWT Payload",
-  "description": "JWT Claims Set for TSAI Verifiable Presentations (VP-JWT encoding per W3C VC-JOSE-COSE). The JWS payload IS the Verifiable Presentation directly: the VP properties (@context, type, verifiableCredential) are top-level claims and there is no `vp` wrapper (VC-JOSE-COSE prohibits the `vc`/`vp` claim names). TSAI 1.0 VP-JWTs MUST NOT include claims beyond those defined in this schema. Future versions may relax this constraint.",
+  "title": "TSAI VP-JWT Claims Set",
+  "description": "JWT Claims Set for a TSAI VP-JWT (VC-JOSE-COSE encoding).",
   "type": "object",
   "required": [
     "@context",

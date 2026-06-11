@@ -153,7 +153,7 @@ Header:
   "kid": "did:web:acme-corp.com:agents:agent123#key-1"   // Agent's key
 }
 
-Payload (the JWS payload IS the Verifiable Presentation — no `vp` claim wrapper, per VC-JOSE-COSE):
+Payload:
 {
   "@context": ["https://www.w3.org/ns/credentials/v2"],
   "type": ["VerifiablePresentation"],
@@ -167,6 +167,8 @@ Payload (the JWS payload IS the Verifiable Presentation — no `vp` claim wrappe
 
 Signature: <EdDSA signature over header.payload>
 ```
+
+**Payload structure:** The JWS payload is a JWT Claims Set: the Verifiable Presentation properties and the JWT registered claims are top-level claims. The `vp` wrapper MUST NOT be used, and the `vc` and `vp` claim names MUST NOT appear. A TSAI 1.0 VP-JWT MUST NOT include claims beyond those defined in this section.
 
 **Key distinction:** The VP-JWT `kid` identifies the **Agent's** signing key (used to verify the VP). The enclosed VC-JWT `kid` identifies the **TA's** signing key (used to verify the credential). These are different keys from different parties.
 
