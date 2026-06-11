@@ -155,11 +155,9 @@ Header:
 
 Payload:
 {
-  "vp": {
-    "@context": ["https://www.w3.org/ns/credentials/v2"],
-    "type": ["VerifiablePresentation"],
-    "verifiableCredential": ["<VC-JWT>"]
-  },
+  "@context": ["https://www.w3.org/ns/credentials/v2"],
+  "type": ["VerifiablePresentation"],
+  "verifiableCredential": ["<VC-JWT>"],
   "iss": "did:web:acme-corp.com:agents:agent123",
   "aud": "https://service-provider.example",
   "iat": 1706961330,
@@ -169,6 +167,8 @@ Payload:
 
 Signature: <EdDSA signature over header.payload>
 ```
+
+**Payload structure:** The JWS payload is a JWT Claims Set: the Verifiable Presentation properties and the JWT registered claims are top-level claims. The `vp` wrapper MUST NOT be used, and the `vc` and `vp` claim names MUST NOT appear. A TSAI 1.0 VP-JWT MUST NOT include claims beyond those defined in this section.
 
 **Key distinction:** The VP-JWT `kid` identifies the **Agent's** signing key (used to verify the VP). The enclosed VC-JWT `kid` identifies the **TA's** signing key (used to verify the credential). These are different keys from different parties.
 
@@ -182,7 +182,7 @@ Signature: <EdDSA signature over header.payload>
 - `iat` (REQUIRED): Issued-at timestamp (Unix seconds). Service Providers MUST validate within ±30 seconds of current time.
 - `exp` (REQUIRED): Expiration timestamp (Unix seconds). MUST be no more than 60 seconds after `iat`. This is the VP expiry (seconds), distinct from the enclosed VC expiry (hours).
 - `nonce` (OPTIONAL for T0/T1, REQUIRED for T2/T3): Nonce provided by the Service Provider. When present, eliminates the replay window entirely. When absent, Service Providers rely on `iat` ±30 seconds for freshness.
-- `vp.verifiableCredential` (REQUIRED): MUST contain exactly one TSAI credential (VC-JWT). VPs with zero or more than one credential MUST be rejected.
+- `verifiableCredential` (REQUIRED): MUST contain exactly one TSAI credential (VC-JWT). VPs with zero or more than one credential MUST be rejected.
 
 **Verification steps:**
 1. Decode VP-JWT and verify structure
@@ -192,7 +192,7 @@ Signature: <EdDSA signature over header.payload>
 5. Verify `iat` is within ±30 seconds of current time
 6. Verify `exp` is no more than 60 seconds after `iat` and has not passed
 7. If `nonce` is present, verify it matches a nonce issued by the Service Provider (and has not been used before)
-8. Extract VC-JWT from `vp.verifiableCredential[0]`
+8. Extract VC-JWT from `verifiableCredential[0]`
 9. Verify `iss` matches `credentialSubject.id` in the enclosed VC
 10. Decode VC-JWT header and payload
 11. Resolve TA DID from `issuer` claim; extract public key referenced by `kid` in VC-JWT header
