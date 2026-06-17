@@ -8,7 +8,7 @@ SPDX-License-Identifier: Apache-2.0
 **Status:** Accepted  
 **Date:** 2026-01-22  
 **Deciders:** TAP Working Group  
-**Amended by:** [ADR 012 — Service Provider Terminology](./012-service-provider-terminology.md)
+**Amended by:** [ADR 012 — Service Provider Terminology](./012-service-provider-terminology.md), [ADR 014 — VC-JWT Claim Structure](./014-vc-jwt-claim-structure.md)
 
 ---
 

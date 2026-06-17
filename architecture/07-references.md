@@ -128,6 +128,26 @@ ADR 010: Fail-Closed with Degraded Mode
 TSAI Working Group, January 2026  
 `decisions/010-fail-closed-with-degraded-mode.md`
 
+**[TSAI-ADR-011]**  
+ADR 011: Trust Authority Operational Transparency  
+TSAI Working Group, March 2026  
+`decisions/011-ta-operational-transparency.md`
+
+**[TSAI-ADR-012]**  
+ADR 012: Service Provider Terminology  
+TSAI Working Group, April 2026  
+`decisions/012-service-provider-terminology.md`
+
+**[TSAI-ADR-013]**  
+ADR 013: VP-JWT Claim Structure  
+TSAI Working Group, June 2026  
+`decisions/013-vp-jwt-claim-structure.md`
+
+**[TSAI-ADR-014]**  
+ADR 014: VC-JWT Claim Structure  
+TSAI Working Group, June 2026  
+`decisions/014-vc-jwt-claim-structure.md`
+
 ### 6.2.2 Protocol Specifications
 
 **[MCP]**  

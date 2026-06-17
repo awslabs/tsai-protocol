@@ -48,6 +48,8 @@ A TSAI credential is a JWT with the following structure:
 
 The payload contains the W3C VC structure with TSAI-specific claims.
 
+**Payload structure:** The JWS payload is a JWT Claims Set: the Verifiable Credential properties (`@context`, `type`, `issuer`, `validFrom`, `validUntil`, `credentialSubject`, `credentialStatus`, and TSAI-specific claims) are top-level claims. The `vc` wrapper MUST NOT be used, and the `vc` and `vp` claim names MUST NOT appear, per W3C VC-JOSE-COSE. VC fields are NOT duplicated into JWT registered claims (`iss`, `sub`, `nbf`, `exp`, `jti`); the credential's own properties are authoritative. See ADR 014.
+
 ---
 
 ## 2.3 Common Claims
