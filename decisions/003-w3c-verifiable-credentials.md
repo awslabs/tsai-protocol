@@ -5,9 +5,10 @@ SPDX-License-Identifier: Apache-2.0
 
 # ADR 003: W3C Verifiable Credentials as Credential Format
 
-**Status:** Accepted  
+**Status:** Superseded  
 **Date:** 2026-01-22  
 **Deciders:** TAP Working Group  
+**Superseded by:** [Credential Serialisation Format](./draft-xx2-credential-serialisation-format.md) (this branch)  
 **Amended by:** [ADR 012 — Service Provider Terminology](./012-service-provider-terminology.md)
 
 ---
