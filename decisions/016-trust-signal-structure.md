@@ -3,14 +3,13 @@ Copyright Amazon.com Inc. or its affiliates.
 SPDX-License-Identifier: Apache-2.0
 -->
 
-# ADR XXX: Trust Signal Structure
+# ADR 016: Trust Signal Structure
 
 **Status:** Accepted  
 **Date:** 2026-07-02  
 **Deciders:** TSAI Working Group  
 **Relationship to ADR 004:** supersedes [ADR 004 — Tiered Trust Model (T0-T3)](./004-tiered-trust-model.md)
 
-> The ADR number is intentionally omitted to avoid collisions with other in-flight branches. Assign a number on merge.
 
 ---
 
@@ -24,7 +23,7 @@ First, the assurances are not cumulative. An operator can carry insured recourse
 
 Second, the tier label is coarse relative to the decision a Service Provider makes. "Require T3" does not say how much insurance coverage or which certification, and that decision is a predicate over specific signals. The credential also carries redundant tier markers, a `type` entry, a `tsaiTier` field, and an in-block level, that duplicate the structure and can become inconsistent with it.
 
-This ADR decides only the structure of the signals: how they are shaped and discriminated. It deliberately does not define the set of categories or the per-type fields, which are left to a later decision, either a separate ADR or the implementation JSON schema. It is orthogonal to the credential format (draft-xx2) and the holder-binding decision (draft-xx1), each decided in its own ADR in this branch.
+This ADR decides only the structure of the signals: how they are shaped and discriminated. It deliberately does not define the set of categories or the per-type fields, which are left to a later decision, either a separate ADR or the implementation JSON schema. It is orthogonal to the credential format (ADR 015) and the holder-binding decision (ADR 014), each decided in its own ADR in this branch.
 
 ---
 
@@ -85,7 +84,7 @@ The value of the category discriminator, independent of what the categories turn
 
 **Cons.** A category set has to be agreed at some point, even though it is deferred here, so the governance cost is postponed rather than removed (6). Slightly more structure than a bare list.
 
-**Illustrative structure.** The shape only; the `category` and `type` values below are placeholders, and the vocabulary is defined elsewhere. Serialisation follows the format decision (draft-xx2), so under SD-JWT VC these are claims. Variant 3a is the same without the `category` field.
+**Illustrative structure.** The shape only; the `category` and `type` values below are placeholders, and the vocabulary is defined elsewhere. Serialisation follows the format decision (ADR 015), so under SD-JWT VC these are claims. Variant 3a is the same without the `category` field.
 
 ```json
 "signals": [
@@ -135,7 +134,7 @@ The flat list is chosen over tiers because the assurances are not cumulative, so
 - Verification strength keyed to tiers must be re-expressed. ADR 004 and ADR 009 key verification rigour to tiers, an offline timestamp check for T0/T1 and stronger mechanisms for T2/T3. With no tiers, verification strength has to be expressed as a predicate over signals or categories, for example a signal carrying a status or verification reference that the Service Provider checks. Occasional checks against static or cached resources are inexpensive, so the offline-only constraint that motivated the low tiers is no longer decisive. This implies amending ADR 009 and is noted as a dependency, not settled here.
 - Revocation stays atomic. A single credential carrying all signals is revoked as a whole, which fits the short-expiry-and-refresh model; per-signal revocation is not proposed.
 - Reputation attribution, whether reputation accrues to the agent or the operator, is a separate open question and is not settled here.
-- Serialisation follows draft-xx2, which selects SD-JWT VC, so the signals are carried as claims in the credential.
+- Serialisation follows ADR 015, which selects SD-JWT VC, so the signals are carried as claims in the credential.
 
 ---
 
@@ -144,7 +143,7 @@ The flat list is chosen over tiers because the assurances are not cumulative, so
 - [ADR 003 — W3C Verifiable Credentials as Credential Format](./003-w3c-verifiable-credentials.md)
 - [ADR 004 — Tiered Trust Model (T0-T3)](./004-tiered-trust-model.md)
 - [ADR 009 — Timestamp-Based Replay Prevention](./009-timestamp-based-replay-prevention.md)
-- draft-xx1 — Holder Binding and Web Bot Auth Integration (this branch)
-- draft-xx2 — Credential Serialisation Format (this branch)
+- ADR 014 — Holder Binding and Web Bot Auth Integration
+- ADR 015 — Credential Serialisation Format
 - [W3C Verifiable Credentials Data Model 2.0](https://www.w3.org/TR/vc-data-model-2.0/)
 - [draft-ietf-oauth-sd-jwt-vc](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-sd-jwt-vc)

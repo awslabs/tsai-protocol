@@ -37,7 +37,7 @@ TAs monetize trust evaluation at scale. The business model mirrors established t
 
 ### Trust Authority Pricing
 
-TAs use tiered pricing that reflects service level and operational cost. Lower tiers (basic identity) use fully automated verification at minimal cost to maximize adoption and network effects. Mid tiers (identity plus reputation) add light human review at moderate cost and serve as the primary revenue driver. Higher tiers (economic stake, maximum assurance) require monitoring infrastructure, escrow management, and dedicated service at premium pricing.
+TAs use tiered pricing that reflects service level and operational cost. These pricing tiers are a Trust Authority's commercial packages, not the protocol tiers removed in ADR 016; TSAI itself has no tiers. Lower tiers (basic identity) use fully automated verification at minimal cost to maximize adoption and network effects. Mid tiers (identity plus reputation) add light human review at moderate cost and serve as the primary revenue driver. Higher tiers (economic stake, maximum assurance) require monitoring infrastructure, escrow management, and dedicated service at premium pricing.
 
 The revenue mix balances volume at lower tiers with margin at higher tiers. Lower tiers drive adoption. Higher tiers drive profitability.
 
@@ -77,7 +77,7 @@ Market concentration will emerge over time, with some TAs capturing larger share
 
 High barriers protect established TAs: brand reputation takes time to build, partnerships with Service Providers create network effects, monitoring infrastructure requires investment, regulatory compliance demands operational maturity, and technology development needs expertise.
 
-Low barriers enable competition: open protocol prevents proprietary lock-in, standard W3C VCs provide existing tools, and automated verification keeps operational costs manageable for basic tiers.
+Low barriers enable competition: an open protocol prevents proprietary lock-in, standard SD-JWT VCs provide existing tools, and automated verification keeps operational costs manageable for basic identity signals.
 
 The net effect: established trust brands have advantages, but new entrants can compete through specialization and differentiation.
 

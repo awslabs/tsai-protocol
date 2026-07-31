@@ -3,15 +3,16 @@ Copyright Amazon.com Inc. or its affiliates.
 SPDX-License-Identifier: Apache-2.0
 -->
 
-# ADR XXX: Credential Serialisation Format
+# ADR 015: Credential Serialisation Format
 
 **Status:** Accepted  
 **Date:** 2026-07-02  
 **Deciders:** TSAI Working Group  
 **Relationship to ADR 003:** supersedes [ADR 003 — W3C Verifiable Credentials as Credential Format](./003-w3c-verifiable-credentials.md)  
-**Depended on by:** the holder-binding decision (draft-xx1); carries the signal structure (draft-xx3)
+**Depended on by:** the holder-binding decision (ADR 014); carries the signal structure (ADR 016)
 
-> The ADR number is intentionally omitted to avoid collisions with other in-flight branches. Assign a number on merge.
+> Note: the illustrative examples in this record predate ADR 016's field vocabulary and ADR 017's identity model, so they show a `did:web` issuer and a nested `reputation` object rather than the flat signal list. They are retained as the record and are not normative.
+
 
 ---
 
@@ -19,7 +20,7 @@ SPDX-License-Identifier: Apache-2.0
 
 ADR 003 chose W3C Verifiable Credentials 2.0, secured as VC-JWT (VC-JOSE-COSE). Three things make the format worth revisiting.
 
-First, the holder binding decided in draft-xx1 rests on a key the agent controls and on JWK thumbprints, which is the idiom of the JOSE and SD-JWT world rather than the JSON-LD world. Second, the Web Bot Auth and Visa Trusted Agent Protocol ecosystems that TSAI agents run alongside already use JWKs and SHA-256 thumbprints. Third, the protocols TSAI sits beside — Web Bot Auth, Visa TAP, UCP, and OpenID4VC — are JWT and JWK based, while the only JSON-LD and DID anchors in TSAI are its own earlier decisions.
+First, the holder binding decided in ADR 014 rests on a key the agent controls and on JWK thumbprints, which is the idiom of the JOSE and SD-JWT world rather than the JSON-LD world. Second, the Web Bot Auth ecosystem that TSAI agents run alongside already uses JWKs and SHA-256 thumbprints. Third, the protocols TSAI sits beside — Web Bot Auth, UCP, and OpenID4VC — are JWT and JWK based, while the only JSON-LD and DID anchors in TSAI are its own earlier decisions.
 
 ### Two credential models, not one
 
@@ -31,13 +32,13 @@ The two are at different stages, and the distinction matters. The SD-JWT mechani
 
 ### Adoption
 
-Neither format has won; they occupy different strongholds. SD-JWT VC is the credential of the wallet and high-assurance identity world, including the EU Digital Identity Wallet and the OpenID Foundation's High Assurance Interoperability Profile. W3C VC is strong in self-sovereign identity and education and has large deployments. The relevant point for TSAI is narrower: the agentic-commerce protocols it must interoperate with, Web Bot Auth, Visa TAP, and UCP, are JWT-native, and UCP defines a Credential Provider role and first-class verifiable-credential support that a TSAI credential would plug into.
+Neither format has won; they occupy different strongholds. SD-JWT VC is the credential of the wallet and high-assurance identity world, including the EU Digital Identity Wallet and the OpenID Foundation's High Assurance Interoperability Profile. W3C VC is strong in self-sovereign identity and education and has large deployments. The relevant point for TSAI is narrower: the agentic-commerce protocols it must interoperate with, Web Bot Auth and UCP, are JWT-native, and UCP defines a Credential Provider role and first-class verifiable-credential support that a TSAI credential would plug into.
 
 ### Selective disclosure is retained, not decisive
 
 SD-JWT VC supports holder-controlled selective disclosure natively; W3C VC needs the BBS add-on for the same. For TSAI this is a retained capability rather than a deciding requirement. Because credentials are short-lived and re-fetched per interaction (ADR 007), a Trust Authority can issue exactly the signals an interaction needs and omit the rest, so an agent rarely needs to hold one credential and reveal different subsets of it over time. The format decision therefore does not rest on selective disclosure, and a TSAI credential is, by default, a flat JWT with no disclosure structure.
 
-The format determines how the self-contained binding from draft-xx1 is serialised and how the trust signals from draft-xx3 are carried.
+The format determines how the self-contained binding from ADR 014 is serialised and how the trust signals from ADR 016 are carried.
 
 ---
 
@@ -45,12 +46,12 @@ The format determines how the self-contained binding from draft-xx1 is serialise
 
 1. **Holder-binding fit.** How naturally the format expresses the self-contained binding and the key the credential is bound to.
 2. **Selective disclosure.** Whether the holder can present a subset of the signals without revealing the rest, as a retained capability.
-3. **Key reuse.** Whether the holder key is a JWK identified by a thumbprint, so it is the same material Web Bot Auth and TAP already use.
+3. **Key reuse.** Whether the holder key is a JWK identified by a thumbprint, so it is the same material Web Bot Auth already uses.
 4. **Revocation.** The maturity and cost of the revocation mechanism the format brings.
 5. **Weight and implementer simplicity.** Payload size and how much supporting structure the format imports beyond a plain signed token.
 6. **Ecosystem and tooling maturity.** Availability of libraries and deployed practice, and the standards status of the format.
 7. **Continuity with ADR 003.** How far the option departs from the current decision.
-8. **Idiom coherence.** Whether the credential's data model shares the JWT and JWK idiom of the binding (draft-xx1) and of TSAI's neighbours, or imports a second idiom that nothing else in the stack uses.
+8. **Idiom coherence.** Whether the credential's data model shares the JWT and JWK idiom of the binding (ADR 014) and of TSAI's neighbours, or imports a second idiom that nothing else in the stack uses.
 
 ---
 
@@ -68,7 +69,7 @@ The credential is a W3C VC 2.0 secured as VC-JWT; the self-contained binding is 
 
 The credential is an SD-JWT VC (`draft-ietf-oauth-sd-jwt-vc`, on RFC 9901); the self-contained binding is the key-binding JWT, and the holder key is the `cnf` claim.
 
-**Pros.** JWT-native, so the binding is the key-binding JWT and the holder key is a JWK identified by a thumbprint, the same material Web Bot Auth and TAP use (criteria 1 and 3). It shares one idiom with the binding and with the surrounding protocols, so the credential, the binding, the keys, and revocation are all JWT and JWK, with nothing to translate (criterion 8). Selective disclosure is available if needed (criterion 2). Revocation uses the IETF Token Status List, and can be omitted where short expiry suffices, since credentials are short-lived (criterion 4). Lighter than the JSON-LD model, and a flat JWT when disclosure is unused (criterion 5). The mechanism beneath it, RFC 9901, is finalised (criterion 6).
+**Pros.** JWT-native, so the binding is the key-binding JWT and the holder key is a JWK identified by a thumbprint, the same material Web Bot Auth uses (criteria 1 and 3). It shares one idiom with the binding and with the surrounding protocols, so the credential, the binding, the keys, and revocation are all JWT and JWK, with nothing to translate (criterion 8). Selective disclosure is available if needed (criterion 2). Revocation uses the IETF Token Status List, and can be omitted where short expiry suffices, since credentials are short-lived (criterion 4). Lighter than the JSON-LD model, and a flat JWT when disclosure is unused (criterion 5). The mechanism beneath it, RFC 9901, is finalised (criterion 6).
 
 **Cons.** The VC profile is a working-group draft, not yet an RFC (criterion 6). It supersedes ADR 003 and changes the data model wholesale (criterion 7). It pulls the identity model toward key-centric, issuer via `iss` and the `jwt-vc-issuer` endpoint, holder via the `cnf` JWK, which calls for a follow-on ADR on issuer identity and discovery, since ADR 006 is DID-centric.
 
@@ -105,7 +106,7 @@ Adopt **Option B**, SD-JWT VC.
 
 This was a close decision, and it is worth setting out the tensions rather than presenting it as clear-cut, so a later reader can judge whether the trade still holds.
 
-The deciding axis is idiom coherence. The credential should share one idiom with the binding it carries and the protocols it sits beside. The binding decided in draft-xx1 is a key-bound JWT, and TSAI's neighbours, Web Bot Auth, Visa TAP, UCP, and OpenID4VC, are JWT and JWK based. SD-JWT VC makes the credential, the binding, the keys, and revocation one idiom: the holder key is the `cnf` JWK, which is the same key material Web Bot Auth signs with, so nothing needs translating between layers. Option A would leave the credential in JSON-LD, foreign to everything else in the stack, and would express binding as a VP-JWT wrapper rather than the native key-binding JWT.
+The deciding axis is idiom coherence. The credential should share one idiom with the binding it carries and the protocols it sits beside. The binding decided in ADR 014 is a key-bound JWT, and TSAI's neighbours, Web Bot Auth, UCP, and OpenID4VC, are JWT and JWK based. SD-JWT VC makes the credential, the binding, the keys, and revocation one idiom: the holder key is the `cnf` JWK, which is the same key material Web Bot Auth signs with, so nothing needs translating between layers. Option A would leave the credential in JSON-LD, foreign to everything else in the stack, and would express binding as a VP-JWT wrapper rather than the native key-binding JWT.
 
 Three tensions run against that choice, and the decision accepts them knowingly:
 
@@ -115,7 +116,7 @@ Three tensions run against that choice, and the decision accepts them knowingly:
 
 Two further qualifications matter. Selective disclosure looks like the obvious reason to choose B, and it is not the reason. It appeared decisive at first and then proved to be a nice-to-have, because short-lived, purpose-issued credentials let a Trust Authority omit what an interaction does not need. The case for B rests on idiom coherence, which is the more durable ground. And the choice ultimately rests on an assumption about where TSAI lives: that its future is beside the JWT-native agentic-commerce and wallet protocols rather than the JSON-LD and DID self-sovereign-identity world. On today's evidence that assumption favours B, but if the surrounding ecosystem shifts toward the self-sovereign-identity world, Option A would have been the better choice, and that assumption is the thing to re-examine later.
 
-Option C was not chosen for the reason that decided draft-xx1: inventing revocation, issuer discovery, and type semantics is a larger security-flaw surface than adopting standardised ones.
+Option C was not chosen for the reason that decided ADR 014: inventing revocation, issuer discovery, and type semantics is a larger security-flaw surface than adopting standardised ones.
 
 The residual costs are the two tensions the decision does not dissolve: TSAI depends on a profile that is not yet an RFC, and it calls for a follow-on ADR on issuer identity and discovery, since ADR 006 is DID-centric. The agent key remains a JWK, expressible as `did:jwk` or `did:key` only where a DID string is required, and TSAI does not depend on `did:wba`.
 
@@ -124,11 +125,11 @@ The residual costs are the two tensions the decision does not dissolve: TSAI dep
 ## Consequences
 
 - ADR 003 is superseded.
-- The self-contained binding of draft-xx1 is realised as the SD-JWT key-binding JWT, and the holder key is the `cnf` JWK.
+- The self-contained binding of ADR 014 is realised as the SD-JWT key-binding JWT, and the holder key is the `cnf` JWK.
 - Revocation uses the IETF Token Status List, referenced by an optional `status` claim. Where a Service Provider relies on short expiry, `status` may be omitted.
 - TSAI adopts the `vct` type claim and the `application/dc+sd-jwt` media type, and publishes type metadata for each `vct`. That type metadata carries the schema and display rules and is where TSAI declares which fields are required, replacing the `@context` and `type` semantics of the W3C model.
-- The trust signals from draft-xx3 are carried as top-level claims. Selective disclosure is available per claim but unused by default, so a credential is a flat JWT and only the fields deliberately made disclosable ever appear as digests.
-- The identity model moves toward key-centric: issuer identity via `iss` and `jwt-vc-issuer` discovery, holder identity via the `cnf` JWK. This is the subject of a follow-on ADR on issuer identity and discovery; ADR 006 stands until that ADR is decided, at which point it takes a forward pointer. draft-xx1 has already begun the direction, since it dropped any dependence on `did:wba` and treats the binding key as a JWK thumbprint.
+- The trust signals from ADR 016 are carried as top-level claims. Selective disclosure is available per claim but unused by default, so a credential is a flat JWT and only the fields deliberately made disclosable ever appear as digests.
+- The identity model moves toward key-centric: issuer identity via `iss` and `jwt-vc-issuer` discovery, holder identity via the `cnf` JWK. This is the subject of a follow-on ADR on issuer identity and discovery; ADR 006 stands until that ADR is decided, at which point it takes a forward pointer. ADR 014 has already begun the direction, since it dropped any dependence on `did:wba` and treats the binding key as a JWK thumbprint.
 - Where an agent carries credentials from several Trust Authorities, each is a separate SD-JWT VC bound to the same agent `cnf` key; there is no single presentation wrapper, so carrying several together is a protocol-layer concern rather than a credential-format one.
 
 ### Illustrative structure
@@ -170,8 +171,8 @@ On the wire the presentation is `‹issuer-JWT›~‹KB-JWT›`. The issuer sign
 
 ## Dependencies
 
-- **draft-xx1 (holder binding).** This decision makes the self-contained binding a key-binding JWT and the holder key the `cnf` JWK.
-- **draft-xx3 (trust signal structure).** The signals are carried as claims; the structure is independent of the format.
+- **ADR 014 (holder binding).** This decision makes the self-contained binding a key-binding JWT and the holder key the `cnf` JWK.
+- **ADR 016 (trust signal structure).** The signals are carried as claims; the structure is independent of the format.
 - **ADR 003.** Superseded by this decision.
 - **ADR 006 (DID methods).** A follow-on ADR should decide issuer identity and discovery under the key-centric model; ADR 006 stands and takes a forward pointer when that ADR is written. The agent key remains a JWK, expressible as `did:jwk` or `did:key` where a DID string is required.
 
@@ -181,8 +182,8 @@ On the wire the presentation is `‹issuer-JWT›~‹KB-JWT›`. The issuer sign
 
 - [ADR 003 — W3C Verifiable Credentials as Credential Format](./003-w3c-verifiable-credentials.md)
 - [ADR 006 — DID Methods for TAs and Agents](./006-did-methods.md)
-- draft-xx1 — Holder Binding and Web Bot Auth Integration (this branch)
-- draft-xx3 — Trust Signal Structure (this branch)
+- ADR 014 — Holder Binding and Web Bot Auth Integration
+- ADR 016 — Trust Signal Structure
 - [draft-ietf-oauth-sd-jwt-vc](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-sd-jwt-vc)
 - [RFC 9901 — Selective Disclosure for JSON Web Tokens (SD-JWT)](https://www.rfc-editor.org/rfc/rfc9901)
 - [RFC 7638 — JSON Web Key (JWK) Thumbprint](https://www.rfc-editor.org/rfc/rfc7638)

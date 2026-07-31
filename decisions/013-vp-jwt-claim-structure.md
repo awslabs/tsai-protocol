@@ -5,10 +5,11 @@ SPDX-License-Identifier: Apache-2.0
 
 # ADR 013: VP-JWT Claim Structure
 
-**Status:** Accepted  
+**Status:** Superseded  
 **Date:** 2026-06-11  
 **Deciders:** TSAI Working Group  
-**Amended by:** [Holder Binding and Web Bot Auth Integration](./draft-xx1-holder-binding-and-web-bot-auth-integration.md) (this branch)
+**Amended by:** [ADR 014 — Holder Binding and Web Bot Auth Integration](./014-holder-binding-and-web-bot-auth-integration.md)  
+**Superseded by:** [ADR 015 — Credential Serialisation Format](./015-credential-serialisation-format.md)
 
 ---
 

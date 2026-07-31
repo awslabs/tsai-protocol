@@ -4,9 +4,11 @@
 openapi: 3.1.0
 info:
   title: TSAI Trust Authority API
-  version: 1.0.0-mvp
+  version: 1.0.0
   description: |
-    Trust Authority API for issuing and refreshing TSAI credentials (T0/T1 only).
+    Trust Authority API for issuing and refreshing TSAI credentials (SD-JWT VC).
+    An agent proves control of the key its credential will be bound to, and the
+    Trust Authority issues a short-lived credential carrying trust signals.
   contact:
     name: TSAI Working Group
   license:
@@ -22,16 +24,15 @@ tags:
 paths:
   /challenges:
     get:
-      summary: Get authentication challenge
+      summary: Get proof-of-control challenge
       description: |
-        Returns a random challenge nonce for proof-of-control authentication.
-        Challenges are single-use and expire after 5 minutes.
+        Returns a single-use challenge the agent signs with the key its
+        credential will be bound to. Challenges expire after 5 minutes.
       operationId: getChallenge
-      tags:
-        - credentials
+      tags: [credentials]
       responses:
         '200':
-          description: Challenge generated successfully
+          description: Challenge generated
           content:
             application/json:
               schema:
@@ -43,13 +44,13 @@ paths:
 
   /credentials/issue:
     post:
-      summary: Issue new credential
+      summary: Issue a credential
       description: |
-        Issues a new TSAI credential for an agent. Agent must prove control
-        of the DID by signing a challenge obtained from /challenges.
+        Issues a TSAI credential. The agent proves control of the binding key
+        by signing a challenge from /challenges. The Trust Authority associates
+        that key with its evaluation of the agent and operator.
       operationId: issueCredential
-      tags:
-        - credentials
+      tags: [credentials]
       requestBody:
         required: true
         content:
@@ -58,7 +59,7 @@ paths:
               $ref: '#/components/schemas/IssueRequest'
       responses:
         '201':
-          description: Credential issued successfully
+          description: Credential issued
           content:
             application/json:
               schema:
@@ -76,13 +77,12 @@ paths:
 
   /credentials/refresh:
     post:
-      summary: Refresh existing credential
+      summary: Refresh a credential
       description: |
-        Refreshes an existing credential with updated expiry time.
-        Agent must provide current valid credential and proof of control.
+        Issues a fresh credential with a new expiry, given the current credential
+        and proof of control of the same binding key.
       operationId: refreshCredential
-      tags:
-        - credentials
+      tags: [credentials]
       requestBody:
         required: true
         content:
@@ -91,7 +91,7 @@ paths:
               $ref: '#/components/schemas/RefreshRequest'
       responses:
         '200':
-          description: Credential refreshed successfully
+          description: Credential refreshed
           content:
             application/json:
               schema:
@@ -112,15 +112,12 @@ paths:
   /metadata:
     get:
       summary: Get Trust Authority metadata
-      description: |
-        Returns metadata about the Trust Authority including supported tiers,
-        DID methods, endpoints, and policies.
+      description: Returns the issuer identifier, key discovery location, and endpoints.
       operationId: getMetadata
-      tags:
-        - metadata
+      tags: [metadata]
       responses:
         '200':
-          description: Metadata retrieved successfully
+          description: Metadata retrieved
           content:
             application/json:
               schema:
@@ -132,13 +129,11 @@ components:
   schemas:
     Challenge:
       type: object
-      required:
-        - challenge
-        - expiresAt
+      required: [challenge, expiresAt]
       properties:
         challenge:
           type: string
-          description: Random nonce (hex-encoded, minimum 32 bytes)
+          description: Random nonce, hex-encoded, at least 32 bytes
           example: a1b2c3d4e5f67890abcdef1234567890abcdef1234567890abcdef1234567890
         expiresAt:
           type: string
@@ -147,105 +142,59 @@ components:
 
     ProofOfControl:
       type: object
-      required:
-        - type
-        - created
-        - verificationMethod
-        - proofPurpose
-        - challenge
-        - proofValue
+      description: Proof that the agent controls the key its credential will be bound to.
+      required: [jwk, challenge, signature]
       properties:
-        type:
-          type: string
-          enum:
-            - Ed25519Signature2020
-            - JsonWebSignature2020
-          example: Ed25519Signature2020
-        created:
-          type: string
-          format: date-time
-          example: '2026-01-23T10:00:00Z'
-        verificationMethod:
-          type: string
-          description: DID URL referencing signing key
-          example: 'did:web:acme-corp.com:agents:agent123#key-1'
-        proofPurpose:
-          type: string
-          enum:
-            - authentication
-          example: authentication
+        jwk:
+          type: object
+          description: Public part of the binding key, placed in the credential's cnf
+          example:
+            kty: OKP
+            crv: Ed25519
+            x: O8G5X-9Zichaemqq4fFOqQ3SyYI18A4INI1oWPWlLcc
         challenge:
           type: string
           example: a1b2c3d4e5f67890abcdef1234567890abcdef1234567890abcdef1234567890
-        proofValue:
+        signature:
           type: string
-          description: Base64url-encoded signature
-          example: z5...
+          description: Base64url-encoded signature over the challenge, made with the binding key
+          example: 3q2-7w...
 
     IssueRequest:
       type: object
-      required:
-        - agentDid
-        - operatorDid
-        - requestedTier
-        - proofOfControl
+      required: [proofOfControl]
       properties:
-        agentDid:
-          type: string
-          example: 'did:web:acme-corp.com:agents:agent123'
-        operatorDid:
-          type: string
-          description: Must be did:web
-          pattern: '^did:web:'
-          example: 'did:web:acme-corp.com'
-        requestedTier:
-          type: string
-          enum:
-            - T0
-            - T1
-          example: T1
         proofOfControl:
           $ref: '#/components/schemas/ProofOfControl'
+        sub:
+          type: string
+          format: uri
+          description: Optional requested stable HTTPS name for the agent
+          example: 'https://acme-corp.example/agents/shopper-v3'
 
     RefreshRequest:
       type: object
-      required:
-        - currentCredential
-        - proofOfControl
+      required: [currentCredential, proofOfControl]
       properties:
         currentCredential:
           type: string
-          description: Existing VC-JWT
-          example: eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9...
+          description: The current credential (SD-JWT VC issuer-signed JWT)
+          example: eyJhbGciOiJFZERTQSIsInR5cCI6ImRjK3NkLWp3dCJ9...
         proofOfControl:
           $ref: '#/components/schemas/ProofOfControl'
 
     CredentialResponse:
       type: object
-      required:
-        - credential
-        - format
-        - tier
-        - issuedAt
-        - expiresAt
-        - credentialId
+      required: [credential, format, issuedAt, expiresAt]
       properties:
         credential:
           type: string
-          description: VC-JWT
-          example: eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9...
+          description: The issued credential (SD-JWT VC issuer-signed JWT)
+          example: eyJhbGciOiJFZERTQSIsInR5cCI6ImRjK3NkLWp3dCJ9...
         format:
           type: string
-          enum:
-            - vc-jwt
-          example: vc-jwt
-        tier:
-          type: string
-          enum:
-            - T0
-            - T1
-          description: Issued tier (may differ from requested)
-          example: T1
+          enum: [dc+sd-jwt]
+          example: dc+sd-jwt
         issuedAt:
           type: string
           format: date-time
@@ -253,58 +202,35 @@ components:
         expiresAt:
           type: string
           format: date-time
-          example: '2026-01-23T14:00:00Z'
-        credentialId:
-          type: string
-          format: uri
-          example: 'urn:uuid:a1b2c3d4-e5f6-7890-abcd-ef1234567890'
+          description: 30 minutes after issuedAt
+          example: '2026-01-23T10:30:00Z'
 
     TAMetadata:
       type: object
-      required:
-        - tsaiVersion
-        - issuer
-        - name
-        - supportedTiers
-        - supportedDIDMethods
-        - endpoints
+      required: [tsaiVersion, issuer, name, jwksUri, endpoints]
       properties:
         tsaiVersion:
           type: string
           example: '1.0'
         issuer:
           type: string
-          example: 'did:web:trust-authority.example:tsai:ta'
+          format: uri
+          description: The Trust Authority HTTPS issuer identifier
+          example: 'https://trust-authority.example'
         name:
           type: string
           example: Example Trust Authority
         description:
           type: string
           example: Professional trust authority for agentic commerce
-        supportedTiers:
-          type: array
-          items:
-            type: string
-            enum:
-              - T0
-              - T1
-          example:
-            - T0
-            - T1
-        supportedDIDMethods:
-          type: array
-          items:
-            type: string
-          example:
-            - 'did:web'
-            - 'did:key'
-            - 'did:wba'
+        jwksUri:
+          type: string
+          format: uri
+          description: Issuer key discovery
+          example: 'https://trust-authority.example/.well-known/jwt-vc-issuer'
         endpoints:
           type: object
-          required:
-            - issue
-            - refresh
-            - challenges
+          required: [issue, refresh, challenges]
           properties:
             issue:
               type: string
@@ -318,60 +244,45 @@ components:
 
     Error:
       type: object
-      required:
-        - error
-        - error_description
+      required: [error, error_description]
       properties:
         error:
           type: string
           example: invalid_request
         error_description:
           type: string
-          example: agentDid must be a valid DID
+          example: proofOfControl signature did not verify
 
   responses:
     BadRequest:
-      description: Invalid request format or parameters
+      description: Invalid request
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
           example:
             error: invalid_request
-            error_description: agentDid must be a valid DID
-
+            error_description: proofOfControl is required
     Unauthorized:
-      description: Authentication failed
+      description: Proof of control failed
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
           example:
             error: invalid_proof
-            error_description: Signature verification failed
-
+            error_description: Signature over the challenge did not verify
     Forbidden:
-      description: Agent not eligible or credential revoked
+      description: Agent not eligible or blocked
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
           example:
-            error: insufficient_qualification
-            error_description: Agent does not meet T1 requirements
-
-    NotFound:
-      description: Resource not found
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-          example:
-            error: credential_not_found
-            error_description: No credential found with this ID
-
+            error: not_eligible
+            error_description: The agent does not meet the criteria for the requested signals
     Gone:
-      description: Resource permanently unavailable
+      description: The current credential has expired
       content:
         application/json:
           schema:
@@ -379,7 +290,6 @@ components:
           example:
             error: credential_expired
             error_description: Credential expired, request new issuance
-
     RateLimitExceeded:
       description: Rate limit exceeded
       headers:
@@ -394,8 +304,7 @@ components:
             $ref: '#/components/schemas/Error'
           example:
             error: rate_limit_exceeded
-            error_description: Maximum 10 requests per minute
-
+            error_description: Maximum 10 issuance requests per minute
     ServerError:
       description: Internal server error
       content:

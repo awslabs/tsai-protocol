@@ -5,10 +5,11 @@ SPDX-License-Identifier: Apache-2.0
 
 # ADR 006: DID Methods for TAs and Agents
 
-**Status:** Accepted  
+**Status:** Superseded  
 **Date:** 2026-01-22  
 **Deciders:** TSAI Working Group  
-**Amended by:** [ADR 012 — Service Provider Terminology](./012-service-provider-terminology.md)
+**Amended by:** [ADR 012 — Service Provider Terminology](./012-service-provider-terminology.md)  
+**Superseded by:** [ADR 017 — Party Identity and Key Discovery](./017-party-identity-and-key-discovery.md)
 
 ---
 

@@ -1,0 +1,28 @@
+{
+  "$comment": "Copyright Amazon.com Inc. or its affiliates. SPDX-License-Identifier: Apache-2.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tsai.example.org/schemas/key-binding-jwt.json",
+  "title": "TSAI Key-Binding JWT Claims Set",
+  "description": "The claims set of the key-binding JWT a holder appends when presenting a TSAI credential (SD-JWT VC). The JWT header carries typ kb+jwt. The signature is made with the private key matching the credential's cnf.",
+  "type": "object",
+  "required": ["iat", "aud", "sd_hash"],
+  "properties": {
+    "iat": {
+      "type": "integer",
+      "description": "Time the presentation was created, seconds since the Unix epoch"
+    },
+    "aud": {
+      "type": "string",
+      "description": "The Service Provider the presentation is addressed to"
+    },
+    "nonce": {
+      "type": "string",
+      "description": "A value binding the presentation to a request. Freshness and replay rules are specified in 04-verification."
+    },
+    "sd_hash": {
+      "type": "string",
+      "description": "Digest of the presented issuer-signed JWT and any forwarded disclosures"
+    }
+  },
+  "additionalProperties": false
+}

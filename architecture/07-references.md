@@ -15,30 +15,30 @@ SPDX-License-Identifier: Apache-2.0
 
 The following documents are required for conformance to this specification. Implementations MUST follow these standards.
 
-**[VC-DATA-MODEL-2.0]**  
-W3C Verifiable Credentials Data Model 2.0  
-W3C Recommendation, May 2025  
-https://www.w3.org/TR/vc-data-model-2.0/
+**[SD-JWT-VC]**  
+SD-JWT-based Verifiable Credentials  
+IETF, draft-ietf-oauth-sd-jwt-vc  
+https://datatracker.ietf.org/doc/html/draft-ietf-oauth-sd-jwt-vc
 
-**[VC-JOSE-COSE]**  
-W3C Securing Verifiable Credentials using JOSE and COSE  
-W3C Recommendation, May 2025  
-https://www.w3.org/TR/vc-jose-cose/
+**[SD-JWT]**  
+Selective Disclosure for JWTs  
+IETF, draft-ietf-oauth-selective-disclosure-jwt  
+https://datatracker.ietf.org/doc/html/draft-ietf-oauth-selective-disclosure-jwt
 
-**[DID-CORE]**  
-W3C Decentralized Identifiers (DIDs) v1.0  
-W3C Recommendation, July 2022  
-https://www.w3.org/TR/did-core/
+**[STATUS-LIST]**  
+Token Status List  
+IETF, draft-ietf-oauth-status-list  
+https://datatracker.ietf.org/doc/html/draft-ietf-oauth-status-list
 
-**[DID-RESOLUTION]**  
-W3C DID Resolution  
-W3C Working Draft, January 2026  
-https://w3c-ccg.github.io/did-resolution/
+**[RFC7638]**  
+JSON Web Key (JWK) Thumbprint  
+IETF RFC 7638, September 2015  
+https://datatracker.ietf.org/doc/html/rfc7638
 
-**[BitstringStatusList]**  
-W3C Bitstring Status List v1.0  
-W3C Candidate Recommendation, December 2023  
-https://www.w3.org/TR/vc-bitstring-status-list/
+**[DID-WEB]**  
+did:web Method Specification (referenced third parties)  
+W3C CCG  
+https://w3c-ccg.github.io/did-method-web/
 
 **[RFC2119]**  
 Key words for use in RFCs to Indicate Requirement Levels  
@@ -128,6 +128,26 @@ ADR 010: Fail-Closed with Degraded Mode
 TSAI Working Group, January 2026  
 `decisions/010-fail-closed-with-degraded-mode.md`
 
+**[TSAI-ADR-011]**  
+ADR 011: TA Operational Transparency  
+TSAI Working Group, January 2026  
+`decisions/011-ta-operational-transparency.md`
+
+**[TSAI-ADR-012]**  
+ADR 012: Service Provider Terminology  
+TSAI Working Group, April 2026  
+`decisions/012-service-provider-terminology.md`
+
+**[TSAI-ADR-013]**  
+ADR 013: VP-JWT Claim Structure (superseded by ADR 015)  
+TSAI Working Group, June 2026  
+`decisions/013-vp-jwt-claim-structure.md`
+
+**[TSAI-ADR-014..018]**  
+Follow-on ADRs: Holder Binding (ADR 014), Credential Serialisation Format (ADR 015, supersedes 003), Trust Signal Structure (ADR 016, supersedes 004), Party Identity (ADR 017, supersedes 006), Verification Strength and Replay (ADR 018, amends 007 and 009)  
+TSAI Working Group  
+`decisions/`
+
 ### 6.2.2 Protocol Specifications
 
 **[MCP]**  
@@ -142,7 +162,7 @@ https://github.com/a2aproject/A2A
 
 **[AP2]**  
 Agent Payments Protocol  
-https://github.com/agentpayments/ap2
+https://github.com/google-agentic-commerce/AP2
 
 **[ERC-8004]**  
 ERC-8004: Trustless Agents  
@@ -194,8 +214,9 @@ https://datatracker.ietf.org/doc/html/rfc3986
 
 **Version 1.0 (Draft) - January 2026**
 - Initial architecture specification
-- Sections 1-6 complete
-- Ready for working group review
+
+**Version 1.0 (Draft), revised - 2026-07**
+- Moved the credential to SD-JWT VC with a key-binding JWT, replaced the T0–T3 tiers with a flat four-category signal list, and moved party identity to an HTTPS issuer, the `cnf` key, and `did:web` for third parties (ADRs 014–018)
 
 ---
 

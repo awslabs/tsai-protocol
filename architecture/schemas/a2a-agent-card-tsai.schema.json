@@ -3,17 +3,13 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://tsai.example.org/schemas/a2a-agent-card-tsai.json",
   "title": "A2A Agent Card TSAI Security Scheme",
-  "description": "TSAI security scheme declaration in A2A Agent Card using HTTPAuthSecurityScheme",
+  "description": "TSAI security scheme declaration in an A2A Agent Card",
   "type": "object",
-  "required": [
-    "httpAuthSecurityScheme"
-  ],
+  "required": ["httpAuthSecurityScheme"],
   "properties": {
     "httpAuthSecurityScheme": {
       "type": "object",
-      "required": [
-        "scheme"
-      ],
+      "required": ["scheme"],
       "properties": {
         "description": {
           "type": "string",
@@ -21,26 +17,22 @@
         },
         "scheme": {
           "const": "bearer",
-          "description": "HTTP authentication scheme (RFC7235)"
+          "description": "HTTP authentication scheme (RFC 7235)"
         },
         "bearerFormat": {
-          "const": "VP-JWT",
-          "description": "Bearer token format (Verifiable Presentation JWT)"
-        },
-        "minimumTier": {
-          "type": "string",
-          "enum": ["T0", "T1", "T2", "T3"],
-          "description": "Minimum trust tier required (TSAI extension)"
+          "const": "dc+sd-jwt",
+          "description": "Presentation format: a TSAI credential (SD-JWT VC) with a key-binding JWT"
         },
         "trustedAuthorities": {
           "type": "array",
           "minItems": 1,
           "items": {
             "type": "string",
-            "pattern": "^did:web:",
-            "description": "Trust Authority DID"
+            "format": "uri",
+            "pattern": "^https://",
+            "description": "Accepted Trust Authority HTTPS issuer identifier"
           },
-          "description": "Accepted TA DIDs (TSAI extension)"
+          "description": "Accepted Trust Authority issuers (TSAI extension)"
         }
       },
       "additionalProperties": false

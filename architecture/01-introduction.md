@@ -13,11 +13,9 @@ SPDX-License-Identifier: Apache-2.0
 
 ## 1.1 Scope
 
-This document specifies the Trust Signals for Agentic Interactions (TSAI), a trust signaling protocol that enables Trust Authorities to issue verifiable credentials containing trust signals about Agents, Agents to present credentials to prove legitimacy, and Service Providers to verify credential authenticity and interpret trust signals.
+This document specifies Trust Signals for Agentic Interactions (TSAI), a trust-signalling protocol. A Trust Authority issues a verifiable credential carrying trust signals about an agent, the agent presents the credential to prove legitimacy, and a Service Provider verifies it and reads the signals.
 
-TSAI defines credential format and structure (W3C Verifiable Credentials), trust signal semantics (what claims mean), verification mechanisms (how to check authenticity), and Trust Authority APIs (credential issuance, revocation, verification).
-
-TSAI does not define how Service Providers use trust signals to make access decisions (left to each Service Provider's policy), how Trust Authorities evaluate Agents (TA methodology), or how Agents implement their functionality (Agent implementation).
+TSAI defines the credential format (SD-JWT VC), the meaning of the signals, the verification algorithm, and the Trust Authority APIs for issuance and status. It does not define how a Service Provider uses the signals to decide on access, how a Trust Authority evaluates an agent, or how an agent is implemented.
 
 **Core principle:** TSAI signals, Service Providers decide.
 
@@ -25,103 +23,84 @@ TSAI does not define how Service Providers use trust signals to make access deci
 
 ## 1.2 Conformance
 
-This specification uses RFC 2119 terminology:
+This specification uses RFC 2119 terminology: MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY.
 
-- **MUST** / **REQUIRED** / **SHALL**: Absolute requirement
-- **MUST NOT** / **SHALL NOT**: Absolute prohibition
-- **SHOULD** / **RECOMMENDED**: Strong recommendation (may ignore with valid reason)
-- **SHOULD NOT** / **NOT RECOMMENDED**: Strong discouragement (may do with valid reason)
-- **MAY** / **OPTIONAL**: Truly optional
+**A conforming Trust Authority** MUST issue credentials conforming to Section 2, implement the APIs of Section 7, and comply with Section 5.
 
-### Conformance Classes
+**A conforming agent** MUST present credentials that verify under Section 3, prove possession of the bound key, and comply with Section 5.
 
-**Conforming Trust Authority:**
-- MUST issue credentials conforming to Section 2 (Credential Format)
-- MUST implement APIs specified in Section 4 (TA APIs)
-- MUST comply with Section 5 (Security and Privacy)
-
-**Conforming Agent:**
-- MUST present credentials conforming to Section 3 (Verification)
-- MUST comply with Section 5 (Security and Privacy)
-
-**Conforming Service Provider:**
-- MUST verify credentials according to Section 3 (Verification)
-- MUST comply with Section 5 (Security and Privacy)
-- MAY choose which Trust Authorities to trust (a Service Provider policy decision)
-- MAY choose how to interpret trust signals (a Service Provider policy decision)
+**A conforming Service Provider** MUST verify credentials per Section 3 and comply with Section 5. It MAY choose which Trust Authorities to trust and how to weigh the signals; both are its own policy.
 
 ---
 
 ## 1.3 Terminology
 
-**Agent:** Software entity that performs actions on behalf of a User or organization. Identified by a DID.
+**Agent** — a software entity that acts on behalf of a user or organisation. Identified by the key its credential is bound to (`cnf`).
 
-**Credential:** W3C Verifiable Credential issued by a Trust Authority, containing trust signals about an Agent.
+**Operator** — the legal entity that runs agents and is accountable for them.
 
-**Trust Authority (TA):** Professional entity that evaluates Agents and issues signed credentials. Identified by a `did:web` DID.
+**Credential** — an SD-JWT VC issued by a Trust Authority, carrying trust signals about an agent.
 
-**Service Provider:** Party that receives a credential from an Agent, verifies it, and decides whether to grant access. A Service Provider may be a merchant system, an API, an MCP server, an A2A Service Agent, infrastructure middleware such as a CDN or edge gateway, or another Agent acting in a service role. In W3C Verifiable Credentials terms, the Service Provider fulfills the Verifier role. In the W3C AI Agent Protocol, a Service Agent receiving a TSAI credential is acting as a TSAI Service Provider. Earlier drafts of this specification used the term "Platform" (see ADR 012).
+**Trust Authority (TA)** — a professional entity that evaluates agents and issues signed credentials. Identified by an HTTPS issuer, with keys at `/.well-known/jwt-vc-issuer`.
 
-**Trust Signal:** Claim in a credential that conveys information about Agent trustworthiness (e.g., identity, reputation, economic stake).
+**Service Provider** — the party that receives a credential, verifies it, and decides on access. It may be a merchant system, an API, an MCP server, an A2A service agent, edge infrastructure, or another agent in a service role. In W3C Verifiable Credentials terms it is the Verifier. An earlier draft used the term Platform (ADR 012).
 
-**Tier:** Trust level (T0, T1, T2, T3) indicating the combination of trust signals and verification rigor required.
+**Trust Signal** — a claim in a credential in one of four categories: identity, reputation, compliance, or assurance.
 
-**Verifiable Presentation (VP):** W3C Verifiable Presentation containing one or more credentials, signed by the Agent to prove possession.
+**Presentation** — a credential with a key-binding JWT appended, by which the agent proves possession of the bound key.
 
-**DID (Decentralized Identifier):** W3C Decentralized Identifier used to identify TAs and Agents.
+**Key-binding JWT** — the JWT the holder signs with the private key matching `cnf` to bind a presentation to itself and to one Service Provider.
 
-**Revocation:** Process of invalidating a credential before its expiry time.
+**Block** — a Trust Authority marking an agent or operator no longer trusted, keyed to its identity in a status list.
 
-**Challenge-Response:** Protocol where a Service Provider sends a random nonce and the Agent signs it to prove freshness and prevent replay attacks.
+**DID** — a W3C Decentralised Identifier. In TSAI, used only to identify referenced third parties (a certifier or a backer) by their own `did:web`.
 
 ### Conventions
 
-TSAI actor names — **Trust Authority**, **Operator**, **Agent**, **User**, **Service Provider** — are written in Title case when they name the protocol role. Common English uses of the same words remain lowercase.
-
-The **Service Provider** is the actor; the **verifier** (lowercase) is the software component inside a Service Provider's stack, or provided to it by infrastructure, that performs credential verification.
-
-Compounds combining a multi-word proper noun with a qualifier are reworded rather than hyphenated. This specification uses "across Service Providers" rather than "cross-Service-Provider", "at the Service Provider layer" rather than "Service-Provider-level", and "specific to each Service Provider" rather than "Service-Provider-specific".
+TSAI actor names — Trust Authority, Operator, Agent, User, Service Provider — are Title case when naming the protocol role. The Service Provider is the actor; the verifier (lowercase) is the component that performs verification. Compounds are reworded rather than hyphenated: "across Service Providers", not "cross-Service-Provider".
 
 ---
 
 ## 1.4 Document Structure
 
-- **Section 2: TSAI Ontology** - JSON-LD ontology defining Agent and Operator classes with operatedBy relationship
-- **Section 3: Credential Format** - Normative specification of credential structure, claims, and schemas for each tier
-- **Section 4: Verification** - Normative algorithms for verifying credentials and presentations
-- **Section 5: Protocol Integration** - Integration patterns with MCP, A2A, W3C AI Agent Protocol, and HTTP-based protocols
-- **Section 6: Security and Privacy** - Normative security and privacy requirements
-- **Section 7: References** - Normative and informative references
+- **Section 2: Credential Format** — the SD-JWT VC structure, the signal categories, and the schema.
+- **Section 3: Verification** — the algorithm for verifying a presentation.
+- **Section 4: Protocol Integration** — MCP, A2A, the W3C AI Agent Protocol, and HTTP.
+- **Section 5: Security and Privacy** — the trust model, threats, and requirements.
+- **Section 7: Trust Authority APIs** — issuance, refresh, status, and transparency.
+
+The domain model behind the credential is in the ontology document; the references are collected in the references document.
 
 ---
 
 ## 1.5 Normative References
 
-- **[VC-DATA-MODEL-2.0]** W3C Verifiable Credentials Data Model 2.0, W3C Recommendation, May 2025
-- **[VC-JOSE-COSE]** W3C Securing Verifiable Credentials using JOSE and COSE, W3C Recommendation, May 2025
-- **[DID-CORE]** W3C Decentralized Identifiers (DIDs) v1.0, W3C Recommendation, July 2022
-- **[RFC2119]** Key words for use in RFCs to Indicate Requirement Levels, IETF RFC 2119
-- **[RFC8259]** The JavaScript Object Notation (JSON) Data Interchange Format, IETF RFC 8259
-- **[RFC7519]** JSON Web Token (JWT), IETF RFC 7519
-- **[RFC7515]** JSON Web Signature (JWS), IETF RFC 7515
+- **[SD-JWT-VC]** SD-JWT-based Verifiable Credentials, draft-ietf-oauth-sd-jwt-vc
+- **[SD-JWT]** Selective Disclosure for JWTs (SD-JWT), RFC 9901
+- **[STATUS-LIST]** Token Status List, draft-ietf-oauth-status-list
+- **[RFC7519]** JSON Web Token (JWT); **[RFC7515]** JSON Web Signature (JWS); **[RFC7638]** JWK Thumbprint; **[RFC7800]** Proof-of-Possession Key Semantics (`cnf`); **[RFC7517]** JSON Web Key (JWK)
+- **[RFC2119]** Requirement-level keywords; **[RFC8259]** JSON
 
 ---
 
 ## 1.6 Informative References
 
-- **[TSAI-CONCEPT]** TSAI High-Level Concept, TSAI Working Group, January 2026
-- **[TSAI-ADR-002]** ADR 002: Centralized Trust Authorities, TSAI Working Group, January 2026
-- **[TSAI-ADR-003]** ADR 003: W3C Verifiable Credentials, TSAI Working Group, January 2026
-- **[TSAI-ADR-004]** ADR 004: Tiered Trust Model, TSAI Working Group, January 2026
-- **[TSAI-ADR-005]** ADR 005: Signaling vs. Enforcement, TSAI Working Group, January 2026
-- **[TSAI-ADR-006]** ADR 006: DID Methods, TSAI Working Group, January 2026
-- **[TSAI-ADR-007]** ADR 007: Short-Lived Credentials, TSAI Working Group, January 2026
-- **[TSAI-ADR-012]** ADR 012: Service Provider Terminology, TSAI Working Group, April 2026
+- **[TSAI-CONCEPT]** TSAI High-Level Concept
+- **[TSAI-ADR-001]** Agent Delegation Mechanism
+- **[TSAI-ADR-002]** Centralized Trust Authorities
+- **[TSAI-ADR-005]** Signaling vs Enforcement
+- **[TSAI-ADR-007]** Short-Lived Credentials
+- **[TSAI-ADR-012]** Service Provider Terminology
+- **[TSAI-ADR-014]** Holder Binding and Web Bot Auth Integration (supersedes the binding parts of ADR 013)
+- **[TSAI-ADR-015]** Credential Serialisation Format (supersedes ADR 003)
+- **[TSAI-ADR-016]** Trust Signal Structure (supersedes ADR 004)
+- **[TSAI-ADR-017]** Party Identity and Key Discovery (supersedes ADR 006)
+- **[TSAI-ADR-018]** Verification Strength and Replay (amends ADR 009)
 
 ---
 
 ## 1.7 Design Rationale
 
-This specification is informed by architectural decisions documented in TSAI Architecture Decision Records (ADRs). Centralized Trust Authorities (ADR 002) provide performance, reliability, and legal accountability. W3C Verifiable Credentials (ADR 003) enable interoperability and future extensibility. The tiered trust model (ADR 004) balances performance and security for different risk levels across four tiers (T0-T3). As a signaling protocol (ADR 005), TSAI defines signals while Service Providers decide how to use them. DID methods (ADR 006) use `did:web` for TAs and `did:key` or `did:web` for Agents. Short-lived credentials (ADR 007) with 2-4 hour expiry reduce revocation dependency for low-stakes scenarios. The "Service Provider" terminology and associated conventions are defined in ADR 012.
+This specification follows a set of architectural decisions. Centralised Trust Authorities (ADR 002) give performance, reliability, and legal accountability. The credential is an SD-JWT VC (ADR 015), which keeps TSAI within the JWT and JOSE idiom. Signals are a flat list in four categories with no tiers (ADR 016); a Service Provider sets verification strength from the signals and the risk of the action (ADR 018) rather than from a tier. As a signalling protocol (ADR 005), TSAI defines the signals and the Service Provider decides. Identity follows ADR 017: a Trust Authority is an HTTPS issuer, an agent is its bound key, and a referenced third party is its own `did:web`. Holder binding is a key-binding JWT (ADR 014). Credentials are short-lived, thirty minutes (ADR 018, amending ADR 007).
 
-See ADRs for detailed rationale and alternatives considered.
+See the ADRs for the reasoning and the alternatives considered.

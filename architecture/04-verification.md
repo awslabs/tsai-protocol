@@ -13,467 +13,114 @@ SPDX-License-Identifier: Apache-2.0
 
 ## 3.1 Overview
 
-This section specifies how Service Providers verify TSAI credentials presented by Agents. Verification ensures the credential was issued by a trusted TA, has not expired or been revoked, the Agent controls the DID in the credential, and the credential has not been replayed.
+This section specifies how a Service Provider verifies a TSAI credential presented by an agent. A presentation is an SD-JWT VC (Section 2) with a key-binding JWT appended. Verification establishes four things: that a trusted Trust Authority issued the credential, that the credential has not expired, that the presenter holds the bound key, and that the presentation is addressed to this Service Provider.
 
-This section specifies T0/T1 verification, which uses offline verification with no TA runtime dependency. T2/T3 verification (challenge-response, real-time revocation) is deferred to TSAI 1.1.
-
----
-
-## 3.2 DID Resolution Requirements
-
-Service Providers MUST be able to resolve TA DIDs to obtain public keys for signature verification.
-
-### 3.2.1 Supported DID Methods
-
-**For Trust Authority DIDs:**
-- Service Providers MUST support `did:web` resolution
-- Example: `did:web:trust-authority.example:tsai:ta`
-
-**For Agent DIDs:**
-- Service Providers MUST support `did:key` resolution (MVP)
-- Service Providers SHOULD support `did:web` resolution (production)
-
-### 3.2.2 DID Resolution Process
-
-Service Providers MUST resolve DIDs according to the W3C DID Resolution specification (see References).
-
-**Key requirements:**
-- Service Providers MUST validate DID document signatures where applicable
-- Service Providers MUST verify DID document has not expired
-- Service Providers MAY cache DID documents (caching policies are implementation-specific)
-
-**Error handling:**
-- If DID resolution fails, verification MUST fail (fail closed)
-- Service Providers MAY implement retry logic with exponential backoff
-- Service Providers operating in degraded mode (see Section 3.5) MAY accept cached DID documents beyond normal cache duration
+The base path is offline. It needs the Trust Authority's published signing key and nothing from the Trust Authority at request time. Freshness, replay prevention, the use of a nonce, and when a Service Provider fetches status are specified in Section 3.4 and ADR 018. The keywords MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY are to be interpreted as described in RFC 2119.
 
 ---
 
-## 3.3 Credential Verification (T0/T1)
+## 3.2 Key Discovery and Identity
 
-T0 and T1 credentials use offline verification with no TA runtime dependency.
+Verification resolves keys and identities per ADR 017.
 
-### 3.3.1 Verification Overview
+### 3.2.1 Trust Authority key
 
-Verification proceeds in two phases: first verify the VP-JWT envelope (proves the Agent controls the DID), then verify the enclosed VC-JWT (proves a trusted TA issued the credential). Section 3.3.5 specifies the canonical verification algorithm. Sections 3.3.2 and 3.3.4 provide supporting details on timestamp validation and Operator DID resolution.
+The Trust Authority is identified by the `iss` claim, an HTTPS identifier. Its signing keys are published at `iss` joined with `/.well-known/jwt-vc-issuer`, and the `kid` in the issuer-signed JWT header selects one. A Service Provider MUST obtain the issuer key from that endpoint and MAY cache it. There is no DID resolution for the Trust Authority.
 
-### 3.3.2 Timestamp Validation
+A Service Provider verifies against a set of Trust Authority issuers it trusts, configured directly or from a registry. If `iss` is not a trusted issuer, or the key cannot be obtained, verification fails closed.
 
-**Clock Skew Tolerance:**
-- Service Providers MUST accept timestamps within ±30 seconds of the Service Provider's current time
-- Assumes all systems use NTP synchronization
-- Rationale: Prevents replay attacks while accommodating minor clock drift
+### 3.2.2 Agent key
 
-**Timestamp Format:**
-- All timestamps MUST be ISO 8601 format: `YYYY-MM-DDTHH:MM:SSZ`
-- Timezone MUST be UTC (Z suffix)
+The agent is not resolved. Its key is the `cnf` JWK inside the credential, and the key-binding JWT is verified against it directly.
 
-**Validation:**
-```
-currentTime = the Service Provider's current UTC time
-validFromTime = parse(credential.validFrom)
-validUntilTime = parse(credential.validUntil)
+### 3.2.3 Third-party identifiers
 
-if (currentTime < validFromTime - 30 seconds):
-    reject "Credential not yet valid"
-
-if (currentTime > validUntilTime + 30 seconds):
-    reject "Credential expired"
-
-accept
-```
-
-### 3.3.4 Operator DID Resolution (Optional)
-
-Service Providers MAY resolve Operator DIDs for discovery and additional verification.
-
-**When to resolve:**
-- Discovery: Find all Agents operated by this Operator
-- Verification: Cross-check Operator information in credential
-- Monitoring: Track the Operator's Agent ecosystem
-
-**Resolution process:**
-1. Extract Operator DID from `credentialSubject.operatedBy.id`
-2. Resolve DID according to W3C DID Resolution specification
-3. Verify DID document is valid and not expired
-4. Extract Operator metadata (if present in DID document)
-
-**What Operator DID resolution provides:**
-- List of all Agents operated by this Operator (via service endpoints)
-- Operator's public keys (for future use cases)
-- Operator's service endpoints (website, support, etc.)
-- Additional Operator metadata
-
-**What Operator DID resolution does NOT provide:**
-- Credential verification (credential contains all necessary information)
-- Trust signals (all trust signals are in the credential)
-- Required verification step (resolution is optional)
-
-**Error handling:**
-- If Operator DID resolution fails, verification SHOULD continue
-- Credential contains all information needed for verification
-- Resolution failure does not invalidate credential
-
-**Example Operator DID document:**
-```json
-{
-  "@context": ["https://www.w3.org/ns/did/v1"],
-  "id": "did:web:acme-corp.com",
-  "verificationMethod": [{
-    "id": "did:web:acme-corp.com#key-1",
-    "type": "Ed25519VerificationKey2020",
-    "controller": "did:web:acme-corp.com",
-    "publicKeyMultibase": "z6Mk..."
-  }],
-  "service": [{
-    "id": "did:web:acme-corp.com#agents",
-    "type": "AgentRegistry",
-    "serviceEndpoint": "https://acme-corp.com/agents"
-  }, {
-    "id": "did:web:acme-corp.com#website",
-    "type": "LinkedDomains",
-    "serviceEndpoint": "https://acme-corp.com"
-  }]
-}
-```
-
-### 3.3.5 Verifiable Presentation Verification
-
-Agents prove possession of credentials by wrapping them in a VP-JWT (JWT-encoded Verifiable Presentation) signed with the Agent's DID private key. This is consistent with the VC-JWT encoding used for credentials (per W3C VC-JOSE-COSE).
-
-**JSON Schema:** [`schemas/verifiable-presentation.schema.json`](schemas/verifiable-presentation.schema.json)
-
-**VP-JWT Structure:**
-
-```
-Header:
-{
-  "alg": "EdDSA",
-  "typ": "vp+jwt",
-  "kid": "did:web:acme-corp.com:agents:agent123#key-1"   // Agent's key
-}
-
-Payload:
-{
-  "@context": ["https://www.w3.org/ns/credentials/v2"],
-  "type": ["VerifiablePresentation"],
-  "verifiableCredential": ["<VC-JWT>"],
-  "iss": "did:web:acme-corp.com:agents:agent123",
-  "aud": "https://service-provider.example",
-  "iat": 1706961330,
-  "exp": 1706961390,
-  "nonce": "a1b2c3d4..."
-}
-
-Signature: <EdDSA signature over header.payload>
-```
-
-**Payload structure:** The JWS payload is a JWT Claims Set: the Verifiable Presentation properties and the JWT registered claims are top-level claims. The `vp` wrapper MUST NOT be used, and the `vc` and `vp` claim names MUST NOT appear. A TSAI 1.0 VP-JWT MUST NOT include claims beyond those defined in this section.
-
-**Key distinction:** The VP-JWT `kid` identifies the **Agent's** signing key (used to verify the VP). The enclosed VC-JWT `kid` identifies the **TA's** signing key (used to verify the credential). These are different keys from different parties.
-
-**VP-JWT Claims:**
-
-- `iss` (REQUIRED): Agent DID. MUST match `credentialSubject.id` in the enclosed VC.
-- `aud` (REQUIRED): Service Provider identifier. Prevents replay against a different Service Provider.
-  - HTTP transport: Request URL origin (e.g., `https://service-provider.example`)
-  - MCP stdio transport: Server identifier from MCP initialization
-  - Push notifications: Webhook URL origin
-- `iat` (REQUIRED): Issued-at timestamp (Unix seconds). Service Providers MUST validate within ±30 seconds of current time.
-- `exp` (REQUIRED): Expiration timestamp (Unix seconds). MUST be no more than 60 seconds after `iat`. This is the VP expiry (seconds), distinct from the enclosed VC expiry (hours).
-- `nonce` (OPTIONAL for T0/T1, REQUIRED for T2/T3): Nonce provided by the Service Provider. When present, eliminates the replay window entirely. When absent, Service Providers rely on `iat` ±30 seconds for freshness.
-- `verifiableCredential` (REQUIRED): MUST contain exactly one TSAI credential (VC-JWT). VPs with zero or more than one credential MUST be rejected.
-
-**Verification steps:**
-1. Decode VP-JWT and verify structure
-2. Resolve Agent DID from `iss` to get the Agent's public key (referenced by `kid` in VP-JWT header)
-3. Verify VP-JWT signature using the Agent's public key
-4. Verify `aud` matches the Service Provider's own identifier
-5. Verify `iat` is within ±30 seconds of current time
-6. Verify `exp` is no more than 60 seconds after `iat` and has not passed
-7. If `nonce` is present, verify it matches a nonce issued by the Service Provider (and has not been used before)
-8. Extract VC-JWT from `verifiableCredential[0]`
-9. Verify `iss` matches `credentialSubject.id` in the enclosed VC
-10. Decode VC-JWT header and payload
-11. Resolve TA DID from `issuer` claim; extract public key referenced by `kid` in VC-JWT header
-12. Verify VC-JWT signature using TA's public key
-13. Validate `validFrom` and `validUntil` (±30 seconds clock skew tolerance, see Section 3.3.2)
-14. Validate `credentialSubject` fields: Agent DID format, Operator DID format (MUST be `did:web`); optionally resolve Operator DID (see Section 3.3.4)
-15. If `credentialStatus` is present, check revocation (see Section 3.4)
-
-If any step fails, reject the credential. If all steps succeed, the credential is valid.
-
-**Replay Prevention:**
-- `aud` binds the VP to a specific Service Provider, preventing replay against a different one
-- `iat` ±30 seconds limits freshness window for T0/T1
-- `nonce` (when present) eliminates replay entirely for T2/T3
-- `exp` caps VP lifetime at 60 seconds regardless of other checks
+A compliance or assurance signal names its provider by a `did:web` in `prv`. A Service Provider resolves that DID only if it independently checks the provider, which is optional; the credential carries the signal as asserted by the Trust Authority.
 
 ---
 
-## 3.4 Revocation Checking (Optional for T0/T1, Required for T2/T3)
+## 3.3 Verification Algorithm
 
-TSAI uses W3C BitstringStatusList for credential revocation. T2/T3 revocation requirements described here are informative and become normative alongside the T2/T3 verification protocol in TSAI 1.1.
+Given a presentation of the form `<issuer-signed JWT>~<disclosure 1>~...~<disclosure N>~<key-binding JWT>`, where disclosures are present only under selective disclosure:
 
-### 3.4.1 Revocation Check Algorithm
+1. Split the presentation on `~` into the issuer-signed JWT, any disclosures, and the key-binding JWT.
+2. Check the issuer-signed JWT header has `typ` `dc+sd-jwt`. Read `iss` and confirm it is a trusted Trust Authority. Obtain the key named by `kid` from the issuer's `jwt-vc-issuer` metadata and verify the issuer signature.
+3. Confirm `vct` is a recognised credential type.
+4. Check the lifetime: `exp` has not passed and `iat` is not in the future, within the skew tolerance set in Section 3.4.
+5. If disclosures are present, verify each against its digest in `signals` and reconstruct the revealed signals. Ignore any signal not disclosed.
+6. Check the key-binding JWT header has `typ` `kb+jwt`. Verify its signature against the `cnf` JWK.
+7. Confirm `aud` is this Service Provider, and that `sd_hash` matches the presented issuer-signed JWT together with the forwarded disclosures.
+8. Apply the freshness, nonce, and status rules of Section 3.4.
 
-If credential includes `credentialStatus` field:
+If any step fails, reject the presentation. Ignore signal types that are not recognised, per Section 2.5.7.
 
-**Step 1: Extract Status Information**
-```json
-"credentialStatus": {
-  "id": "https://trust-authority.example/tsai/status/1#94567",
-  "type": "BitstringStatusListEntry",
-  "statusPurpose": "revocation",
-  "statusListIndex": "94567",
-  "statusListCredential": "https://trust-authority.example/tsai/status/1"
-}
-```
+---
 
-**Step 2: Fetch Status List Credential**
-- HTTP GET `statusListCredential` URL
-- Verify status list credential signature (issued by TA)
-- Extract compressed bitstring from credential
+## 3.4 Freshness, Replay, and Status
 
-**Step 3: Check Revocation Bit**
-- Decompress bitstring
-- Check bit at `statusListIndex`
-- If bit = 1: Credential is revoked
-- If bit = 0: Credential is valid
+Verification strength follows the risk of the action, as specified in ADR 018, over the mechanisms below.
 
-**Step 4: Handle Result**
-- If revoked: Reject credential
-- If valid: Continue verification
-- If fetch fails: See Section 3.5 (Error Handling)
+`aud` binds a presentation to one Service Provider, and each presentation carries its own key-binding JWT with a fresh `iat` and an optional `nonce`, on a clock independent of the 30-minute credential lifetime. A credential MAY carry a `status` reference keyed to the agent or operator identity (Section 2.7.2).
 
-### 3.4.2 Caching Status Lists
+**Baseline.** A Service Provider MUST confirm `aud`, and SHOULD reject a key-binding JWT whose `iat` is more than 2 minutes old, allowing 30 seconds of clock skew. This is the offline path and needs nothing from the Trust Authority at request time.
 
-Service Providers MAY cache status list credentials to reduce network requests.
-
-**Recommendations (non-normative):**
-- Cache duration: 5-15 minutes
-- Invalidate cache on TA DID document changes
-- Use HTTP caching headers if provided by TA
+**Escalation.** Where the risk of the action warrants, a Service Provider issues a `nonce` as a challenge, which the agent echoes in the key-binding JWT and which closes the freshness window, and fetches the agent or operator status list to honour a block. Which action calls for which addition is the Service Provider's policy over the signals, not a tier.
 
 ---
 
 ## 3.5 Error Handling
 
-Verification can fail for multiple reasons. Service Providers MUST handle errors securely while maintaining availability.
+### 3.5.1 Fail closed
 
-### 3.5.1 Verification Failures (Fail Closed)
+The following MUST result in rejection: an invalid or unsupported issuer or key-binding signature, an `iss` that is not trusted, an unrecognised `vct`, an expired credential, a key-binding JWT whose `aud` does not match or whose `sd_hash` does not match the presented material, and a malformed presentation.
 
-The following errors MUST result in credential rejection:
+Standard error codes:
 
-**Signature Errors:**
-- Invalid JWT signature
-- Unsupported signature algorithm
-- Missing or malformed signature
+- `SIGNATURE_INVALID` — an issuer or key-binding signature failed.
+- `ISSUER_UNTRUSTED` — `iss` is not a trusted Trust Authority.
+- `EXPIRED` — the credential lifetime has passed.
+- `BINDING_INVALID` — the key-binding JWT failed, whether signature, `aud`, or `sd_hash`.
+- `UNKNOWN_TYPE` — `vct` is not recognised.
+- `MALFORMED` — the presentation could not be parsed.
 
-**Timestamp Errors:**
-- Credential expired (beyond clock skew tolerance)
-- Credential not yet valid (beyond clock skew tolerance)
-- Invalid timestamp format
-
-**DID Errors:**
-- Invalid DID format
-- DID method not supported
-- DID document signature invalid
-
-**VP Errors:**
-- VP signature invalid
-- VP timestamp outside tolerance window
-- Holder DID mismatch
-
-**Revocation Errors (T2/T3 only, informative until TSAI 1.1):**
-- Credential is revoked
-- Status list indicates revocation
-
-### 3.5.2 Infrastructure Failures (Degraded Mode)
-
-The following errors MAY allow degraded mode operation:
-
-**DID Resolution Failures:**
-- TA DID document unreachable
-- Network timeout
-- DNS resolution failure
-
-**Revocation Check Failures (T0/T1 only):**
-- Status list credential unreachable
-- Network timeout
-- Status list signature invalid
-
-**Degraded Mode Requirements:**
-
-If a Service Provider operates in degraded mode:
-- The Service Provider MUST clearly indicate degraded trust level
-- The Service Provider MUST log degraded mode operation
-- The Service Provider SHOULD use cached DID documents if available
-- The Service Provider SHOULD implement circuit breaker patterns
-
-**Degraded mode indication:**
-```json
-{
-  "verified": true,
-  "degraded": true,
-  "warnings": [
-    "TA DID resolution failed, using cached DID document",
-    "Revocation check skipped due to network failure"
-  ],
-  "cachedUntil": "2026-01-23T11:00:00Z"
-}
-```
-
-Service Providers MUST NOT operate in degraded mode for:
-- Signature verification failures
-- Expired credentials
-- Invalid VP signatures
-
-### 3.5.3 Error Response Format
-
-When verification fails, Service Providers SHOULD return structured error information. Error responses MUST NOT include issuer identifiers, algorithm details, or DID resolution information. Service Providers SHOULD log detailed error information server-side for debugging.
+A Service Provider SHOULD return a structured error without issuer identifiers or algorithm details, and SHOULD log the detail server-side.
 
 ```json
-{
-  "verified": false,
-  "error": {
-    "code": "SIGNATURE_INVALID",
-    "message": "Credential verification failed"
-  }
-}
+{ "verified": false, "error": { "code": "BINDING_INVALID", "message": "Verification failed" } }
 ```
 
-**Standard error codes:**
-- `SIGNATURE_INVALID` - Credential signature verification failed
-- `EXPIRED` - Credential has expired
-- `NOT_YET_VALID` - Credential issuance date is in the future
-- `REVOKED` - Credential has been revoked
-- `DID_RESOLUTION_FAILED` - Could not resolve DID
-- `VP_INVALID` - Verifiable Presentation verification failed
-- `UNSUPPORTED_ALGORITHM` - Signature algorithm not supported
-- `MALFORMED_CREDENTIAL` - Credential structure is invalid
+### 3.5.2 Degraded mode
+
+If the issuer metadata is temporarily unreachable, a Service Provider MAY continue with a cached issuer key, and MUST indicate the degraded trust level and log it. Degraded mode MUST NOT relax any cryptographic, lifetime, or binding check. The interaction between degraded mode and the risk policy of Section 3.4 is specified in ADR 018.
 
 ---
 
-## 3.6 Security Considerations
-
-### 3.6.1 Replay Attack Prevention
-
-**T0/T1 Protection:**
-- `aud` claim binds the VP to a specific Service Provider, preventing replay against a different one
-- `iat` ±30 seconds limits freshness window
-- `exp` caps VP lifetime at 60 seconds
-- Short credential expiry (2-4 hours) limits stolen credential lifetime
-
-**T2/T3 Protection (targeted for TSAI 1.1):**
-- `nonce` from the Service Provider's challenge eliminates replay window entirely
-- Real-time revocation checks via BitstringStatusList
-
-**Threat matrix:**
-
-| Scenario | Impact | Mitigation |
-|----------|--------|------------|
-| Stolen VP-JWT (without Agent key) | Replay within 60s, single Service Provider only | `aud` binding + `exp` 60s max |
-| Stolen VC-JWT (without Agent key) | Useless — attacker cannot create valid VP without the Agent's private key | VP signature proves key possession |
-| Stolen Agent private key + VC-JWT | Full impersonation until VC expiry (2-4h) | Short credential lifetimes, key rotation, revocation (T2/T3) |
-
-### 3.6.2 Clock Synchronization
-
-**Critical assumption:** All systems use NTP synchronization
-
-**Risks if clocks drift:**
-- Expired credentials may be accepted
-- Valid credentials may be rejected
-- Replay window may expand
-
-**Mitigation:**
-- Service Providers SHOULD monitor clock drift
-- Service Providers SHOULD alert on NTP synchronization failures
-- ±30 second tolerance accommodates minor drift
-
-### 3.6.3 DID Document Trust
-
-**Trust model:**
-- Service Providers trust TA DID documents obtained via did:web resolution
-- did:web relies on DNS and HTTPS security
-- For T0/T1: Service Providers SHOULD use DNSSEC where available
-- For T2/T3: Service Providers MUST use DNSSEC-validated resolution for TA DIDs
-- Service Providers MUST use HTTPS for did:web resolution
-
-**Risks:**
-- DNS hijacking could redirect to malicious DID document
-- Compromised TA domain could serve malicious keys
-
-**Mitigation:**
-- DNSSEC mandatory for T2/T3 (eliminates DNS spoofing for high-stakes tiers)
-- Multiple TAs provide redundancy
-- Service Providers can pin TA DID documents
-- Governance body maintains TA registry
-
-### 3.6.4 Revocation Check Bypass
-
-**Risk:** Service Providers operating in degraded mode may skip revocation checks
-
-**Mitigation:**
-- Degraded mode MUST be clearly indicated
-- Service Providers SHOULD limit degraded mode duration
-- Service Providers SHOULD implement circuit breakers
-- T2/T3 MUST NOT skip revocation checks (fail closed)
-
----
-
-## 3.7 Future Extensions
-
-### 3.7.1 T2/T3 Verification Protocols
-
-Future versions of this specification will define:
-- Challenge-response protocols for replay prevention
-- Real-time TA verification APIs
-- Constraint validation mechanisms
-- Enhanced revocation checking
-
-### 3.7.2 Verification Result Caching
-
-Service Providers MAY cache verification results to improve performance. Caching policies are implementation-specific and will be addressed in implementation guidance documents.
-
----
-
-## 3.8 Normative Requirements Summary
+## 3.6 Normative Requirements Summary
 
 **Service Providers MUST:**
-- Support did:web resolution for TA DIDs
-- Support did:key resolution for Agent DIDs (MVP)
-- Verify credential signatures using TA public keys
-- Validate timestamps with ±30 second tolerance
-- Verify Verifiable Presentation signatures
-- Fail closed on signature, timestamp, and VP errors
-- Clearly indicate degraded mode operation
-
-**Service Providers MUST (T2/T3):**
-- Use DNSSEC-validated resolution for TA DIDs
+- Obtain the Trust Authority key from `iss` and `/.well-known/jwt-vc-issuer` and verify the issuer signature.
+- Verify the key-binding JWT against the credential's `cnf` key, and confirm `aud` and `sd_hash`.
+- Check the credential lifetime.
+- Reject a credential whose `iss` is untrusted or whose `vct` is unrecognised.
+- Ignore signal types they do not recognise.
+- Fail closed on any signature, lifetime, or binding failure.
 
 **Service Providers SHOULD:**
-- Support did:web resolution for Agent DIDs (production)
-- Check revocation for T0/T1 credentials when available
-- Implement retry logic for transient failures
-- Monitor clock synchronization
-- Use DNSSEC for did:web resolution (T0/T1)
+- Confirm `aud` and bound the age of the key-binding JWT to 2 minutes, allowing 30 seconds of clock skew, per ADR 018.
 
 **Service Providers MAY:**
-- Cache DID documents
-- Cache status list credentials
-- Track VP signatures to prevent replay
-- Operate in degraded mode for infrastructure failures
-- Cache verification results
+- Cache issuer keys.
+- Fetch the agent or operator status list where risk warrants (policy per ADR 018).
+- Continue in degraded mode on infrastructure failure, clearly indicated.
+
+The freshness window, nonce policy, and status-fetch policy are specified in ADR 018.
 
 ---
 
 ## References
 
-- W3C Verifiable Credentials Data Model 2.0
-- W3C VC-JOSE-COSE
-- W3C DID Resolution
-- W3C BitstringStatusList
-- RFC 7519 (JSON Web Token)
-- RFC 7515 (JSON Web Signature)
-
+- draft-ietf-oauth-sd-jwt-vc — SD-JWT-based Verifiable Credentials
+- draft-ietf-oauth-status-list — Token Status List
+- SD-JWT VC Issuer Metadata (`/.well-known/jwt-vc-issuer`)
+- RFC 7519 (JSON Web Token), RFC 7515 (JSON Web Signature)
+- RFC 7638 (JWK Thumbprint)

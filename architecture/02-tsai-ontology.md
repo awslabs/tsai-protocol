@@ -3,7 +3,7 @@ Copyright Amazon.com Inc. or its affiliates.
 SPDX-License-Identifier: Apache-2.0
 -->
 
-# TSAI Ontology
+# TSAI Domain Model
 
 **Version:** 1.0 (Draft)  
 **Date:** January 2026  
@@ -13,115 +13,64 @@ SPDX-License-Identifier: Apache-2.0
 
 ## Overview
 
-TSAI uses W3C Verifiable Credentials with JSON-LD to formally model the relationship between operators (legal entities) and agents (LLM-driven programs). This document defines the TSAI ontology.
-
-**Namespace:** `https://tsai.example.org/credentials/v1#`
+TSAI models the relationship between an operator, the legal entity, and an agent, the program it runs. This document defines that relationship and how signals attach to each. The wire form is the flat signal list of the credential (Section 2); this is the model behind it.
 
 ---
 
-## Classes
+## Operator
 
-### Operator
-Legal entity (company, organization, or individual) that owns and operates agents.
+The legal entity, a company, organisation, or individual, that runs agents and is legally accountable for them. Within a credential the operator is identified by its identity signals, its legal name, jurisdiction, and a verified domain, rather than by a minted identifier (ADR 017). It carries the signals shared across all of its agents: identity, compliance, and assurance.
 
-**Properties:**
-- `id` (DID) - Operator's decentralized identifier
-- `name` (string) - Legal entity name
-- `jurisdiction` (string) - ISO 3166-1 alpha-2 country code
-- `kycLevel` (string) - KYC verification level: `basic`, `enhanced`, `institutional`
-- `verifiedDomain` (string, optional) - DNS-verified domain
-- `domainAge` (integer, optional) - Days since domain registration
-- `certifications` (array, optional) - Industry certifications
-- `organizationalAffiliation` (string, optional) - Network membership
-- `economicStake` (object, optional) - Collateral and insurance
+## Agent
 
-### Agent
-LLM-driven program with a DID that makes requests on behalf of an operator.
+The program that makes requests on behalf of an operator. It is identified by the key its credential is bound to, the `cnf` key, and it may carry a stable HTTPS name for continuity (ADR 017). It carries its own reputation.
 
-**Properties:**
-- `id` (DID) - Agent's decentralized identifier
-- `operatedBy` (Operator) - The operator responsible for this agent
-- `reputation` (object, optional) - Behavioral track record
-- `authorization` (object, optional) - Authorized operations and constraints
+## The operatedBy relationship
 
----
-
-## Properties
-
-### operatedBy
-Relates an Agent to its Operator.
-
-**Domain:** Agent  
-**Range:** Operator  
-**Cardinality:** Exactly one (each agent has exactly one operator)
+Each agent has exactly one operator. One operator can run several agents, each building its own reputation while sharing the operator's identity, compliance, and assurance. One operator per agent keeps accountability clear; a joint venture names one party as the operator.
 
 ---
 
 ## Signal Attribution
 
-### Operator-Level Signals
-Properties of the Operator class that apply to all agents operated by that entity:
-- Legal identity (name, jurisdiction, KYC)
-- Certifications
-- Economic stake (collateral, insurance)
-- Domain verification
-- Organizational affiliation
+Each signal in the flat list is about either the operator or the agent.
 
-### Agent-Level Signals
-Properties of the Agent class that describe the specific agent's behavioral track record:
-- Reputation (score, interaction count, success rate, time in operation)
-- Payment reliability
-- Complaint rate
-- Behavioral consistency
-- Authorization constraints (may be operator-level or agent-level depending on use case)
+- **Operator-level**, shared across the operator's agents: identity (legal name, jurisdiction, verification depth, controlled domain and its age), compliance (certifications), and assurance (economic backing).
+- **Agent-level**, specific to the one agent: reputation (its behavioural record).
+
+Authorization, the constraints on what an agent may do, is delegation rather than a signal, and is out of scope here (ADR 001).
 
 ---
 
-## Example Structure
+## Example
+
+A flat signal list carrying operator-level and agent-level signals:
 
 ```json
-{
-  "@context": [
-    "https://www.w3.org/ns/credentials/v2",
-    "https://tsai.example.org/credentials/v1"
-  ],
-  "credentialSubject": {
-    "id": "did:web:acme-corp.com:agents:shopping-bot",
-    "type": "Agent",
-    "operatedBy": {
-      "id": "did:web:acme-corp.com",
-      "type": "Operator",
-      "name": "Acme Corporation GmbH",
-      "jurisdiction": "DE",
-      "kycLevel": "enhanced",
-      "certifications": ["ISO27001", "SOC2"]
-    },
-    "reputation": {
-      "interactionCount": 1247,
-      "successRate": 0.94
-    }
-  }
-}
+"signals": [
+  { "cat": "idn", "typ": "jur", "val": "DE" },
+  { "cat": "idn", "typ": "dct", "val": "acme-corp.example" },
+  { "cat": "cmp", "typ": "iso27001", "prv": "did:web:cert-corp.example" },
+  { "cat": "rep", "typ": "ecommerce", "scr": 0.94, "cnt": 3518, "wdw": "P90D" }
+]
 ```
+
+The identity and compliance signals describe the operator; the reputation signal describes the agent. The credential binds them to the agent's `cnf` key and to the operator's identity.
 
 ---
 
 ## Design Rationale
 
-**Why operators have DIDs:**
-Operators have DIDs to enable verifiable identity, support discovery of all agents from an operator, provide a natural fit with semantic web (proper URI), and ensure that operator DID compromise affects all their agents (accountability feature).
+**One operator per agent.** A single accountable party per agent keeps the trust model simple and the responsibility unambiguous.
 
-**Why DID resolution is optional:**
-Credentials contain all necessary information for verification. Resolution enables discovery and updates but isn't required. This works offline while supporting online enhancements.
+**The operator is identified by verified attributes, not a minted identifier.** An identifier a Trust Authority mints for the operator would not be consistent across Trust Authorities. The operator's legal identity and verified domain are what a Service Provider needs, and they are decided outside any single TA (ADR 017).
 
-**Why one operator per agent:**
-Each agent has exactly one operator for clear accountability (one party operationally responsible), which simplifies the trust model. Joint ventures designate one party as operator.
+**The agent is identified by the key it holds.** The `cnf` key is self-authenticating and is what the holder proves possession of at presentation, so the agent needs no separate identifier for verification (ADR 014).
 
 ---
 
 ## References
 
-- W3C Verifiable Credentials Data Model 2.0
-- W3C Decentralized Identifiers (DIDs)
-- JSON-LD 1.1
+- draft-ietf-oauth-sd-jwt-vc — SD-JWT-based Verifiable Credentials
+- TSAI ADR 014 (Holder Binding), ADR 016 (Trust Signal Structure), ADR 017 (Party Identity)
 - TSAI Credential Format (architecture/03-credential-format.md)

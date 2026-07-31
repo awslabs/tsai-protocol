@@ -8,7 +8,7 @@ SPDX-License-Identifier: Apache-2.0
 **Status:** Superseded  
 **Date:** 2026-01-22  
 **Deciders:** TAP Working Group  
-**Superseded by:** [Credential Serialisation Format](./draft-xx2-credential-serialisation-format.md) (this branch)  
+**Superseded by:** [ADR 015 — Credential Serialisation Format](./015-credential-serialisation-format.md)  
 **Amended by:** [ADR 012 — Service Provider Terminology](./012-service-provider-terminology.md)
 
 ---

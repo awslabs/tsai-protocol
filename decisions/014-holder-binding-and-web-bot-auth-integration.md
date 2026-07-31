@@ -3,15 +3,14 @@ Copyright Amazon.com Inc. or its affiliates.
 SPDX-License-Identifier: Apache-2.0
 -->
 
-# ADR XXX: Holder Binding and Web Bot Auth Integration
+# ADR 014: Holder Binding and Web Bot Auth Integration
 
 **Status:** Accepted  
 **Date:** 2026-07-02  
 **Deciders:** TSAI Working Group  
-**Relationship to ADR 013:** reaffirms the self-contained binding approach of [ADR 013 — VP-JWT Claim Structure](./013-vp-jwt-claim-structure.md), and amends it: since draft-xx2 selects SD-JWT VC, the binding is a key-binding JWT in place of ADR 013's VP-JWT claim structure  
-**Depends on:** the credential serialisation format, decided separately in draft-xx2
+**Relationship to ADR 013:** reaffirms the self-contained binding approach of [ADR 013 — VP-JWT Claim Structure](./013-vp-jwt-claim-structure.md), and amends it: since ADR 015 selects SD-JWT VC, the binding is a key-binding JWT in place of ADR 013's VP-JWT claim structure  
+**Depends on:** the credential serialisation format, decided separately in ADR 015
 
-> The ADR number is intentionally omitted to avoid collisions with other in-flight branches. Assign a number on merge.
 
 ---
 
@@ -32,7 +31,7 @@ So TSAI provides holder binding today through its own artifact, the VP-JWT, and 
 
 ### What changed
 
-Web Bot Auth (WBA) is emerging as the way cross-organisational agents authenticate to websites. It is a profile of HTTP Message Signatures (RFC 9421) in which an agent signs each HTTP request with a key published in a directory, defined across a set of IETF Internet-Drafts (`draft-meunier-web-bot-auth-architecture`, `draft-meunier-http-message-signatures-directory`) and deployed today by Cloudflare's Verified Bots. Visa's Trusted Agent Protocol is a separate RFC 9421-based profile for agentic commerce, with its own agent registry rather than the WBA directory; it shares the signature mechanism but is not WBA. Many public agents will plausibly adopt one of these RFC 9421 profiles before they adopt TSAI.
+Web Bot Auth (WBA) is emerging as the way cross-organisational agents authenticate to websites. It is a profile of HTTP Message Signatures (RFC 9421) in which an agent signs each HTTP request with a key published in a directory, defined across a set of IETF Internet-Drafts (`draft-meunier-web-bot-auth-architecture`, `draft-meunier-http-message-signatures-directory`) and deployed today by Cloudflare's Verified Bots. Other RFC 9421-based profiles for agentic commerce exist, with their own agent registries rather than the WBA directory; they share the signature mechanism but are not WBA. Many public agents will plausibly adopt one of these RFC 9421 profiles before they adopt TSAI.
 
 This matters because such a signature, when present, already proves control of a key. In its current normative form it also binds the request to an audience within a freshness window. That overlaps with what the VP-JWT does for holder binding. This ADR examines whether TSAI should keep its own binding, rely on the request signature, or accept either.
 
@@ -53,7 +52,7 @@ The same drafts leave the following optional or unspecified for our purposes:
 
 There is also a version gap. Cloudflare's deployment tracks an earlier architecture revision in which audience coverage is only recommended, so the largest deployment enforces less than the latest draft mandates. The WBA documents are individual drafts, not yet working-group-adopted, and they sit alongside alternative proposals in the same space, such as Anonymous Bot Authentication (`draft-rescorla-anonymous-webbotauth`), so their normative text is still changing.
 
-The layer beneath these profiles is more stable. HTTP Message Signatures (RFC 9421) is a published standard, as are the JSON Web Key Thumbprint (RFC 7638) and Digest Fields (RFC 9530) it relies on. WBA is one profile on top of RFC 9421, and Visa's Trusted Agent Protocol is another; the profiles differ, but the signature mechanism they share does not. The profiles are still changing; the mechanism beneath them is stable. TSAI can depend on the mechanism while treating any one profile as a way to use it.
+The layer beneath these profiles is more stable. HTTP Message Signatures (RFC 9421) is a published standard, as are the JSON Web Key Thumbprint (RFC 7638) and Digest Fields (RFC 9530) it relies on. WBA is one profile on top of RFC 9421, and others exist; the profiles differ, but the signature mechanism they share does not. The profiles are still changing; the mechanism beneath them is stable. TSAI can depend on the mechanism while treating any one profile as a way to use it.
 
 A TSAI verifier therefore cannot treat the presence of a valid request signature as sufficient for holder binding. At minimum it must also confirm that the credential's key matches the signing key, that the credential header was within the signed components, that an audience component was signed, and that the freshness window is short enough.
 
@@ -67,7 +66,7 @@ TSAI operates over HTTP, whether direct, over MCP, or over A2A. Transport is not
 
 1. **Binding strength.** How firmly the mechanism ties audience, freshness, and the credential to the key the agent controls.
 2. **Robustness against the underlying protocol.** Whether TSAI's guarantees depend on optional or version-dependent behaviour of a protocol TSAI does not control.
-3. **Ecosystem reuse.** Whether the mechanism reuses the RFC 9421 signature that the WBA and TAP ecosystems already produce, rather than requiring a separate one.
+3. **Ecosystem reuse.** Whether the mechanism reuses the RFC 9421 signature that the WBA ecosystem already produces, rather than requiring a separate one.
 4. **Independence from WBA availability.** Whether the mechanism works for a Service Provider that does not run WBA.
 5. **Fit with the existing design.** Consistency with the issuer-holder-verifier model, DID-based identity, and the offline, single-request verification posture of ADR 009.
 6. **Implementer simplicity.** Whether the mechanism minimises ambiguity, redundancy, and implementation effort across all parties — agents, Trust Authorities, and Service Providers — rather than the verifier alone.
@@ -94,7 +93,7 @@ This is not a candidate. It is shown only to make clear why the requirement exis
 
 ### Option 1: Self-contained binding
 
-The agent proves binding with its own signature over the presentation, naming the audience and a freshness window, signed by the key the credential is bound to. This is a VP-JWT today (ADR 013), or an SD-JWT VC key-binding JWT under the credential-format decision (draft-xx2). Web Bot Auth, where the agent runs it, sits alongside as the agent's general authentication and is not part of TSAI's binding.
+The agent proves binding with its own signature over the presentation, naming the audience and a freshness window, signed by the key the credential is bound to. This is a VP-JWT today (ADR 013), or an SD-JWT VC key-binding JWT under the credential-format decision (ADR 015). Web Bot Auth, where the agent runs it, sits alongside as the agent's general authentication and is not part of TSAI's binding.
 
 This option has **two variants**, which share a common profile and differ only in whether a request signature is also accepted.
 
@@ -119,7 +118,7 @@ The self-contained signature is the only accepted form of binding. A request sig
 
 #### Variant 1b: Self-contained baseline, plus an accepted RFC 9421 signature
 
-The self-contained binding remains the mandatory baseline that every implementation supports. In addition, a Service Provider MAY accept an RFC 9421 HTTP Message Signature that meets a TSAI profile — the signed components include an audience component and the credential header, the freshness window is within a TSAI maximum, and the signing key equals the credential's confirmation key — as an equivalent to the self-contained binding. A WBA or Visa TAP signature is the common case of such a signature.
+The self-contained binding remains the mandatory baseline that every implementation supports. In addition, a Service Provider MAY accept an RFC 9421 HTTP Message Signature that meets a TSAI profile — the signed components include an audience component and the credential header, the freshness window is within a TSAI maximum, and the signing key equals the credential's confirmation key — as an equivalent to the self-contained binding. A WBA signature is the common case of such a signature.
 
 **Pros.** Keeps the robustness and independence of the baseline (criteria 2 and 4), while letting a Service Provider that runs WBA reuse the agent's existing signature, so the agent can skip the second signature when it presents to such a Service Provider (criterion 3). The reuse path is defined over RFC 9421, a published standard, so it adds no normative dependence on the WBA drafts.
 
@@ -127,9 +126,9 @@ The self-contained binding remains the mandatory baseline that every implementat
 
 ### Option 2: RFC 9421 signature only
 
-Binding rests entirely on a profiled RFC 9421 signature, a WBA or TAP signature. The credential is sent with no self-contained binding. The Service Provider verifies the request signature, checks that the credential header is covered and that the signing key equals the confirmation key.
+Binding rests entirely on a profiled RFC 9421 signature, such as a WBA signature. The credential is sent with no self-contained binding. The Service Provider verifies the request signature, checks that the credential header is covered and that the signing key equals the confirmation key.
 
-**Pros.** One signature on the agent side, reusing what the WBA and TAP ecosystems already produce (criteria 3 and, on the agent side, 6). The smallest TSAI-specific addition, and the closest match to a setting where agents run WBA before adopting TSAI.
+**Pros.** One signature on the agent side, reusing what the WBA ecosystem already produces (criteria 3 and, on the agent side, 6). The smallest TSAI-specific addition, and the closest match to a setting where agents run WBA before adopting TSAI.
 
 **Cons.** TSAI's only binding now depends on the request signature being applied with the right components. The WBA drafts make covering the credential header and a short `expires` optional, so TSAI must mandate them in a profile, and every verifier must enforce them; a verifier that does not reintroduces the bearer-token weakness (criteria 1 and 2). A Service Provider that does not run WBA has no way to verify binding at all (criterion 4). The protocol's security depends on a draft that is still changing and on a deployed profile, Cloudflare's, that is weaker than the latest text (criterion 2). It also departs from ADR 013 rather than building on it (criterion 5).
 
@@ -169,8 +168,8 @@ Variant 1a keeps binding in an artifact TSAI defines and verifies deterministica
 ## Consequences
 
 - Holder binding is the agent's self-contained signature over the presentation, and it is the only binding path a verifier implements. There is no RFC 9421 acceptance path and no equivalence between mechanisms to define.
-- The credential-format decision (draft-xx2) selects SD-JWT VC, so the self-contained binding is the key-binding JWT: a holder-signed JWT carrying `aud`, `nonce`, `iat`, and `sd_hash`, appended to the credential as `‹credential›~‹KB-JWT›`. This ADR fixed the binding approach independent of format; the format decision makes it concrete.
-- Relationship to ADR 013: the self-contained binding approach is reaffirmed, and ADR 013 is amended rather than retired. Because draft-xx2 selects SD-JWT VC, the binding is a key-binding JWT, which replaces ADR 013's VP-JWT claim structure while the rest of that decision stands.
+- The credential-format decision (ADR 015) selects SD-JWT VC, so the self-contained binding is the key-binding JWT: a holder-signed JWT carrying `aud`, `nonce`, `iat`, and `sd_hash`, appended to the credential as `‹credential›~‹KB-JWT›`. This ADR fixed the binding approach independent of format; the format decision makes it concrete.
+- Relationship to ADR 013: the self-contained binding approach is reaffirmed, and ADR 013 is amended rather than retired. Because ADR 015 selects SD-JWT VC, the binding is a key-binding JWT, which replaces ADR 013's VP-JWT claim structure while the rest of that decision stands.
 - Where an agent also runs WBA, it produces two signatures: the WBA request signature for the Service Provider's own bot management, and the TSAI binding signature. This duplicated signing is accepted; it is sub-millisecond and does not affect verification.
 - The binding key is the credential's confirmation key, a JWK identified by its RFC 7638 thumbprint (the `cnf` key under SD-JWT VC). One key can serve three roles without coordination: the Web Bot Auth signing key identified by its thumbprint, the credential's `cnf`, and, where a DID string is required, a `did:jwk` or `did:key`. Variant 1a does not require the `cnf` key to equal the agent's Web Bot Auth signing key, since Web Bot Auth is not consulted for binding, though an operator may use one key for both. Because the bare-key DID forms do not rotate, durable identity and rotation are anchored above the key, at the Trust Authority or, where Web Bot Auth is used, at its key directory, so an agent can rotate keys across short-lived credentials without losing its Trust-Authority-held identity. TSAI does not depend on the `did:wba` method, which despite the shared letters is an emerging single-project method unrelated to Web Bot Auth.
 - Variant 1b remains available as a forward-compatible extension. It adds only an optional acceptance path on top of this baseline, so it can be introduced later, if ecosystem reuse becomes worth the second verification path, without changing anything decided here.
@@ -179,7 +178,7 @@ Variant 1a keeps binding in an artifact TSAI defines and verifies deterministica
 
 ## Dependent decision: credential serialisation format
 
-The binding requirement here was written to hold across credential formats, so it was decided independent of the format. That format choice is recorded in draft-xx2, which selects SD-JWT VC. Under that decision the self-contained binding is the SD-JWT key-binding JWT and the confirmation key is the `cnf` JWK. Had the format been W3C VC the binding would have been a VP-JWT, and under a minimal TA-signed JWT a bespoke proof-of-possession signature; those are noted for completeness, but SD-JWT VC is the decided format.
+The binding requirement here was written to hold across credential formats, so it was decided independent of the format. That format choice is recorded in ADR 015, which selects SD-JWT VC. Under that decision the self-contained binding is the SD-JWT key-binding JWT and the confirmation key is the `cnf` JWK. Had the format been W3C VC the binding would have been a VP-JWT, and under a minimal TA-signed JWT a bespoke proof-of-possession signature; those are noted for completeness, but SD-JWT VC is the decided format.
 
 ---
 
@@ -189,11 +188,10 @@ The binding requirement here was written to hold across credential formats, so i
 - [ADR 006 — DID Methods for TAs and Agents](./006-did-methods.md)
 - [ADR 009 — Timestamp-Based Replay Prevention](./009-timestamp-based-replay-prevention.md)
 - [ADR 013 — VP-JWT Claim Structure](./013-vp-jwt-claim-structure.md)
-- draft-xx2 — Credential Serialisation Format (this branch)
+- ADR 015 — Credential Serialisation Format
 - [RFC 9421 — HTTP Message Signatures](https://www.rfc-editor.org/rfc/rfc9421)
 - [RFC 7638 — JSON Web Key (JWK) Thumbprint](https://www.rfc-editor.org/rfc/rfc7638)
 - [RFC 9530 — Digest Fields](https://www.rfc-editor.org/rfc/rfc9530)
 - [draft-meunier-web-bot-auth-architecture](https://datatracker.ietf.org/doc/html/draft-meunier-web-bot-auth-architecture)
 - [draft-meunier-http-message-signatures-directory](https://datatracker.ietf.org/doc/html/draft-meunier-http-message-signatures-directory)
 - [draft-rescorla-anonymous-webbotauth](https://datatracker.ietf.org/doc/html/draft-rescorla-anonymous-webbotauth)
-- [Visa Trusted Agent Protocol](https://developer.visa.com/capabilities/trusted-agent-protocol)

@@ -8,7 +8,7 @@ SPDX-License-Identifier: Apache-2.0
 **Status:** Superseded  
 **Date:** 2026-01-22  
 **Deciders:** TSAI Working Group  
-**Superseded by:** [Trust Signal Structure](./draft-xx3-trust-signal-structure.md) (this branch)  
+**Superseded by:** [ADR 016 — Trust Signal Structure](./016-trust-signal-structure.md)  
 **Amended by:** [ADR 012 — Service Provider Terminology](./012-service-provider-terminology.md)
 
 ---

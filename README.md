@@ -11,9 +11,9 @@ SPDX-License-Identifier: Apache-2.0
 
 As agentic AI systems proliferated through 2025 and 2026, Service Providers faced an impossible choice: block all Agent traffic and lose valuable transactions, or accept unverified requests and risk fraud and abuse. Agents representing legitimate users found themselves blocked or forced to disguise their traffic. TSAI provides the missing trust layer, enabling Service Providers to make informed access decisions and enabling well-behaved Agents to distinguish themselves.
 
-TSAI works through a three-party model. Independent Trust Authorities evaluate Agent behavior and issue cryptographically signed credentials based on W3C Verifiable Credentials. Agents present these credentials when accessing services. Service Providers verify credentials offline and make access decisions based on verified trust signals—identity, reputation, economic stake, and authorization constraints. The protocol uses a tiered approach (T0-T3) matching trust signals to risk levels: basic identity verification for browsing, reputation signals for transactions, economic accountability for high-value operations, and fine-grained constraints for critical systems.
+TSAI works through a three-party model. Independent Trust Authorities evaluate Agent behavior and issue cryptographically signed credentials as SD-JWT VCs. Agents present these credentials, bound to a key they hold, when accessing services. Service Providers verify credentials offline and make access decisions based on verified trust signals across four categories: identity, reputation, compliance, and assurance. There are no tiers; a Service Provider sets how strongly it verifies from the signals and the risk of the action.
 
-Built on open standards (W3C Verifiable Credentials, DIDs, VC-JOSE-COSE), TSAI complements existing agentic protocols like MCP and A2A without replacing them. The protocol is designed for incremental adoption—Service Providers can start with simple offline verification (T0/T1) and add complexity only when needed. An independent foundation will assume governance in 2027 to ensure broad industry participation and vendor neutrality.
+Built on open standards (SD-JWT VC, the key-binding JWT, and the IETF Token Status List), TSAI complements existing agentic protocols like MCP and A2A without replacing them. The protocol is designed for incremental adoption—Service Providers start with simple offline verification and add stronger checks only where the risk of the action calls for them. An independent foundation will assume governance in 2027 to ensure broad industry participation and vendor neutrality.
 
 ---
 
@@ -25,7 +25,7 @@ High-level protocol design and rationale. These documents define the conceptual 
 
 - **[00-problem-statement.md](./concept/00-problem-statement.md)** - Problem definition, scope, and boundary conditions
 - **[01-trust-signals.md](./concept/01-trust-signals.md)** - Catalog of potential trust signals (comprehensive, not all normative)
-- **[02-high-level-concept.md](./concept/02-high-level-concept.md)** - Protocol overview, tiered model, security model, key principles, and success criteria
+- **[02-high-level-concept.md](./concept/02-high-level-concept.md)** - Protocol overview, signal categories, security model, and key principles
 - **[04-implementation-roadmap.md](./concept/04-implementation-roadmap.md)** - Phased implementation plan from proof of concept to maturity
 - **[05-economic-model.md](./concept/05-economic-model.md)** - Revenue streams, growth opportunities, and adoption multipliers
 
@@ -34,18 +34,17 @@ High-level protocol design and rationale. These documents define the conceptual 
 Normative technical specification defining the TSAI protocol. These documents specify conformance requirements for Trust Authorities, Agents, and Service Providers implementing TSAI.
 
 - **[01-introduction.md](./architecture/01-introduction.md)** - Scope, conformance classes, terminology, and design rationale
-- **[02-tsai-ontology.md](./architecture/02-tsai-ontology.md)** - JSON-LD ontology defining Agent and Operator classes with operatedBy relationship
-- **[03-credential-format.md](./architecture/03-credential-format.md)** - W3C Verifiable Credential structure, claim semantics, and schemas by tier (T0-T3)
-- **[04-verification.md](./architecture/04-verification.md)** - Normative verification algorithms, DID resolution requirements, offline/online protocols
+- **[02-tsai-ontology.md](./architecture/02-tsai-ontology.md)** - The operator and agent domain model and how signals attach to each
+- **[03-credential-format.md](./architecture/03-credential-format.md)** - SD-JWT VC credential structure, the four signal categories, and the schema
+- **[04-verification.md](./architecture/04-verification.md)** - Normative verification algorithm: issuer signature, key-binding, and freshness
 - **[05-protocol-integration.md](./architecture/05-protocol-integration.md)** - Integration patterns with MCP, A2A, W3C AI Agent Protocol, and HTTP-based protocols
 - **[06-security-privacy.md](./architecture/06-security-privacy.md)** - Trust model, security requirements, threat analysis, and privacy considerations
 - **[07-references.md](./architecture/07-references.md)** - Normative and informative references to W3C and IETF specifications
 - **[07-trust-authority-apis.md](./architecture/07-trust-authority-apis.md)** - Trust Authority API design rationale and operational context
 - **[openapi/trust-authority-api.yaml](./architecture/openapi/trust-authority-api.yaml)** - OpenAPI 3.1 specification for Trust Authority APIs (credential issuance, refresh, challenges)
 - **schemas/** - JSON schemas for credential validation and protocol extensions
-  - [tsai-credential-t0.schema.json](./architecture/schemas/tsai-credential-t0.schema.json) - T0 credential structure
-  - [tsai-credential-t1.schema.json](./architecture/schemas/tsai-credential-t1.schema.json) - T1 credential structure
-  - [verifiable-presentation.schema.json](./architecture/schemas/verifiable-presentation.schema.json) - VP wrapper structure
+  - [tsai-credential.schema.json](./architecture/schemas/tsai-credential.schema.json) - Credential (SD-JWT VC payload) structure
+  - [key-binding-jwt.schema.json](./architecture/schemas/key-binding-jwt.schema.json) - Key-binding JWT claims set
   - [mcp-capability-tsai.schema.json](./architecture/schemas/mcp-capability-tsai.schema.json) - MCP capability declaration
   - [a2a-agent-card-tsai.schema.json](./architecture/schemas/a2a-agent-card-tsai.schema.json) - A2A agent card extension
 
@@ -55,29 +54,35 @@ Documented design decisions with rationale and alternatives considered:
 
 - **[001-agent-delegation-mechanism.md](./decisions/001-agent-delegation-mechanism.md)** - Whether and how Agents delegate to other Agents
 - **[002-centralized-trust-authorities.md](./decisions/002-centralized-trust-authorities.md)** - Professional TAs vs. web-of-trust
-- **[003-w3c-verifiable-credentials.md](./decisions/003-w3c-verifiable-credentials.md)** - Standards-based credential format
-- **[004-tiered-trust-model.md](./decisions/004-tiered-trust-model.md)** - Four-tier approach matching signals to risk
+- **[003-w3c-verifiable-credentials.md](./decisions/003-w3c-verifiable-credentials.md)** - Standards-based credential format (superseded by ADR 015)
+- **[004-tiered-trust-model.md](./decisions/004-tiered-trust-model.md)** - Four-tier approach matching signals to risk (superseded by ADR 016)
 - **[005-signaling-vs-enforcement.md](./decisions/005-signaling-vs-enforcement.md)** - Protocol defines signals, Service Providers decide
-- **[006-did-methods.md](./decisions/006-did-methods.md)** - DID method selection for TAs and Agents
-- **[007-short-lived-credentials.md](./decisions/007-short-lived-credentials.md)** - Expiry times by tier and rationale
+- **[006-did-methods.md](./decisions/006-did-methods.md)** - DID method selection for TAs and Agents (superseded by ADR 017)
+- **[007-short-lived-credentials.md](./decisions/007-short-lived-credentials.md)** - Short-lived credentials (amended by ADR 018)
 - **[008-user-privacy-and-sybil-prevention.md](./decisions/008-user-privacy-and-sybil-prevention.md)** - End-user delegation deferred to v2.0
-- **[009-timestamp-based-replay-prevention.md](./decisions/009-timestamp-based-replay-prevention.md)** - Timestamp-based freshness for T0/T1
+- **[009-timestamp-based-replay-prevention.md](./decisions/009-timestamp-based-replay-prevention.md)** - Timestamp-based replay prevention (amended by ADR 018)
 - **[010-fail-closed-with-degraded-mode.md](./decisions/010-fail-closed-with-degraded-mode.md)** - Fail-closed verification with degraded-mode fallback
 - **[011-ta-operational-transparency.md](./decisions/011-ta-operational-transparency.md)** - TA-published operational status reports
 - **[012-service-provider-terminology.md](./decisions/012-service-provider-terminology.md)** - "Service Provider" terminology and conventions
+- **[013-vp-jwt-claim-structure.md](./decisions/013-vp-jwt-claim-structure.md)** - VP-JWT claim structure (superseded by ADR 015)
+- **[014-holder-binding-and-web-bot-auth-integration.md](./decisions/014-holder-binding-and-web-bot-auth-integration.md)** - Holder binding via a key-binding JWT; Web Bot Auth kept orthogonal
+- **[015-credential-serialisation-format.md](./decisions/015-credential-serialisation-format.md)** - SD-JWT VC as the credential format (supersedes ADR 003)
+- **[016-trust-signal-structure.md](./decisions/016-trust-signal-structure.md)** - Flat trust-signal list in four categories (supersedes ADR 004)
+- **[017-party-identity-and-key-discovery.md](./decisions/017-party-identity-and-key-discovery.md)** - HTTPS issuer, `cnf`-key agent, `did:web` third parties (supersedes ADR 006)
+- **[018-verification-strength-and-replay.md](./decisions/018-verification-strength-and-replay.md)** - Verification strength, replay, and the 30-minute lifetime without tiers (amends ADR 007 and ADR 009)
 
 ---
 
 ## Quick Start
 
 **For Newcomers:**
-1. Review [concept/02-high-level-concept.md](./concept/02-high-level-concept.md) - Understand the tiered model and security approach
+1. Review [concept/02-high-level-concept.md](./concept/02-high-level-concept.md) - Understand the signal categories and security approach
 
 **For Implementers:**
 1. Review [architecture/01-introduction.md](./architecture/01-introduction.md) - Understand scope and conformance
 2. Study [architecture/openapi/trust-authority-api.yaml](./architecture/openapi/trust-authority-api.yaml) - Trust Authority API specification
 3. Study [architecture/03-credential-format.md](./architecture/03-credential-format.md) - Credential structure and claims
-4. Implement [architecture/04-verification.md](./architecture/04-verification.md) - Start with T0/T1 offline verification
+4. Implement [architecture/04-verification.md](./architecture/04-verification.md) - Start with offline verification
 5. Use [architecture/schemas/](./architecture/schemas/) - JSON schemas for validation
 
 **For Protocol Designers:**
@@ -90,9 +95,9 @@ Documented design decisions with rationale and alternatives considered:
 ## Key Principles
 
 - **TSAI signals, Service Providers decide** - Protocol defines trust signals; Service Providers interpret them and make access decisions
-- **Lightweight yet secure** - Offline verification for common cases (T0/T1), real-time for high-stakes (T2/T3)
-- **Standards-based** - W3C Verifiable Credentials, DIDs, VC-JOSE-COSE for interoperability
-- **Incremental adoption** - Start simple (T0), add complexity only when needed
+- **Lightweight yet secure** - Offline verification for the common case; stronger checks where the risk of the action calls for them
+- **Standards-based** - SD-JWT VC, the key-binding JWT, and HTTPS issuer discovery for interoperability
+- **Incremental adoption** - Start with identity signals; add reputation, compliance, and assurance as they become available
 - **Honest about limitations** - Credentials don't prevent LLM vulnerabilities or all Agent misbehavior
 - **Vendor-neutral governance** - Independent foundation with multi-stakeholder participation
 

@@ -27,7 +27,7 @@ TSAI provides a trust signaling protocol that enables Agents to present verifiab
 
 ### What TSAI IS
 
-TSAI is a credential format and structure specification that defines how trust signals are encoded and transmitted. It specifies the semantics of trust signals—what claims like reputation scores or authorized constraints actually mean—and provides verification mechanisms for checking credential authenticity cryptographically.
+TSAI is a credential format and structure specification that defines how trust signals are encoded and transmitted. It specifies the semantics of trust signals—what claims like reputation scores or compliance certifications actually mean—and provides verification mechanisms for checking credential authenticity cryptographically.
 
 ### What TSAI IS NOT
 
@@ -63,21 +63,21 @@ The path runs from industry consortium to independent foundation (such as Linux 
 
 ### 4. Lightweight Yet Secure
 
-Adoption requires low friction—simple integration with clear value. Security requires rigor—cryptographic proofs and tamper-evident credentials. TSAI balances these through tiered verification: offline for common cases (T0/T1), real-time for high-stakes operations (T2/T3).
+Adoption requires low friction—simple integration with clear value. Security requires rigor—cryptographic proofs and tamper-evident credentials. TSAI balances these with an offline base path for common cases and stronger checks where the risk of the action warrants them, set by the Service Provider's policy over the signals rather than by a tier on the credential.
 
 Service Providers bear the implementation burden (verification, interpretation, enforcement), but this beats the current state where no trust mechanism exists.
 
 ### 5. Standards-Based
 
-TSAI builds on W3C Verifiable Credentials, DIDs, and Data Integrity proofs. This provides interoperability with broader identity ecosystems, future-proofing through extensible and algorithm-agnostic designs, and vendor neutrality through open standards rather than proprietary formats.
+TSAI builds on SD-JWT VC, JWK-based holder binding, and HTTPS issuer discovery. This keeps TSAI within the JWT and JOSE idiom shared by Web Bot Auth and OpenID4VC, provides interoperability with that ecosystem, and avoids a proprietary format or a second identifier scheme.
 
-TSAI credentials work alongside other VC-based systems, allowing agents to present multiple credential types.
+TSAI credentials work alongside other JWT-based credentials, allowing an agent to present more than one credential type.
 
 ### 6. Designed for Agentic AI
 
-Traditional trust mechanisms—reputation alone—prove insufficient for Agents with dynamic behavior. LLM-based Agents require richer signals: identity verification, behavioral reputation, economic stake, and authorized constraints. This enables Service Providers to make informed, risk-calibrated decisions while acknowledging that Agents may be compromised or unreliable at runtime.
+Traditional trust mechanisms—reputation alone—prove insufficient for Agents with dynamic behavior. LLM-based Agents require richer signals: identity verification, behavioral reputation, and economic backing. This enables Service Providers to make informed, risk-calibrated decisions while acknowledging that Agents may be compromised or unreliable at runtime.
 
-TSAI addresses this through a tiered trust model (T0-T3) with different signal combinations for different risk levels.
+TSAI addresses this with trust signals in four categories, where the Service Provider sets verification strength from the signals and the risk of the action rather than from a tier on the credential.
 
 ---
 
@@ -93,4 +93,4 @@ TSAI complements existing protocols (MCP, A2A, AP2) rather than replacing them. 
 
 ---
 
-**Next Steps:** Design considerations (`01-design-considerations.md`), technical architecture (`02-architecture.md`), security analysis (`03-security.md`).
+**Next Steps:** the high-level concept (`concept/02-high-level-concept.md`) and the architecture specification (`architecture/`).

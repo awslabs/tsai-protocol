@@ -8,7 +8,8 @@ SPDX-License-Identifier: Apache-2.0
 **Status:** Accepted  
 **Date:** 2026-01-22  
 **Deciders:** TSAI Working Group  
-**Amended by:** [ADR 012 — Service Provider Terminology](./012-service-provider-terminology.md)
+**Amended by:** [ADR 012 — Service Provider Terminology](./012-service-provider-terminology.md)  
+**Amended by:** [ADR 018 — Verification Strength, Replay, and Lifetime without Tiers](./018-verification-strength-and-replay.md)
 
 ---
 
