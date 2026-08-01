@@ -6,7 +6,7 @@ SPDX-License-Identifier: Apache-2.0
 # TSAI Domain Model
 
 **Version:** 1.0 (Draft)  
-**Date:** January 2026  
+**Date:** 2026-08  
 **Status:** Working Group Draft
 
 ---

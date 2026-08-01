@@ -6,7 +6,7 @@ SPDX-License-Identifier: Apache-2.0
 # TSAI Architecture Specification - Introduction
 
 **Version:** 1.0 (Draft)  
-**Date:** January 2026  
+**Date:** 2026-08  
 **Status:** Working Group Draft
 
 ---
@@ -55,6 +55,12 @@ This specification uses RFC 2119 terminology: MUST, MUST NOT, SHOULD, SHOULD NOT
 
 **DID** — a W3C Decentralised Identifier. In TSAI, used only to identify referenced third parties (a certifier or a backer) by their own `did:web`.
 
+**Signal profile** — a named, versioned predicate over the signals that a Service Provider applies at admission (Section 8); not carried in the credential.
+
+**Type metadata** — the per-`vct` document that declares each claim's schema, display, mandatory presence, and selective-disclosure control (Section 2.9).
+
+**Request binding** — an optional `req` digest in the key-binding JWT that binds a presentation to the request it accompanies (Section 3.4).
+
 ### Conventions
 
 TSAI actor names — Trust Authority, Operator, Agent, User, Service Provider — are Title case when naming the protocol role. The Service Provider is the actor; the verifier (lowercase) is the component that performs verification. Compounds are reworded rather than hyphenated: "across Service Providers", not "cross-Service-Provider".
@@ -63,13 +69,28 @@ TSAI actor names — Trust Authority, Operator, Agent, User, Service Provider �
 
 ## 1.4 Document Structure
 
-- **Section 2: Credential Format** — the SD-JWT VC structure, the signal categories, and the schema.
-- **Section 3: Verification** — the algorithm for verifying a presentation.
-- **Section 4: Protocol Integration** — MCP, A2A, the W3C AI Agent Protocol, and HTTP.
-- **Section 5: Security and Privacy** — the trust model, threats, and requirements.
-- **Section 7: Trust Authority APIs** — issuance, refresh, status, and transparency.
+The specification is in numbered sections. The section numbers and the file names do not currently coincide; the mapping is:
 
-The domain model behind the credential is in the ontology document; the references are collected in the references document.
+| Section | Document |
+|---|---|
+| 1 | `01-introduction.md` |
+| 2 | `03-credential-format.md` |
+| 3 | `04-verification.md` |
+| 4 | `05-protocol-integration.md` |
+| 5 | `06-security-privacy.md` |
+| 6 | `07-references.md` |
+| 7 | `07-trust-authority-apis.md` |
+| 8 | `08-signal-profiles.md` |
+
+- **Section 2: Credential Format** — the SD-JWT VC structure, the four signal categories, the identity floor, type metadata, and the schema.
+- **Section 3: Verification** — the algorithm, freshness, request binding, status, and fetch hardening.
+- **Section 4: Protocol Integration** — MCP, A2A, the W3C AI Agent Protocol, HTTP, and the payments boundary.
+- **Section 5: Security and Privacy** — the trust model, threats, limitations, and requirements.
+- **Section 6: References.**
+- **Section 7: Trust Authority APIs** — enrolment, issuance, refresh, status, key repudiation, and transparency.
+- **Section 8: Signal Profiles** — verifier-side profiles over the signals, with the identity floor as the base.
+
+The domain model behind the credential is in `02-tsai-ontology.md`. The JSON schemas and the OpenAPI are under `architecture/schemas/` and `architecture/openapi/`, and per-`vct` type metadata under `architecture/type-metadata/`.
 
 ---
 

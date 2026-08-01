@@ -1,0 +1,26 @@
+{
+  "$comment": "Copyright Amazon.com Inc. or its affiliates. SPDX-License-Identifier: Apache-2.0",
+  "vct": "https://tsaiprotocol.org/credential/tsai/1",
+  "name": "TSAI Credential",
+  "description": "Type metadata for the TSAI credential (SD-JWT VC). Declares the identity floor as mandatory and reputation as non-disclosable. Signals are addressed by category and type, since signals is an array.",
+  "claims": [
+    { "signal": { "cat": "idn", "typ": "org" }, "mandatory": true, "sd": "never",
+      "display": [{ "lang": "en", "label": "Operator legal name" }] },
+    { "signal": { "cat": "idn", "typ": "jur" }, "mandatory": true, "sd": "never",
+      "display": [{ "lang": "en", "label": "Operator jurisdiction" }] },
+    { "signal": { "cat": "idn", "typ": "kyc" }, "mandatory": true, "sd": "never",
+      "display": [{ "lang": "en", "label": "Verification depth" }] },
+    { "signal": { "cat": "idn", "typ": "dct" }, "mandatory": true, "sd": "never",
+      "display": [{ "lang": "en", "label": "Verified controlled domain" }] },
+    { "signal": { "cat": "idn", "typ": "dag" }, "mandatory": false, "sd": "allowed",
+      "display": [{ "lang": "en", "label": "Domain age" }] },
+    { "signal": { "cat": "rep" }, "mandatory": false, "sd": "never",
+      "display": [{ "lang": "en", "label": "Reputation" }] },
+    { "signal": { "cat": "cmp" }, "mandatory": false, "sd": "allowed",
+      "display": [{ "lang": "en", "label": "Compliance certification" }] },
+    { "signal": { "cat": "asr" }, "mandatory": false, "sd": "allowed",
+      "display": [{ "lang": "en", "label": "Assurance" }] }
+  ],
+  "schema_uri": "https://tsaiprotocol.org/schemas/tsai-credential/1",
+  "schema_uri#integrity": "sha256-<base64 digest of the referenced schema>"
+}

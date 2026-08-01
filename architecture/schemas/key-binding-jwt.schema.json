@@ -3,25 +3,24 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://tsai.example.org/schemas/key-binding-jwt.json",
   "title": "TSAI Key-Binding JWT Claims Set",
-  "description": "The claims set of the key-binding JWT a holder appends when presenting a TSAI credential (SD-JWT VC). The JWT header carries typ kb+jwt. The signature is made with the private key matching the credential's cnf.",
+  "description": "The claims set of the key-binding JWT a holder appends when presenting a TSAI credential. The JWT header carries typ kb+jwt. The signature is made with the private key matching the credential's cnf. Per RFC 9901 §4.3, iat, aud, nonce and sd_hash are required.",
   "type": "object",
-  "required": ["iat", "aud", "sd_hash"],
+  "required": ["iat", "aud", "nonce", "sd_hash"],
   "properties": {
-    "iat": {
-      "type": "integer",
-      "description": "Time the presentation was created, seconds since the Unix epoch"
-    },
-    "aud": {
-      "type": "string",
-      "description": "The Service Provider the presentation is addressed to"
-    },
-    "nonce": {
-      "type": "string",
-      "description": "A value binding the presentation to a request. Freshness and replay rules are specified in 04-verification."
-    },
-    "sd_hash": {
-      "type": "string",
-      "description": "Digest of the presented issuer-signed JWT and any forwarded disclosures"
+    "iat": { "type": "integer", "description": "Presentation time; freshness bounded per 04-verification" },
+    "aud": { "type": "string", "description": "The Service Provider HTTPS origin the presentation is addressed to" },
+    "nonce": { "type": "string", "description": "Agent-generated at baseline (>=128 bits, fresh per presentation) or Service-Provider-issued on escalation" },
+    "sd_hash": { "type": "string", "description": "Digest over the issuer-signed JWT and forwarded disclosures, per RFC 9901 §4.3.1" },
+    "req": {
+      "type": "object",
+      "description": "Optional request binding (ADR 020); required for state-changing actions where the verifying and acting components differ",
+      "required": ["digest"],
+      "properties": {
+        "digest": { "type": "string", "description": "Content digest of the request body per RFC 9530" },
+        "method": { "type": "string" },
+        "uri": { "type": "string", "format": "uri" }
+      },
+      "additionalProperties": false
     }
   },
   "additionalProperties": false

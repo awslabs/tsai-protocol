@@ -9,7 +9,8 @@ SPDX-License-Identifier: Apache-2.0
 **Date:** 2026-07-02  
 **Deciders:** TSAI Working Group  
 **Relationship to ADR 013:** reaffirms the self-contained binding approach of [ADR 013 — VP-JWT Claim Structure](./013-vp-jwt-claim-structure.md), and amends it: since ADR 015 selects SD-JWT VC, the binding is a key-binding JWT in place of ADR 013's VP-JWT claim structure  
-**Depends on:** the credential serialisation format, decided separately in ADR 015
+**Depends on:** the credential serialisation format, decided separately in ADR 015  
+**Amended by:** [ADR 020 — Request Binding](./020-request-binding.md)
 
 
 ---

@@ -8,7 +8,8 @@ SPDX-License-Identifier: Apache-2.0
 **Status:** Accepted  
 **Date:** 2026-07-02  
 **Deciders:** TSAI Working Group  
-**Relationship to ADR 004:** supersedes [ADR 004 — Tiered Trust Model (T0-T3)](./004-tiered-trust-model.md)
+**Relationship to ADR 004:** supersedes [ADR 004 — Tiered Trust Model (T0-T3)](./004-tiered-trust-model.md)  
+**Amended by:** [ADR 021 — Reputation Comparability, Support, and Attribution](./021-reputation.md)
 
 
 ---

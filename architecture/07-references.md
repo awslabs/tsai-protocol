@@ -6,7 +6,7 @@ SPDX-License-Identifier: Apache-2.0
 # TSAI Architecture Specification - References
 
 **Version:** 1.0 (Draft)  
-**Date:** January 2026  
+**Date:** 2026-08  
 **Status:** Working Group Draft
 
 ---
@@ -21,9 +21,9 @@ IETF, draft-ietf-oauth-sd-jwt-vc
 https://datatracker.ietf.org/doc/html/draft-ietf-oauth-sd-jwt-vc
 
 **[SD-JWT]**  
-Selective Disclosure for JWTs  
-IETF, draft-ietf-oauth-selective-disclosure-jwt  
-https://datatracker.ietf.org/doc/html/draft-ietf-oauth-selective-disclosure-jwt
+Selective Disclosure for JWTs (SD-JWT)  
+IETF RFC 9901, November 2025  
+https://www.rfc-editor.org/rfc/rfc9901
 
 **[STATUS-LIST]**  
 Token Status List  
@@ -34,6 +34,21 @@ https://datatracker.ietf.org/doc/html/draft-ietf-oauth-status-list
 JSON Web Key (JWK) Thumbprint  
 IETF RFC 7638, September 2015  
 https://datatracker.ietf.org/doc/html/rfc7638
+
+**[RFC9530]**  
+Digest Fields  
+IETF RFC 9530  
+https://www.rfc-editor.org/rfc/rfc9530
+
+**[RFC7800]**  
+Proof-of-Possession Key Semantics for JWTs (`cnf`)  
+IETF RFC 7800  
+https://www.rfc-editor.org/rfc/rfc7800
+
+**[RFC7517]**  
+JSON Web Key (JWK)  
+IETF RFC 7517  
+https://www.rfc-editor.org/rfc/rfc7517
 
 **[DID-WEB]**  
 did:web Method Specification (referenced third parties)  
@@ -143,8 +158,8 @@ ADR 013: VP-JWT Claim Structure (superseded by ADR 015)
 TSAI Working Group, June 2026  
 `decisions/013-vp-jwt-claim-structure.md`
 
-**[TSAI-ADR-014..018]**  
-Follow-on ADRs: Holder Binding (ADR 014), Credential Serialisation Format (ADR 015, supersedes 003), Trust Signal Structure (ADR 016, supersedes 004), Party Identity (ADR 017, supersedes 006), Verification Strength and Replay (ADR 018, amends 007 and 009)  
+**[TSAI-ADR-014..022]**  
+Follow-on ADRs: Holder Binding (ADR 014), Credential Serialisation Format (ADR 015, supersedes 003), Trust Signal Structure (ADR 016, supersedes 004), Party Identity (ADR 017, supersedes 006), Verification Strength and Replay (ADR 018, amends 007 and 009), Mandatory Identity Floor (ADR 019), Request Binding (ADR 020, amends 014), Reputation (ADR 021, amends 016), Holder-Directed Issuance and Type Metadata (ADR 022, amends 015)  
 TSAI Working Group  
 `decisions/`
 
@@ -237,9 +252,9 @@ This specification was developed by the TSAI Working Group, comprising European 
 
 ## 6.5 Copyright and License
 
-Copyright © 2026 TSAI Working Group. All rights reserved.
+> Working-group note: an earlier draft of this section asserted "All rights reserved" under CC BY 4.0, which conflicts with the repository, whose `LICENSE` is Apache 2.0 and whose every file header reads Apache 2.0. The `LICENSE` file governs. This section is to be reconciled or removed before external circulation.
 
-This document is made available under the [Creative Commons Attribution 4.0 International License](https://creativecommons.org/licenses/by/4.0/).
+Copyright Amazon.com Inc. or its affiliates. Licensed under the Apache License 2.0; see [LICENSE](../LICENSE).
 
 **You are free to:**
 - Share — copy and redistribute the material in any medium or format

@@ -51,6 +51,8 @@ paths:
         that key with its evaluation of the agent and operator.
       operationId: issueCredential
       tags: [credentials]
+      security:
+        - operatorAuth: []
       requestBody:
         required: true
         content:
@@ -83,6 +85,8 @@ paths:
         and proof of control of the same binding key.
       operationId: refreshCredential
       tags: [credentials]
+      security:
+        - operatorAuth: []
       requestBody:
         required: true
         content:
@@ -109,6 +113,88 @@ paths:
         '500':
           $ref: '#/components/responses/ServerError'
 
+  /credentials/repudiate:
+    post:
+      summary: Repudiate a binding key
+      description: |
+        An enrolled operator repudiates a binding key. The Trust Authority
+        refuses further issuance against it and blocks the affected agent
+        (Section 7.6).
+      operationId: repudiateKey
+      tags: [credentials]
+      security:
+        - operatorAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [jwkThumbprint]
+              properties:
+                jwkThumbprint:
+                  type: string
+                  description: RFC 7638 thumbprint of the binding key to repudiate
+      responses:
+        '204':
+          description: Repudiated
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /.well-known/jwt-vc-issuer:
+    get:
+      summary: SD-JWT VC issuer metadata (signing keys)
+      description: Returns the issuer metadata document containing jwks or jwks_uri.
+      operationId: getIssuerMetadata
+      tags: [metadata]
+      responses:
+        '200':
+          description: Issuer metadata
+          content:
+            application/json:
+              schema: { type: object }
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /.well-known/tsai-ta-status:
+    get:
+      summary: Signed operational status report (Section 7.10)
+      operationId: getStatusReport
+      tags: [metadata]
+      responses:
+        '200':
+          description: Signed status report
+          content:
+            application/json:
+              schema: { type: object }
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /status/{listId}:
+    get:
+      summary: Agent-and-operator Token Status List
+      operationId: getStatusList
+      tags: [credentials]
+      parameters:
+        - name: listId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Token Status List token
+          content:
+            application/statuslist+jwt:
+              schema: { type: string }
+        '500':
+          $ref: '#/components/responses/ServerError'
+
   /metadata:
     get:
       summary: Get Trust Authority metadata
@@ -126,6 +212,14 @@ paths:
           $ref: '#/components/responses/ServerError'
 
 components:
+  securitySchemes:
+    operatorAuth:
+      type: http
+      scheme: bearer
+      description: >-
+        The operator's authenticated session, established out of band at
+        enrolment (Section 7.2). Issuance, refresh, and repudiation run
+        within it; proof of control then proves the binding key.
   schemas:
     Challenge:
       type: object
@@ -171,6 +265,18 @@ components:
           format: uri
           description: Optional requested stable HTTPS name for the agent
           example: 'https://acme-corp.example/agents/shopper-v3'
+        signals:
+          type: array
+          description: >-
+            Optional holder-directed filter (ADR 022): request a subset of
+            categories or types without naming the Service Provider. The
+            Trust Authority stays blind to the destination.
+          items:
+            type: object
+            required: [cat]
+            properties:
+              cat: { type: string, enum: [idn, rep, cmp, asr] }
+              typ: { type: string }
 
     RefreshRequest:
       type: object

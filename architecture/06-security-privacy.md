@@ -6,7 +6,7 @@ SPDX-License-Identifier: Apache-2.0
 # TSAI Architecture Specification - Security and Privacy
 
 **Version:** 1.0 (Draft)  
-**Date:** January 2026  
+**Date:** 2026-08  
 **Status:** Working Group Draft
 
 ---
@@ -15,144 +15,134 @@ SPDX-License-Identifier: Apache-2.0
 
 ### 5.1.1 What TSAI trusts
 
-- **Trust Authorities** operate honestly, perform the verification they claim (identity, reputation, backing), protect their signing keys, issue only to agents that meet their criteria, and keep any block current.
-- **Cryptography**: the signature algorithms (EdDSA, ES256) are sound, keys have adequate length, random generation has sufficient entropy, and hashes are collision-resistant.
+- **Trust Authorities** operate honestly, perform the verification they claim (identity, reputation, backing), populate a credential only with what they established (§7.4), protect their signing keys, and keep the block current.
+- **Cryptography**: EdDSA and ES256 are sound, keys have adequate length, random generation has sufficient entropy, and hashes are collision-resistant.
 - **Infrastructure**: HTTPS and DNS operate correctly, the certificate authorities behind HTTPS are trustworthy, and systems keep time with NTP.
 - **Participants**: Service Providers verify before granting access and read the signals honestly; agents present credentials they legitimately hold.
 
 ### 5.1.2 What TSAI does not trust
 
-- **Agents** are the subject of verification, not trusted by default. Their behaviour must be constrained by the Service Provider, and their outputs validated.
-- **The network** may be compromised, so HTTPS is required, signatures are verified, and issuer metadata is fetched over HTTPS with DNSSEC where available.
-- **Any single Trust Authority**: no one TA is fully trusted; several give redundancy, and a Service Provider chooses which to trust.
-- **Credential holders**: a credential may be stolen, so it is short-lived and bound to the holder key; a presentation may be captured, so each carries a fresh key-binding JWT addressed to one Service Provider.
+- **Agents** are the subject of verification. Their behaviour must be constrained by the Service Provider and their outputs validated.
+- **The network** may be compromised, so HTTPS is required, signatures are verified, issuer metadata is fetched over HTTPS with DNSSEC where available, and fetched URLs are hardened (§3.6).
+- **Any single Trust Authority**: several give redundancy, and a Service Provider chooses which to trust.
+- **Credential holders**: a credential may be stolen, so it is short-lived and bound to the `cnf` key; a presentation may be captured, so each carries a fresh key-binding JWT addressed to one Service Provider, and a state-changing action binds the request (§3.4).
 
 ### 5.1.3 Non-goals
 
-TSAI does not monitor runtime behaviour, validate agent outputs, prevent prompt injection or other LLM-specific attacks, authenticate end users, or prevent a malicious operator who holds a valid credential from misusing it. These are the Service Provider's responsibility or a separate concern; TSAI gives point-in-time trust signals and accountability, not behavioural guarantees.
+TSAI does not monitor runtime behaviour, validate outputs, prevent prompt injection or other LLM-specific attacks, authenticate end users, or prevent a malicious operator holding a valid credential from misusing it. These are the Service Provider's responsibility or a separate concern.
 
 ### 5.1.4 Centralisation risks
 
-TSAI uses professional Trust Authorities rather than a web of trust (ADR 002), which brings centralisation risks and their mitigations:
-
-- **Outage**: the offline base path and the 30-minute lifetime let verification continue without the TA at request time, and several TAs give redundancy.
-- **Key compromise**: keys sit in an HSM, several TAs limit blast radius, the short lifetime bounds the window, and a block gives emergency invalidation.
-- **Misbehaviour**: signed operational reports (Section 7.7) let Service Providers detect anomalies and drop a TA.
-- **Oligopoly and lock-in**: verification is open to any Service Provider, credentials are portable SD-JWT VCs, and an agent can hold credentials from more than one TA.
-- **Regulatory capture**: TAs operate in different jurisdictions, and a Service Provider can reject a compromised one.
-
-Distributed trust holds despite centralised TAs: Service Providers choose which to trust, agents choose which to use, and the governance body is multi-stakeholder.
+Professional Trust Authorities (ADR 002) bring centralisation risks and mitigations: outage is covered by the offline base path and the 30-minute lifetime and by several authorities; key compromise by HSM storage, several authorities, the short lifetime, and the block; misbehaviour by the signed operational report (§7.10); oligopoly and lock-in by open verification and portable SD-JWT VCs; regulatory capture by authorities in different jurisdictions. Service Providers choose which to trust, agents which to use, and the governance body is multi-stakeholder.
 
 ---
 
 ## 5.2 Protocol and Implementation Boundaries
 
-Normative at the protocol level: the SD-JWT VC credential format (Section 2), the verification algorithm and its checks (Section 3), HTTPS transmission, the credential header, and the meaning of each signal. What a Service Provider does with the signals is its own policy: which TAs to trust, how to weigh the signals, how strongly to verify a given action, and its caching, logging, and degraded-mode choices. The principle is that TSAI signals and the Service Provider decides.
+Normative at the protocol level: the SD-JWT VC format (Section 2), the verification algorithm (Section 3), HTTPS transmission, and the meaning of each signal. What a Service Provider does with the signals is its policy: which Trust Authorities to trust, how to weigh the signals, how strongly to verify a given action, and its caching, logging, and degraded-mode choices within the bounds Section 3 sets. TSAI signals; the Service Provider decides.
 
 ---
 
 ## 5.3 Threat Model
 
-**Attacker goals**: impersonate a legitimate agent, bypass verification, steal or forge credentials, disrupt the infrastructure, or correlate an agent's activity across Service Providers.
-
-**Attack surfaces and the response:**
-
 | Surface | Response |
 |---|---|
 | Steal a credential from storage or the wire | Useless without the `cnf` private key; short lifetime bounds exposure |
-| Replay a captured presentation | `aud` binds it to one Service Provider; a fresh key-binding JWT per request (freshness rule per Section 3.4, ADR 018) |
-| Forge a credential | Issuer signature verified against the TA key from `jwt-vc-issuer` |
-| Hijack DNS or intercept HTTPS | HTTPS required, DNSSEC where available, signatures verified |
-| Compromise a TA | HSM keys, several TAs, short lifetime, block, operational transparency |
+| Replay a captured presentation to another Service Provider | `aud` binds it to one |
+| Substitute the request on a captured presentation at this Service Provider | `req` binds the request for state-changing actions (§3.4, ADR 020) |
+| Forge a credential | Issuer signature verified against the key from `jwt-vc-issuer`, with `x5c` rejected and `issuer` pinned to `iss` |
+| Suppress a block by serving a stale or forged status list | Status-list token signature verified, issuer matched, URI pinned to the `iss` origin (§3.5) |
+| Server-side request forgery via a fetched URL | URL validation, private-address refusal, bounded size and timeout (§3.6) |
+| Hijack DNS | HTTPS required, DNSSEC where available and where a `prv` is relied on |
+| Compromise a Trust Authority | HSM keys, several authorities, short lifetime, block, operational transparency |
 
-**Attacker capabilities.** A network attacker can intercept but cannot break HTTPS or forge a signature. A compromised agent holds valid credentials but cannot alter their contents or extend their life. A malicious TA can issue and block its own credentials but cannot forge another TA's. A malicious Service Provider sees what is presented to it but cannot reuse it elsewhere, because the presentation is bound to it by `aud` and to the holder by `cnf`.
+A network attacker cannot break HTTPS or forge a signature. A compromised agent holds valid credentials but cannot alter their contents or extend their life. A malicious Trust Authority can issue and block its own credentials but cannot forge another's. A malicious Service Provider sees what is presented to it but cannot reuse it, because the presentation is bound to it by `aud` and to the holder by `cnf`.
 
 ---
 
 ## 5.4 Cryptographic Requirements
 
-- Implementations MUST support `EdDSA` (Ed25519) and `ES256`, and MAY support `ES384` and `ES512`.
-- Implementations MUST reject unknown or weak algorithms. The credential names its algorithm; there is no negotiation.
+- Implementations MUST support `EdDSA` (Ed25519) and `ES256`, and MAY support `ES384` and `ES512`. A verifier MUST reject any other algorithm, including `none` and RSA.
 - Keys are generated with a cryptographically secure random source, providing at least a 128-bit security level (Ed25519 and P-256).
-- Nonces and other security-critical values use a cryptographically secure random source with at least 128 bits of entropy.
+- Nonces use a cryptographically secure random source with at least 128 bits of entropy.
+- **Algorithm deprecation.** A deprecated algorithm MUST be announced with a migration timeline; implementations SHOULD warn when one is used and MUST reject a credential using it after the sunset date. This is the only stated path to changing algorithms, and it matters for the post-quantum migration on the roadmap.
 
 ---
 
 ## 5.5 Credential Lifecycle Security
 
-**Issuance (Trust Authority).** Signing keys are held in an HSM, key access is logged, and issuance is recorded for audit without storing credential contents. The TA verifies the agent before issuing and populates the signals from its evaluation.
+**Issuance (Trust Authority).** Signing keys are held in an HSM, key access is logged, and issuance is recorded for audit (§7.8) without storing credential contents. Contents match the evaluation (§7.4).
 
-**Holder key and storage (agent).** The agent holds the `cnf` private key, which is what a credential is bound to. It SHOULD keep that key in memory and, if it must persist it, protect it. A stored credential is unusable without the key, and the 30-minute lifetime bounds exposure.
+**The binding key (agent and operator).** Under ADR 017 the binding key is the agent's identity, so it is the highest-value secret in the system. An agent MUST protect the `cnf` private key, SHOULD hold it in hardware-backed storage (RFC 9901 §10.2), and SHOULD use a distinct key per Service Provider where unlinkability matters. The operator, not only the agent process, is responsible for the key's lifecycle, because repudiation (§7.6) needs an accountable party. Detailed handling — memory hygiene, file permissions, backup encryption — is in the implementation guide.
 
-**Transmission.** Credentials travel over HTTPS with TLS 1.2 or higher. The `TSAI-Credential` value MUST NOT be logged by servers or placed in a URL, and proxies MUST NOT cache requests carrying it.
+**Transmission.** Credentials travel over HTTPS with TLS 1.2 or higher. The `TSAI-Credential` value MUST NOT be logged or placed in a URL, and proxies MUST NOT cache requests carrying it.
 
-**Verification (Service Provider).** Verification follows Section 3: the issuer signature, the key-binding signature against `cnf`, `sd_hash`, `aud`, and the lifetime, failing closed on any failure.
+**Verification and caching (Service Provider).** Verification follows Section 3, and verification-result caching is bounded there (§3.7.3): a cached result MUST NOT outlive the credential's `exp`, the cache key includes the presented credential, and a positive result is not served across an observable status change.
 
 ---
 
-## 5.6 Replay Prevention
+## 5.6 Replay and Substitution
 
-A presentation is bound to one Service Provider by `aud`, and each presentation carries its own key-binding JWT with a fresh `iat` and an optional `nonce`, on a clock independent of the 30-minute credential lifetime. A captured credential is unusable without the `cnf` key, and a captured presentation is not usable against another Service Provider.
-
-Per ADR 018, a Service Provider rejects a key-binding JWT whose `iat` is more than 2 minutes old, allowing 30 seconds of clock skew, and where the risk of the action warrants it issues a `nonce` challenge that closes the window. All parties keep time with NTP; a Service Provider monitors clock drift and alerts on synchronisation failure.
+A presentation is bound to one Service Provider by `aud`, carries a fresh key-binding JWT with a bounded `iat` and a `nonce`, and, for a state-changing action, a `req` digest that binds the request (§3.4, ADR 020). A captured credential is unusable without the `cnf` key; a captured presentation is not usable against another Service Provider, and, where `req` is present, not against another action at this one. The freshness window, nonce policy, and request-binding rule are in Section 3.4. All parties keep time with NTP; a Service Provider monitors clock drift and returns its time on a stale rejection.
 
 ---
 
 ## 5.7 Privacy
 
-**Agent correlation.** An agent is identified by the `cnf` key its credential is bound to, and optionally by a stable `sub` name. An agent that reuses the same key or `sub` across Service Providers can be correlated across them; an agent that wants to avoid this uses a fresh key per Service Provider. The credential still reveals the operator's identity signals, which are shared across that operator's agents.
+**Agent correlation.** An agent is identified by its `cnf` key and, optionally, a stable `sub`. Reusing either across Service Providers makes the agent correlatable; a fresh key per Service Provider avoids it, at the cost of more issuance load (which counts against §7.7's limits — an agent talking to twenty Service Providers on a cold start exceeds ten issuances per minute). A credential's `status` claim is itself a correlator: two Service Providers that fetch status see the same `uri` and `idx`, a stable cross-Service-Provider identifier that survives key rotation. So an agent that requires unlinkability must obtain credentials without `status` and accept that no block can reach it within the lifetime, and must not carry a stable `sub`. This trade-off between a reachable block and unlinkability has no clean resolution inside a per-agent index, and it is stated rather than solved.
 
-**What a Service Provider learns**: the operator's identity and the agent's signals, and which Trust Authority issued the credential. It does not learn the agent's activity with other Service Providers, since a credential does not call back to the TA on use.
+**What each party learns.** A Service Provider learns the operator's identity, the signals, and the issuing Trust Authority, not the agent's activity elsewhere, since a credential does not call back to the Trust Authority on use. A Trust Authority learns which agents it issues to and, under holder-directed issuance (ADR 022), their pattern of requests, but not which Service Provider an agent visits on the offline path. A status fetch reveals to the Trust Authority only that someone read a list, not which credential or Service Provider.
 
-**What a Trust Authority learns**: which agents it issues to, and their evaluation data. It does not learn which Service Provider an agent visits on the offline path. The exception is a status fetch: when a Service Provider reads the agent or operator status list, it accesses a list at the TA rather than reporting a specific credential or Service Provider, which keeps the leakage coarse.
-
-**Users** are out of scope. TSAI verifies agents, not end users; a credential carries no user identity, and a Service Provider MUST NOT conflate agent trust with user trust.
+**Users** are out of scope; a credential carries no user identity, and a Service Provider MUST NOT conflate agent trust with user trust.
 
 ---
 
 ## 5.8 Trust Authority Security
 
-Signing keys are held in an HSM, with multi-person authorisation for key operations, restricted and audited access, and periodic rotation with old keys retained for verification during the transition. A TA publishes signed operational reports (Section 7.7) and, where it offers assurance about its key handling, an HSM attestation (Section 7.8). On key compromise a TA rotates the key, notifies Service Providers and the governance body, and re-issues; Service Providers can drop the TA from their trusted set. A TA is a legal entity, accountable for what it issues, and Service Providers enforce that accountability by their choice of whom to trust.
+Signing keys are held in an HSM with multi-person authorisation, restricted and audited access, and periodic rotation with old keys retained for verification. A Trust Authority resolves `jwt-vc-issuer` and any `prv` over HTTPS and SHOULD use DNSSEC-validated resolution, since a hijacked DNS record could redirect key discovery. It publishes signed operational reports (§7.10) and, where it offers assurance about key handling, an HSM attestation (§7.11). On key compromise it rotates the key through the out-of-band path (§3.7.2), notifies Service Providers and the governance body, and re-issues; Service Providers can drop it from their trusted set. A Trust Authority is a legal entity accountable for what it issues.
 
 ---
 
 ## 5.9 Service Provider Responsibilities
 
-Verification is specified in Section 3. Beyond it, a Service Provider MUST NOT log credential contents or misrepresent what a signal means, MUST indicate and log degraded-mode operation, and decides for itself which TAs to trust, how to weigh the signals, and how strongly to verify a given action. It combines TSAI with its own controls in defence in depth.
+Verification is Section 3. Beyond it, a Service Provider MUST NOT log credential contents or misrepresent a signal, MUST indicate and log degraded-mode operation within the bounds of §3.7.2, and decides which Trust Authorities to trust and how strongly to verify a given action. It combines TSAI with its own controls in defence in depth.
 
 ---
 
 ## 5.10 Protocol-Specific Security
 
-Transport integration and its security considerations for MCP, A2A, and general HTTP are in Section 4, including credential exposure, replay, theft, and TA compromise.
+Transport integration and its considerations for MCP, A2A, and HTTP are in Section 4, including exposure, replay and substitution, the payments boundary, and the one-hop limitation.
 
 ---
 
 ## 5.11 Limitations
 
-TSAI does not protect against LLM-specific attacks (prompt injection, jailbreaking, adversarial inputs), poor output quality (hallucination, bias, harmful content), an agent's runtime behaviour after verification, a malicious operator holding a valid credential, social engineering of users, or vulnerabilities in the Service Provider's own systems. These need separate mitigations: input and output validation, monitoring and anomaly detection, rate limiting, kill switches, TA evaluation quality, user education, and ordinary application security. TSAI is one layer that gives identity, trust signals, and accountability, to be combined with the rest.
+TSAI does not protect against LLM-specific attacks, poor output quality, an agent's runtime behaviour after verification, a malicious operator holding a valid credential, social engineering, or vulnerabilities in the Service Provider's own systems. Beyond those, several limitations are inherent in the current design and are recorded so a reader does not assume otherwise:
+
+- **`prv` is attribution, not proof.** A compliance or assurance `prv` names the third party the Trust Authority asserts stands behind a claim, without a signature from that party. A Service Provider relying on such a signal for a material decision verifies it out of band.
+- **Signal currency.** The 30-minute lifetime bounds the binding and the presentation, not the assertions; a signal's currency is carried by `asof` (§2.5.1), and a Service Provider should read it rather than assume a freshly minted credential carries fresh facts.
+- **Reputation washing.** Agent-level reputation lets an operator register a new agent to shed a poor record; the operator-level reputation signal and the identity floor bound this, but do not close it (ADR 021). End-user-level Sybil resistance is deferred (ADR 008).
+- **Agent key compromise.** A stolen binding key lets an attacker present existing credentials until they expire and, absent the controls of §7.2 and §7.6, obtain new ones. The mitigation is operator authentication at issuance and key repudiation (§7.6); the status list is keyed to the agent or operator, so repudiating a compromised key blocks the agent.
+- **Request substitution without `req`.** Where a presentation does not carry `req`, TSAI binds the presenter to the credential and the audience, not to the action; a Service Provider whose verifying and acting components differ must require `req` (§3.4).
+- **Correlation versus a reachable block.** A credential carrying `status` is correlatable across Service Providers that read the list; unlinkability requires forgoing `status` (§5.7).
+- **One hop.** In a multi-agent chain a service agent learns the immediately connecting agent's signals, not the originating agent's (§4.6).
 
 ---
 
 ## 5.12 Normative Requirements Summary
 
-**Trust Authorities MUST** hold signing keys in an HSM, support `EdDSA` and `ES256`, verify an agent before issuing, record issuances for audit without storing contents, keep any block current, and publish signed operational reports (Section 7.7).
+**Trust Authorities MUST** hold signing keys in an HSM, support `EdDSA` and `ES256`, verify an agent and match contents to the evaluation before issuing (§7.4), keep the block current and publish the status list, support key repudiation (§7.6), and publish signed operational reports and their evaluation criteria (§7.10).
 
-**Agents MUST** protect the `cnf` private key, present only over HTTPS, and present a credential that has not expired.
+**Agents MUST** protect the `cnf` private key, present only over HTTPS, and present an unexpired credential.
 
-**Service Providers MUST** verify per Section 3, not log credential contents, not misrepresent signals, and indicate degraded-mode operation.
+**Service Providers MUST** verify per Section 3, not log credential contents, not misrepresent signals, bound degraded mode and caches (§3.7), and indicate degraded operation.
 
-**All parties MUST** use HTTPS with TLS 1.2 or higher, validate certificates, and keep time with NTP.
-
-The freshness window, nonce policy, and status-fetch policy are specified in ADR 018.
+**All parties MUST** use HTTPS with TLS 1.2 or higher (TA APIs 1.3, §7.7), validate certificates, and keep time with NTP.
 
 ---
 
 ## References
 
-- draft-ietf-oauth-sd-jwt-vc — SD-JWT-based Verifiable Credentials
-- draft-ietf-oauth-status-list — Token Status List
-- RFC 7519 (JSON Web Token), RFC 7515 (JSON Web Signature), RFC 7638 (JWK Thumbprint)
-- NIST SP 800-57 (Key Management)
-- TSAI ADR 007: Short-Lived Credentials
-- TSAI ADR 014: Holder Binding; ADR 017: Party Identity; ADR 018: Verification Strength and Replay
+- draft-ietf-oauth-sd-jwt-vc; RFC 9901 (§10.1 correlation, §10.2 key storage); draft-ietf-oauth-status-list
+- RFC 7519, RFC 7515, RFC 7638, RFC 9530; NIST SP 800-57
+- ADR 007, ADR 014, ADR 017, ADR 018, ADR 019, ADR 020, ADR 021

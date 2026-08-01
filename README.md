@@ -41,12 +41,15 @@ Normative technical specification defining the TSAI protocol. These documents sp
 - **[06-security-privacy.md](./architecture/06-security-privacy.md)** - Trust model, security requirements, threat analysis, and privacy considerations
 - **[07-references.md](./architecture/07-references.md)** - Normative and informative references to W3C and IETF specifications
 - **[07-trust-authority-apis.md](./architecture/07-trust-authority-apis.md)** - Trust Authority API design rationale and operational context
-- **[openapi/trust-authority-api.yaml](./architecture/openapi/trust-authority-api.yaml)** - OpenAPI 3.1 specification for Trust Authority APIs (credential issuance, refresh, challenges)
+- **[08-signal-profiles.md](./architecture/08-signal-profiles.md)** - Verifier-side signal profiles, with the identity floor as the base
+- **[openapi/trust-authority-api.yaml](./architecture/openapi/trust-authority-api.yaml)** - OpenAPI 3.1 specification for Trust Authority APIs (issuance, refresh, status, repudiation, well-known endpoints)
 - **schemas/** - JSON schemas for credential validation and protocol extensions
   - [tsai-credential.schema.json](./architecture/schemas/tsai-credential.schema.json) - Credential (SD-JWT VC payload) structure
   - [key-binding-jwt.schema.json](./architecture/schemas/key-binding-jwt.schema.json) - Key-binding JWT claims set
   - [mcp-capability-tsai.schema.json](./architecture/schemas/mcp-capability-tsai.schema.json) - MCP capability declaration
   - [a2a-agent-card-tsai.schema.json](./architecture/schemas/a2a-agent-card-tsai.schema.json) - A2A agent card extension
+  - [tsai-type-metadata.schema.json](./architecture/schemas/tsai-type-metadata.schema.json) - Type-metadata document structure
+- **type-metadata/** - Per-`vct` type metadata (mandatory and selective-disclosure controls)
 
 ### Architecture Decision Records (`decisions/`)
 
@@ -70,6 +73,10 @@ Documented design decisions with rationale and alternatives considered:
 - **[016-trust-signal-structure.md](./decisions/016-trust-signal-structure.md)** - Flat trust-signal list in four categories (supersedes ADR 004)
 - **[017-party-identity-and-key-discovery.md](./decisions/017-party-identity-and-key-discovery.md)** - HTTPS issuer, `cnf`-key agent, `did:web` third parties (supersedes ADR 006)
 - **[018-verification-strength-and-replay.md](./decisions/018-verification-strength-and-replay.md)** - Verification strength, replay, and the 30-minute lifetime without tiers (amends ADR 007 and ADR 009)
+- **[019-mandatory-identity-floor.md](./decisions/019-mandatory-identity-floor.md)** - Every credential MUST identify its operator (restores an invariant ADR 016 did not intend to remove)
+- **[020-request-binding.md](./decisions/020-request-binding.md)** - Optional `req` digest binding a presentation to its request (amends ADR 014)
+- **[021-reputation.md](./decisions/021-reputation.md)** - Portable reputation band, mandatory support, and attribution (amends ADR 016)
+- **[022-holder-directed-issuance-and-type-metadata.md](./decisions/022-holder-directed-issuance-and-type-metadata.md)** - Holder-directed issuance and type metadata with `sd: never` (amends ADR 015)
 
 ---
 
@@ -106,7 +113,7 @@ Documented design decisions with rationale and alternatives considered:
 ## Status
 
 **Version:** 1.0 (Draft)  
-**Date:** January 2026  
+**Date:** 2026-08  
 **Status:** Working Group Draft
 
 The protocol is in active development with pilot implementations planned for Q1-Q2 2026. Governance will transition to an independent foundation in 2027.

@@ -17,17 +17,17 @@ Open work items, organized by document or workstream.
 
 ## Reference Implementation
 
-- TA credential issuance service (T0/T1)
+- TA credential issuance service
 - Agent SDK: credential lifecycle, key-binding JWT creation, refresh (TypeScript, Python)
 - Verifier library: SD-JWT VC presentation parsing, issuer key discovery (`jwt-vc-issuer`), signature verification
-- Test vectors for the signal categories (valid, invalid, edge cases)
+- Test vectors for the signal categories (valid, invalid, edge cases); include a stale key-binding JWT and a future-`iat` vector
 
 ## Implementation Guide (Non-Normative)
 
-- DID document and verification result caching strategies
+- Issuer-key and verification-result caching strategies (bounds per Section 3.7)
 - Clock synchronization and NTP monitoring
 - Degraded mode policies and circuit breaker patterns
-- Performance optimization (batch verification, parallel DID resolution)
+- Performance optimization (batch verification, issuer-key caching)
 - Operational monitoring: metrics, alerting, incident response
 
 ## Protocol Design
@@ -51,10 +51,11 @@ Open work items, organized by document or workstream.
 - Reputation score interpretation
 - Monitoring and incident response patterns
 
-## Constraint Profile Registry
+## Delegation and Constraint Profiles (ADR 001)
 
-- Standard profiles (e.g., `ecommerce-standard-t3`)
-- Profile definitions: operations, limits, rate limits
+These are authorization constraints (delegation), distinct from the signal profiles of Section 8.
+
+- Standard constraint profiles for delegated authority (operations, value limits, rate limits)
 - Profile versioning
 - Custom profile guidance
 
@@ -93,7 +94,7 @@ Open work items, organized by document or workstream.
 ## User-Level Identification and Sybil Prevention (Post-MVP)
 
 - Service Providers managing scarce resources (e.g., ticketing, limited inventory, queue-based access) need assurance that Agents represent distinct end users — not one User operating many Agents to gain unfair advantage
-- TSAI v1.0 provides operator accountability (T0) and agent reputation (T1) but not end-user uniqueness
+- TSAI v1.0 provides operator accountability and agent reputation but not end-user uniqueness
 - ADR 008 explores six approaches ranging from pairwise TA-issued credentials to ZK proofs; none selected for v1.0
 - Key design tension: user privacy (unlinkable pseudonyms, minimal disclosure) vs. Sybil prevention (verifiable uniqueness)
 - Gather requirements from early-adopter Service Providers to inform v2.0 design

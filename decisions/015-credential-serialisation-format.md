@@ -9,7 +9,8 @@ SPDX-License-Identifier: Apache-2.0
 **Date:** 2026-07-02  
 **Deciders:** TSAI Working Group  
 **Relationship to ADR 003:** supersedes [ADR 003 — W3C Verifiable Credentials as Credential Format](./003-w3c-verifiable-credentials.md)  
-**Depended on by:** the holder-binding decision (ADR 014); carries the signal structure (ADR 016)
+**Depended on by:** the holder-binding decision (ADR 014); carries the signal structure (ADR 016)  
+**Amended by:** [ADR 022 — Holder-Directed Issuance and Type Metadata](./022-holder-directed-issuance-and-type-metadata.md)
 
 > Note: the illustrative examples in this record predate ADR 016's field vocabulary and ADR 017's identity model, so they show a `did:web` issuer and a nested `reputation` object rather than the flat signal list. They are retained as the record and are not normative.
 

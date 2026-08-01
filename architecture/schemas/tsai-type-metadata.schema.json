@@ -1,0 +1,50 @@
+{
+  "$comment": "Copyright Amazon.com Inc. or its affiliates. SPDX-License-Identifier: Apache-2.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tsai.example.org/schemas/tsai-type-metadata.json",
+  "title": "TSAI Type Metadata",
+  "description": "The type-metadata document for a TSAI vct (SD-JWT VC type metadata, §4). Declares per-claim mandatory presence and selective-disclosure controls, plus display.",
+  "type": "object",
+  "required": ["vct", "claims"],
+  "properties": {
+    "vct": { "type": "string", "format": "uri", "description": "The credential type this metadata describes" },
+    "name": { "type": "string" },
+    "description": { "type": "string" },
+    "claims": {
+      "type": "array",
+      "description": "Per-claim controls; the identity floor is mandatory, reputation is sd: never",
+      "items": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "array",
+            "description": "SD-JWT VC claim path; for a scalar top-level claim",
+            "items": { "type": ["string", "integer", "null"] }
+          },
+          "signal": {
+            "type": "object",
+            "description": "TSAI selector addressing a signal by category and type, since signals are array elements",
+            "properties": { "cat": { "type": "string" }, "typ": { "type": "string" } },
+            "required": ["cat"],
+            "additionalProperties": false
+          },
+          "mandatory": { "type": "boolean", "description": "The claim MUST be present" },
+          "sd": { "type": "string", "enum": ["always", "allowed", "never"], "description": "Selective-disclosure control; reputation MUST be never" },
+          "display": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": { "lang": { "type": "string" }, "label": { "type": "string" } },
+              "required": ["lang", "label"],
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "schema_uri": { "type": "string", "format": "uri" },
+    "schema_uri#integrity": { "type": "string" }
+  },
+  "additionalProperties": true
+}

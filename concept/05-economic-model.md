@@ -6,7 +6,7 @@ SPDX-License-Identifier: Apache-2.0
 # TSAI Economic Model
 
 **Version:** 1.0  
-**Date:** January 2026  
+**Date:** 2026-08  
 **Status:** Working Group Draft
 
 ---
