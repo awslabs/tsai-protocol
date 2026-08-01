@@ -64,6 +64,8 @@ The mechanisms are settled by ADR 018 and ADR 020; this section is normative and
 
 **Nonce.** `nonce` is always present (Section 2.4). At baseline the agent generates it, which with `aud` and the bounded `iat` bounds replay to the window against this Service Provider. Where the risk of the action warrants, the Service Provider issues a single-use, per-request `nonce` as a challenge and rejects a presentation that does not echo it, which closes the window.
 
+**Reuse.** A key-binding JWT is created for a single presentation. Where the Service Provider issues the nonce, it is single-use and a repeat MUST be rejected. On the offline baseline the Service Provider holds no per-request state, so it cannot detect reuse, and a key-binding JWT may be replayed within the freshness window; for a state-changing action `req` binds the presentation to one request, which is why `req` is required there.
+
 **Request binding.** For a state-changing action, and for any action where the verifying component and the acting component differ, a Service Provider MUST require `req` (Section 2.4, ADR 020) and MUST confirm the `req` digest matches the request it will act on. Without `req`, the 90-second window is defensible only for a read: it binds the presenter to the credential and to this Service Provider, not to the action (Section 5.11).
 
 ---

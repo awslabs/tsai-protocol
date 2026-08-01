@@ -27,6 +27,10 @@ Where two credentials assert conflicting values for the same signal about the sa
 
 When verification fails, the protocol-appropriate error carries the Section 3.7 code. The `tsaiError` object is `{ "code": "<Section 3.7 code>", "message": "<generic>" }`, placed in the transport's error-data field: the `data` of a JSON-RPC error for MCP and A2A JSONRPC, or the body for HTTP. The message MUST NOT leak issuer or algorithm detail (Section 3.7).
 
+### 4.1.3 Issuer mismatch and discovery
+
+An agent must present a credential from an issuer the Service Provider accepts. If it holds none, verification fails; there is no issuer negotiation in v1.0. An agent discovers the accepted issuers before connecting, from the Service Provider's `/.well-known/tsai-config.json`, the MCP capability, or the A2A extension params. Trust-Authority cross-recognition, by which one authority accepts another's evaluation so a single credential satisfies more Service Providers, is future work.
+
 ---
 
 ## 4.2 MCP Integration

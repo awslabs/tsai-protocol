@@ -93,6 +93,10 @@ At presentation the holder signs a key-binding JWT with the private key matching
 
 `signals` is a flat array (ADR 016). Each signal has a category, a type, and type-specific fields.
 
+The field and type codes are abbreviated (`cat`, `typ`, `prv`, `org`, `dct`, and so on) because a credential is fetched every 30 minutes and sent on every request, so wire size matters; the human-readable labels live in the type metadata (Section 2.9), and the registry of categories and types is governance-maintained (Section 8).
+
+Absence of a signal is not a negative assertion. It may mean the Trust Authority did not evaluate that category, not that it evaluated it unfavourably; TSAI carries no adverse signals, and the block is the sanctioned negative path. A Service Provider MUST NOT read the absence of a signal as an adverse finding, and a Trust Authority MAY indicate which categories it assessed so a Service Provider can tell silence from a gap.
+
 ### 2.5.1 Common fields
 
 | Field | Requirement | Meaning |
