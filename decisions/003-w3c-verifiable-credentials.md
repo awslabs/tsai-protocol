@@ -7,7 +7,7 @@ SPDX-License-Identifier: Apache-2.0
 
 **Status:** Superseded  
 **Date:** 2026-01-22  
-**Deciders:** TAP Working Group  
+**Deciders:** TSAI Working Group  
 **Superseded by:** [ADR 015 — Credential Serialisation Format](./015-credential-serialisation-format.md)  
 **Amended by:** [ADR 012 — Service Provider Terminology](./012-service-provider-terminology.md)
 
@@ -301,5 +301,5 @@ Adopt **W3C Verifiable Credentials Data Model 2.0** (Option 3) as the credential
 - [W3C Verifiable Credentials Data Model 2.0](https://www.w3.org/TR/vc-data-model-2.0/)
 - [W3C VC-JOSE-COSE](https://www.w3.org/TR/vc-jose-cose/)
 - [W3C BitstringStatusList](https://www.w3.org/TR/vc-bitstring-status-list/)
-- TAP Design Considerations (concept/archive/01-design-considerations.md)
-- TAP High-Level Concept (concept/02-high-level-concept.md)
+- TSAI Design Considerations (concept/archive/01-design-considerations.md)
+- TSAI High-Level Concept (concept/02-high-level-concept.md)

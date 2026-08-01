@@ -196,7 +196,7 @@ TSAI explicitly supports `did:wba` for W3C AI Agent Protocol compatibility. Agen
 
 **DID Method:** `did:web` (mandatory)
 
-**DID Format:** `did:web:{domain}:tap:ta`
+**DID Format:** `did:web:{domain}:tsai:ta`
 
 **Resolution:** HTTPS GET to `https://{domain}/.well-known/did.json`
 
@@ -208,17 +208,17 @@ TSAI explicitly supports `did:wba` for W3C AI Agent Protocol compatibility. Agen
 ```json
 {
   "@context": ["https://www.w3.org/ns/did/v1"],
-  "id": "did:web:trust-authority.example:tap:ta",
+  "id": "did:web:trust-authority.example:tsai:ta",
   "verificationMethod": [{
-    "id": "did:web:trust-authority.example:tap:ta#key-1",
+    "id": "did:web:trust-authority.example:tsai:ta#key-1",
     "type": "JsonWebKey2020",
-    "controller": "did:web:trust-authority.example:tap:ta",
+    "controller": "did:web:trust-authority.example:tsai:ta",
     "publicKeyJwk": { ... }
   }],
   "service": [{
-    "id": "did:web:trust-authority.example:tap:ta#credential-issuance",
-    "type": "TAPCredentialIssuance",
-    "serviceEndpoint": "https://api.trust-authority.example/tap/credentials"
+    "id": "did:web:trust-authority.example:tsai:ta#credential-issuance",
+    "type": "TSAICredentialIssuance",
+    "serviceEndpoint": "https://api.trust-authority.example/tsai/credentials"
   }]
 }
 ```
