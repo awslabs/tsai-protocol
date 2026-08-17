@@ -127,13 +127,13 @@ The residual costs are the two tensions the decision does not dissolve: TSAI dep
 - The self-contained binding of draft-xx1 is realised as the SD-JWT key-binding JWT, and the holder key is the `cnf` JWK.
 - Revocation uses the IETF Token Status List, referenced by an optional `status` claim. Where a Service Provider relies on short expiry, `status` may be omitted.
 - TSAI adopts the `vct` type claim and the `application/dc+sd-jwt` media type, and publishes type metadata for each `vct`. That type metadata carries the schema and display rules and is where TSAI declares which fields are required, replacing the `@context` and `type` semantics of the W3C model.
-- The trust signals from draft-xx3 are carried as top-level claims. Selective disclosure is available per claim but unused by default, so a credential is a flat JWT and only the fields deliberately made disclosable ever appear as digests.
+- The trust signals from draft-xx3 are carried in a single top-level `signals` claim, holding the flat list of category-discriminated objects that decision fixes. Selective disclosure is available per claim, and within the list per array element, but is unused by default, so a credential is a flat JWT and only the fields deliberately made disclosable ever appear as digests. Disclosing the `signals` claim as a whole is all-or-nothing across the list; revealing individual signals while withholding others requires the per-element form.
 - The identity model moves toward key-centric: issuer identity via `iss` and `jwt-vc-issuer` discovery, holder identity via the `cnf` JWK. This is the subject of a follow-on ADR on issuer identity and discovery; ADR 006 stands until that ADR is decided, at which point it takes a forward pointer. draft-xx1 has already begun the direction, since it dropped any dependence on `did:wba` and treats the binding key as a JWK thumbprint.
 - Where an agent carries credentials from several Trust Authorities, each is a separate SD-JWT VC bound to the same agent `cnf` key; there is no single presentation wrapper, so carrying several together is a protocol-layer concern rather than a credential-format one.
 
 ### Illustrative structure
 
-A minimal TSAI credential with no selective disclosure is a plain signed JWT. Field names, the `exp` requirement, and the presence of at least one signal are TSAI profile, carried in the type metadata, not requirements of SD-JWT VC itself. Values are illustrative.
+A minimal TSAI credential with no selective disclosure is a plain signed JWT. Field names, the `exp` requirement, and the presence of at least one signal are TSAI profile, carried in the type metadata, not requirements of SD-JWT VC itself. Values are illustrative. The `signals` claim follows the shape fixed in draft-xx3: a flat list of objects, each carrying a `category`, a `type`, and type-specific fields. That decision defers the category and type vocabulary, so both appear as placeholders below.
 
 Issuer-signed JWT (header, then payload):
 
@@ -146,7 +146,10 @@ Issuer-signed JWT (header, then payload):
   "vct": "https://tsaiprotocol.org/credentials/tsai",
   "exp": 1781866800,
   "cnf": { "jwk": { "kty": "OKP", "crv": "Ed25519", "x": "DfHY-Iwi7CKaERIgi321y0ixNYqzTCNiXPFRpIVzoXY" } },
-  "reputation": { "score": 0.87, "count": 3518 }
+  "signals": [
+    { "category": "‹category›", "type": "‹type›", "verified_at": "2026-06-14" },
+    { "category": "‹category›", "type": "‹type›", "score": 0.87, "count": 3518 }
+  ]
 }
 ```
 
@@ -165,6 +168,8 @@ Key-binding JWT at presentation (header, then payload), signed by the `cnf` key:
 ```
 
 On the wire the presentation is `‹issuer-JWT›~‹KB-JWT›`. The issuer signature proves the signals are authentic, the key-binding JWT proves possession of the `cnf` key for this audience and this request, and `sd_hash` binds the two together. With selective disclosure in use, only the disclosed claims would move to `_sd` digests with accompanying disclosures; everything else stays as shown.
+
+The issuer identity in this example is interim. `iss` and `kid` use the `did:web` form of ADR 006, which stands until the follow-on ADR on issuer identity and discovery is decided. Under the `jwt-vc-issuer` discovery named in the consequences above, `iss` would instead be an HTTPS URL beneath which issuer metadata is served. These are alternative key-resolution mechanisms rather than complements, so only one is in use at a time: a verifier built against the example as written needs DID resolution for issuers alongside raw JWK handling for holders, and that duplication is expected to fall away when the follow-on ADR lands.
 
 ---
 
