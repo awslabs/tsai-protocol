@@ -39,7 +39,7 @@ TSAI exists so a Service Provider can know which accountable legal entity stands
 
 ### Option 2: The floor as a verifier-side base profile
 
-Express the minimum as the base of the signal-profile scheme (ADR G.1 work), applied by the verifier at admission.
+Express the minimum as the base of the signal-profile scheme (Section 8), applied by the verifier at admission.
 
 **Pros.** One construct for all admission policy.
 
@@ -79,7 +79,7 @@ These are all identity (`idn`) signals, verified by the Trust Authority, so they
 
 ## References
 
-- [ADR 013 — VP-JWT Claim Structure](./013-vp-jwt-claim-structure.md) (the prior identity mandate lived in the tier model)
+- [ADR 004 — Tiered Trust Model](./004-tiered-trust-model.md) (the prior identity mandate lived in the tier model's credential format)
 - [ADR 016 — Trust Signal Structure](./016-trust-signal-structure.md)
 - [ADR 021 — Reputation Comparability, Support, and Attribution](./021-reputation.md)
 - [ADR 022 — Holder-Directed Issuance and Type Metadata](./022-holder-directed-issuance-and-type-metadata.md)

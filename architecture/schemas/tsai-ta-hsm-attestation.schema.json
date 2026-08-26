@@ -1,0 +1,37 @@
+{
+  "$comment": "Copyright Amazon.com Inc. or its affiliates. SPDX-License-Identifier: Apache-2.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tsai.example.org/schemas/tsai-ta-hsm-attestation.json",
+  "title": "TSAI Trust Authority HSM Attestation",
+  "description": "The signed HSM attestation a Trust Authority publishes at /.well-known/tsai-ta-hsm-attestation (Section 7.11). auditor, auditStandard, and reportUrl are optional so a self-attestation, which lacks a third party, still validates; an independent-audit MUST name an auditor and a standard (see allOf).",
+  "type": "object",
+  "required": ["version", "taIdentifier", "attestationType", "auditDate", "scope", "nextAuditDate", "proof"],
+  "properties": {
+    "version": { "type": "string", "description": "Attestation format version" },
+    "taIdentifier": { "type": "string", "format": "uri", "pattern": "^https://", "description": "The Trust Authority HTTPS issuer identifier the attestation is for" },
+    "attestationType": { "type": "string", "enum": ["independent-audit", "vendor-attestation", "self-attestation"], "description": "Assurance level: independent-audit (third party verified HSM use, strongest), vendor-attestation (the HSM vendor confirms residency), or self-attestation (weakest, transitional)" },
+    "auditor": { "type": "string", "description": "The third party that performed the audit; required for independent-audit" },
+    "auditDate": { "type": "string", "format": "date", "description": "When the attestation was established" },
+    "auditStandard": { "type": "string", "description": "The standard the audit was against, e.g. SOC2-Type2; required for independent-audit" },
+    "scope": { "type": "string", "description": "What the attestation covers, e.g. signing-key generation, storage, and use" },
+    "reportUrl": { "type": "string", "format": "uri", "pattern": "^https://", "description": "Link to the audit report, where one is published" },
+    "nextAuditDate": { "type": "string", "format": "date", "description": "When the attestation is next due; kept current within 18 months" },
+    "proof": {
+      "type": "object",
+      "description": "The signature over the attestation, made with the current signing key",
+      "required": ["alg", "kid"],
+      "properties": {
+        "alg": { "type": "string", "enum": ["EdDSA", "ES256", "ES384", "ES512"], "description": "Signature algorithm" },
+        "kid": { "type": "string", "description": "Identifier of the signing key within the issuer key set" }
+      },
+      "additionalProperties": true
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "attestationType": { "const": "independent-audit" } }, "required": ["attestationType"] },
+      "then": { "required": ["auditor", "auditStandard"] }
+    }
+  ],
+  "additionalProperties": true
+}

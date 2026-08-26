@@ -34,17 +34,15 @@
             "type": "array",
             "items": {
               "type": "object",
-              "properties": { "lang": { "type": "string" }, "label": { "type": "string" } },
-              "required": ["lang", "label"],
+              "properties": { "locale": { "type": "string" }, "label": { "type": "string" } },
+              "required": ["locale", "label"],
               "additionalProperties": false
             }
           }
         },
         "additionalProperties": true
       }
-    },
-    "schema_uri": { "type": "string", "format": "uri" },
-    "schema_uri#integrity": { "type": "string" }
+    }
   },
   "additionalProperties": true
 }

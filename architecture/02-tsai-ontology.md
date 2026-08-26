@@ -23,7 +23,7 @@ The legal entity, a company, organisation, or individual, that runs agents and i
 
 ## Agent
 
-The program that makes requests on behalf of an operator. It is identified by the key its credential is bound to, the `cnf` key, and it may carry a stable HTTPS name for continuity (ADR 017). It carries its own reputation.
+The program that makes requests on behalf of an operator. It is identified by the key its credential is bound to, the `cnf` key, and it may carry a stable HTTPS name for continuity (ADR 017). It carries its own reputation; the operator may also carry a reputation aggregated across its agents (ADR 021).
 
 ## The operatedBy relationship
 
@@ -35,8 +35,8 @@ Each agent has exactly one operator. One operator can run several agents, each b
 
 Each signal in the flat list is about either the operator or the agent.
 
-- **Operator-level**, shared across the operator's agents: identity (legal name, jurisdiction, verification depth, controlled domain and its age), compliance (certifications), and assurance (economic backing).
-- **Agent-level**, specific to the one agent: reputation (its behavioural record).
+- **Operator-level**, shared across the operator's agents: identity (legal name, jurisdiction, verification depth, controlled domain and its age), compliance (certifications), and assurance (economic backing). Reputation may also be carried here, aggregated across the operator's agents and marked `scp: operator` (ADR 021).
+- **Agent-level**, specific to the one agent: reputation (its behavioural record), which is the default scope for a `rep` signal.
 
 Authorization, the constraints on what an agent may do, is delegation rather than a signal, and is out of scope here (ADR 001).
 
@@ -48,14 +48,17 @@ A flat signal list carrying operator-level and agent-level signals:
 
 ```json
 "signals": [
+  { "cat": "idn", "typ": "org", "val": "ACME Corporation GmbH" },
   { "cat": "idn", "typ": "jur", "val": "DE" },
+  { "cat": "idn", "typ": "kyc", "val": "enhanced" },
   { "cat": "idn", "typ": "dct", "val": "acme-corp.example" },
-  { "cat": "cmp", "typ": "iso27001", "prv": "did:web:cert-corp.example" },
-  { "cat": "rep", "typ": "ecommerce", "scr": 0.94, "cnt": 3518, "wdw": "P90D" }
+  { "cat": "cmp", "typ": "iso27001", "prv": "did:web:cert-corp.example", "asof": 1754300000 },
+  { "cat": "rep", "typ": "ecommerce", "scp": "agent", "band": "established", "scr": 0.94, "cnt": 3518, "wdw": "P90D", "asof": 1754300000 },
+  { "cat": "rep", "typ": "ecommerce", "scp": "operator", "band": "strong", "cnt": 41200, "wdw": "P365D", "asof": 1754300000 }
 ]
 ```
 
-The identity and compliance signals describe the operator; the reputation signal describes the agent. The credential binds them to the agent's `cnf` key and to the operator's identity.
+The four identity signals and the compliance signal describe the operator. The two reputation signals differ in scope: the `agent` record is this agent's own history, and the `operator` record aggregates across the operator's agents (ADR 021). The credential binds them to the agent's `cnf` key and to the operator's identity.
 
 ---
 

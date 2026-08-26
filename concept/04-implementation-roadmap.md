@@ -31,9 +31,9 @@ Phase 0 proves the core: that an SD-JWT VC carrying identity and reputation sign
 
 ## Phase 1: Foundation (Months 2-4)
 
-Phase 1 delivers production-grade security for early adopters. It adds the compliance and assurance signals, the verification-strength policy of ADR 018 (a Service-Provider nonce challenge and a tighter freshness window where the risk warrants), and the agent or operator block via the Token Status List, and it lays the ground for a multi-TA ecosystem.
+Phase 1 delivers production-grade security for early adopters. It adds the compliance and assurance signals, the verification-strength policy of ADR 018 (a Service-Provider nonce challenge and a tighter freshness window where the risk warrants), request binding for state-changing actions (ADR 020), the type metadata that carries the mandatory identity floor and the selective-disclosure controls (ADR 022) so that selective disclosure is safe to use from the start, and the agent or operator block via the Token Status List, and it lays the ground for a multi-TA ecosystem.
 
-**Deliverables.** The full four categories of signals; the verification-strength policy over the signals and the action; the block, keyed to the agent or operator identity, published by the Trust Authority and read by a Service Provider when its risk policy calls for it; a production Trust Authority with key rotation; a complete verifier library; multi-TA support on the Service Provider side; agent credential lifecycle with refresh; logging, anomaly detection, and incident response; and an external security audit with SOC 2 Type I for the Trust Authority.
+**Deliverables.** The full four categories of signals; the verification-strength policy over the signals and the action; type metadata per `vct` carrying the mandatory identity floor and the `sd: never` controls; selective disclosure in issuance and presentation; request binding for state-changing actions; the block, keyed to the agent or operator identity, published by the Trust Authority and read by a Service Provider when its risk policy calls for it; a production Trust Authority with key rotation; a complete verifier library; multi-TA support on the Service Provider side; agent credential lifecycle with refresh; logging, anomaly detection, and incident response; and an external security audit with SOC 2 Type I for the Trust Authority.
 
 **Success.** Ten or more Service Providers integrated, a hundred or more agents, the block working end to end, no critical incidents, and the audit passed. Performance: issuance under 500 ms, offline verification well under 100 ms, Trust Authority uptime above 99.9 per cent.
 
@@ -41,9 +41,9 @@ Phase 1 delivers production-grade security for early adopters. It adds the compl
 
 ## Phase 2: Ecosystem Growth (Months 5-9)
 
-Phase 2 scales for a growing ecosystem. Several independent Trust Authorities operate, selective disclosure (the SD-JWT VC mechanism) lets an agent reveal only the signals a Service Provider needs, and advanced anomaly detection and cross-TA correlation are deployed.
+Phase 2 scales for a growing ecosystem. Several independent Trust Authorities operate, cross-TA reputation correlation is deployed, and advanced anomaly and collusion detection are added. Selective disclosure, which ships in Phase 1, is now exercised across a multi-TA ecosystem.
 
-**Deliverables.** Selective disclosure in issuance and presentation; multi-TA verification and cross-TA reputation correlation; anomaly and collusion detection at Trust Authorities; performance optimisation and analytics on the Service Provider side; agent-side multi-TA support and key rotation; SOC 2 Type II and ISO 27001; and a governance process for accreditation, dispute resolution, and protocol evolution.
+**Deliverables.** Multi-TA verification and cross-TA reputation correlation; anomaly and collusion detection at Trust Authorities; performance optimisation and analytics on the Service Provider side; agent-side multi-TA support and key rotation; SOC 2 Type II and ISO 27001; and a governance process for accreditation, dispute resolution, and protocol evolution.
 
 **Success.** Fifty or more Service Providers, a thousand or more agents, several independent Trust Authorities, no major incidents, and multiple independent audits passed.
 

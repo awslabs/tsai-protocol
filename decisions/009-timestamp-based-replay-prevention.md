@@ -164,3 +164,5 @@ Use **timestamp-based replay prevention** (Option 3) for T0/T1 credentials:
 - TSAI Architecture Specification Section 3.6.2 (Clock Synchronization)
 - RFC 3161 (Time-Stamp Protocol) - for context on timestamp-based security
 
+
+> Note: architecture section numbers in this ADR refer to the pre-2026-08 structure, before the specification was renumbered.

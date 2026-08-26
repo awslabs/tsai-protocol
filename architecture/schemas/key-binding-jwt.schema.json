@@ -13,12 +13,12 @@
     "sd_hash": { "type": "string", "description": "Digest over the issuer-signed JWT and forwarded disclosures, per RFC 9901 §4.3.1" },
     "req": {
       "type": "object",
-      "description": "Optional request binding (ADR 020); required for state-changing actions where the verifying and acting components differ",
-      "required": ["digest"],
+      "description": "Optional request binding (ADR 020); required for state-changing actions and where the verifying and acting components differ. Binds the method and target URI always, and the body digest when the request has a body.",
+      "required": ["method", "uri"],
       "properties": {
-        "digest": { "type": "string", "description": "Content digest of the request body per RFC 9530" },
-        "method": { "type": "string" },
-        "uri": { "type": "string", "format": "uri" }
+        "method": { "type": "string", "description": "The HTTP method of the bound request" },
+        "uri": { "type": "string", "format": "uri", "description": "The target URI of the bound request" },
+        "digest": { "type": "string", "description": "Content digest of the request body per RFC 9530; present only when the request has a body" }
       },
       "additionalProperties": false
     }

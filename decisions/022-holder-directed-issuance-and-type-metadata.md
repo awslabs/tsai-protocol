@@ -37,7 +37,7 @@ Trust-Authority blindness is the more valuable property and the one both an oper
 - Trust-Authority blindness holds; minimisation is available two ways, holder-directed issuance for the coarse case and selective disclosure for the fine case.
 - A Service Provider can rely on reputation being present when a credential purports to carry it, because reputation is not disclosable and, under the floor, absence is a positive state rather than a suppression.
 - TSAI now depends on a published type-metadata document per `vct`, which the credential-format and verification sections reference.
-- The withheld-count surfacing gives a Service Provider a signal that disclosure was applied, which E.5's absence-ambiguity concern otherwise leaves silent.
+- The withheld-count surfacing gives a Service Provider a signal that disclosure was applied, which the absence-is-not-adverse rule (Section 2.5) would otherwise leave silent.
 
 ---
 

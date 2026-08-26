@@ -15,6 +15,15 @@ info:
     name: Apache 2.0
     url: https://www.apache.org/licenses/LICENSE-2.0.html
 
+servers:
+  - url: https://trust-authority.example
+    description: >-
+      The Trust Authority origin. The API endpoints (challenges, credentials,
+      status, metadata) MAY instead be mounted under a path prefix; the two
+      /.well-known endpoints MUST be served at the origin root as shown, since
+      a verifier discovers the signing keys and the status report there
+      (Section 2.8, Section 3.2.1).
+
 tags:
   - name: credentials
     description: Credential issuance and refresh
@@ -150,7 +159,9 @@ paths:
   /.well-known/jwt-vc-issuer:
     get:
       summary: SD-JWT VC issuer metadata (signing keys)
-      description: Returns the issuer metadata document containing jwks or jwks_uri.
+      description: >-
+        Returns the issuer metadata document containing jwks or jwks_uri.
+        Origin-rooted: served at the origin root regardless of any API base path.
       operationId: getIssuerMetadata
       tags: [metadata]
       responses:
@@ -165,6 +176,8 @@ paths:
   /.well-known/tsai-ta-status:
     get:
       summary: Signed operational status report (Section 7.10)
+      description: >-
+        Origin-rooted: served at the origin root regardless of any API base path.
       operationId: getStatusReport
       tags: [metadata]
       responses:
@@ -269,8 +282,11 @@ components:
           type: array
           description: >-
             Optional holder-directed filter (ADR 022): request a subset of
-            categories or types without naming the Service Provider. The
-            Trust Authority stays blind to the destination.
+            categories or types above the identity floor, without naming the
+            Service Provider. The identity floor is always included regardless
+            of the filter, and the filter can never remove a claim the type
+            metadata marks mandatory. The Trust Authority stays blind to the
+            destination.
           items:
             type: object
             required: [cat]

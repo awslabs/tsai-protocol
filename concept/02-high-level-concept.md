@@ -50,11 +50,13 @@ A credential carries a flat list of signals. Each signal has a category, a type,
 The four categories answer four questions a Service Provider asks.
 
 - **Identity** — who the agent and operator are: the operator's legal identity and jurisdiction, the depth of identity verification, a controlled domain and its age.
-- **Reputation** — how the agent has behaved: a score, the number of interactions behind it, and the window observed.
+- **Reputation** — how the agent has behaved: a portable band (insufficient-history, established, or strong) with an optional finer score, the number of interactions behind it, and the window observed; carried at agent level and, optionally, aggregated at operator level.
 - **Compliance** — what third-party certifications the operator holds, such as ISO 27001 or SOC 2, each naming the certifier.
 - **Assurance** — what economic backing stands behind the agent, such as insurance or posted collateral, each naming the backer.
 
 One operator can run several agents. Each agent builds its own reputation, while all share the operator's identity, compliance, and assurance signals.
+
+**The identity floor.** Every credential carries a minimum identity set: the operator's legal name, jurisdiction, depth of identity verification, and at least one controlled domain. This is not a tier; it is the floor below which no credential is issued, declared mandatory in the credential's type metadata, so a verified credential always names an accountable operator (ADR 019).
 
 Authorization, the constraints on what an agent may do, is not a trust signal. It is a matter of delegation and is handled separately (ADR 001), not as a signal category.
 
@@ -80,7 +82,7 @@ The Service Provider checks the Trust Authority's signature on the credential, t
 
 A Service Provider decides how strongly to verify from the risk of the action, not from a tier on the credential. The base path is offline and fast: it needs the Trust Authority's published key and nothing from the Trust Authority at request time. Where the risk warrants, a Service Provider can require a nonce it issues, apply a tighter freshness window to the presentation, or fetch the agent or operator status list, at the cost of a round trip. The precise rules, and how they follow from the signals and the action, are specified in the verification section (ADR 018).
 
-This replaces the earlier tiered model, where the credential carried a tier and the tier fixed the verification method. Grading is now the Service Provider's policy over the signals, which keeps the credential uniform and lets each Service Provider match rigour to its own risk.
+This replaces the earlier tiered model, where the credential carried a tier and the tier fixed the verification method. Grading is now the Service Provider's policy over the signals, which keeps the credential uniform and lets each Service Provider match rigour to its own risk. A Service Provider MAY adopt a published signal profile, a named set of signal requirements with the identity floor as its base, rather than define its policy from scratch.
 
 ---
 
@@ -88,9 +90,9 @@ This replaces the earlier tiered model, where the credential carried a tier and 
 
 **Binding prevents theft.** The credential is bound to the agent's key. The agent proves possession with the key-binding JWT, so a stolen credential is useless without the private key.
 
-**Replay is prevented per presentation.** Each presentation carries a fresh key-binding JWT addressed to one Service Provider, on a clock independent of the credential lifetime. A captured presentation is not usable elsewhere.
+**Replay is prevented per presentation.** Each presentation carries a fresh key-binding JWT addressed to one Service Provider, on a clock independent of the credential lifetime. A captured presentation is not usable elsewhere. For a state-changing action the presentation is also bound to the request and carries a single-use challenge the Service Provider issues, so it cannot be replayed or attached to a different action (ADR 020).
 
-**Short lifetime bounds exposure.** A credential lives thirty minutes, so a compromised agent loses access quickly, and a Trust Authority stops re-issuing to a misbehaving agent. Where the in-window risk justifies it, a Trust Authority publishes a block against the agent or operator, keyed to its identity, which a Service Provider checks online when its policy calls for it.
+**Short lifetime bounds exposure.** A credential lives thirty minutes, so a compromised agent loses access quickly, and a Trust Authority stops re-issuing to a misbehaving agent. Where the in-window risk justifies it, a Trust Authority publishes a block against the agent or operator, keyed to its identity, which a Service Provider checks online when its policy calls for it. An operator can repudiate an agent's binding key at the Trust Authority, which then refuses further issuance against it and blocks the affected agent.
 
 **Defence in depth.** Credentials give identity and signals, but a Service Provider still monitors behaviour, rate-limits, detects anomalies, and keeps a kill switch. Multiple Trust Authorities give redundancy.
 

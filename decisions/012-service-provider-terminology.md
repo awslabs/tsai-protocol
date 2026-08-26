@@ -142,3 +142,5 @@ No normative field names, schema identifiers, HTTP headers, or DID paths contain
 - Architecture Section 4.7.2: W3C AI Agent Protocol mapping
 - ADR 003: W3C Verifiable Credentials (Issuer / Holder / Verifier model)
 - ADR 005: Signaling vs. Enforcement (the "signals, Service Providers decide" principle)
+
+> Note: architecture section numbers in this ADR refer to the pre-2026-08 structure, before the specification was renumbered.

@@ -2,41 +2,66 @@
   "$comment": "Copyright Amazon.com Inc. or its affiliates. SPDX-License-Identifier: Apache-2.0",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://tsai.example.org/schemas/a2a-agent-card-tsai.json",
-  "title": "A2A Agent Card TSAI Security Scheme",
-  "description": "TSAI security scheme declaration in an A2A Agent Card",
+  "title": "A2A Agent Card TSAI Extension",
+  "description": "TSAI declared as an A2A extension. The TSAI-specific fields live in capabilities.extensions (an AgentExtension with a uri and params); the securitySchemes.tsai entry, if present, is a plain httpAuthSecurityScheme carrying only scheme, bearerFormat and description (A2A v1.0).",
   "type": "object",
-  "required": ["httpAuthSecurityScheme"],
+  "required": ["capabilities"],
   "properties": {
-    "httpAuthSecurityScheme": {
+    "capabilities": {
       "type": "object",
-      "required": ["scheme"],
+      "required": ["extensions"],
       "properties": {
-        "description": {
-          "type": "string",
-          "description": "Human-readable description of TSAI requirements"
-        },
-        "scheme": {
-          "const": "bearer",
-          "description": "HTTP authentication scheme (RFC 7235)"
-        },
-        "bearerFormat": {
-          "const": "dc+sd-jwt",
-          "description": "Presentation format: a TSAI credential (SD-JWT VC) with a key-binding JWT"
-        },
-        "trustedAuthorities": {
+        "extensions": {
           "type": "array",
           "minItems": 1,
-          "items": {
-            "type": "string",
-            "format": "uri",
-            "pattern": "^https://",
-            "description": "Accepted Trust Authority HTTPS issuer identifier"
-          },
-          "description": "Accepted Trust Authority issuers (TSAI extension)"
+          "contains": {
+            "type": "object",
+            "required": ["uri", "params"],
+            "properties": {
+              "uri": { "const": "https://tsaiprotocol.org/a2a/ext/1" },
+              "description": { "type": "string" },
+              "required": { "type": "boolean" },
+              "params": {
+                "type": "object",
+                "required": ["trustedAuthorities"],
+                "properties": {
+                  "trustedAuthorities": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": { "type": "string", "format": "uri", "pattern": "^https://" }
+                  }
+                },
+                "additionalProperties": true
+              }
+            },
+            "additionalProperties": true
+          }
         }
       },
-      "additionalProperties": false
+      "additionalProperties": true
+    },
+    "securitySchemes": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "tsai": {
+          "type": "object",
+          "properties": {
+            "httpAuthSecurityScheme": {
+              "type": "object",
+              "required": ["scheme"],
+              "properties": {
+                "scheme": { "const": "bearer" },
+                "bearerFormat": { "const": "dc+sd-jwt" },
+                "description": { "type": "string" }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        }
+      }
     }
   },
-  "additionalProperties": false
+  "additionalProperties": true
 }

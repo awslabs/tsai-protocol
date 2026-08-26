@@ -109,3 +109,5 @@ The cost is named and bounded: the payload is not a bare presentation, and that 
 - `schemas/verifiable-presentation.schema.json`
 - [W3C VC-JOSE-COSE](https://www.w3.org/TR/vc-jose-cose/)
 - [W3C Verifiable Credentials Data Model 2.0](https://www.w3.org/TR/vc-data-model-2.0/)
+
+> Note: this superseded ADR refers to the pre-2026-08 architecture structure (for example Section 3.3.5) and to the verifiable-presentation schema, both removed when ADR 015 replaced the VP-JWT with SD-JWT VC.

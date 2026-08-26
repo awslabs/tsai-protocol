@@ -241,7 +241,7 @@ This specification was developed by the TSAI Working Group, comprising European 
 
 **Contributing Organizations:**
 - Amazon Web Services
-- [Additional contributors to be listed]
+- TSAI Working Group member organisations
 
 **Special Thanks:**
 - W3C Verifiable Credentials Working Group for foundational standards

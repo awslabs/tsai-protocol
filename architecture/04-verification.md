@@ -15,7 +15,7 @@ SPDX-License-Identifier: Apache-2.0
 
 This section specifies how a Service Provider verifies a TSAI credential presented by an agent. A presentation is an SD-JWT VC (Section 2) with a key-binding JWT appended. Verification establishes that a trusted Trust Authority issued the credential, that it carries the identity floor, that it has not expired, that the presenter holds the bound key, that the presentation is fresh and addressed to this Service Provider, and, where the risk of the action warrants, that it is bound to the request and that the agent or operator is not blocked.
 
-The base path is offline: it needs the Trust Authority's published signing key and nothing from the Trust Authority at request time. The keywords MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY are to be interpreted as described in RFC 2119.
+The base path is offline: it needs the Trust Authority's published signing key and cached type metadata, and nothing from the Trust Authority at request time. The keywords MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY are to be interpreted as described in RFC 2119.
 
 ---
 
@@ -23,7 +23,7 @@ The base path is offline: it needs the Trust Authority's published signing key a
 
 ### 3.2.1 Trust Authority key
 
-The Trust Authority is identified by `iss`, an HTTPS URL with no query or fragment. Its signing keys are published at `iss` joined with `/.well-known/jwt-vc-issuer`, and `kid` selects one. A Service Provider MUST obtain the key from that endpoint, MUST confirm that the metadata's `issuer` value equals `iss`, and MUST reject a credential whose header carries `x5c` or names any discovery mechanism other than `jwt-vc-issuer`. There is no DID resolution for the Trust Authority. A Service Provider verifies against a configured set of trusted issuers; if `iss` is not trusted, or the key cannot be obtained, verification fails closed.
+The Trust Authority is identified by `iss`, an HTTPS origin with no path, query, fragment, or trailing slash, so that the equality check below is over one spelling. Its signing keys are published at `iss` followed by `/.well-known/jwt-vc-issuer`, and `kid` selects one. Forbidding a path in `iss` is deliberate: SD-JWT VC §3 forms the metadata location by inserting `/.well-known/jwt-vc-issuer` between the host and the path of `iss`, so a path would place the keys where a simple join does not, and with no path the two coincide. A Service Provider MUST obtain the key from that endpoint, MUST reject a credential whose `iss` carries a path, query, fragment, or trailing slash, MUST confirm by exact string comparison that the metadata's `issuer` value equals `iss`, and MUST reject a credential whose header carries `x5c` or names any discovery mechanism other than `jwt-vc-issuer`. There is no DID resolution for the Trust Authority. A Service Provider verifies against a configured set of trusted issuers; if `iss` is not trusted, or the key cannot be obtained, verification fails closed.
 
 The metadata URL is fetched under the hardening of Section 3.6.
 
@@ -43,13 +43,13 @@ Given a presentation `<issuer-signed JWT>~<disclosure 1>~...~<disclosure N>~<key
 
 1. Split on `~`. A presentation MUST end with a key-binding JWT; a bare SD-JWT with an empty final element MUST be rejected. Whether to check key binding MUST NOT depend on whether the holder supplied a key-binding JWT (RFC 9901 §7.3).
 2. Read the issuer-signed JWT header: confirm `typ` is `dc+sd-jwt` and `alg` is in the permitted set (EdDSA, ES256, ES384, ES512), reject `x5c`. Read `iss`, confirm it is trusted, obtain its key (Section 3.2.1), and verify the issuer signature.
-3. Confirm `vct` is recognised; obtain its type metadata (Section 2.9).
+3. Confirm `vct` is recognised. Look up the type-metadata document whose integrity equals the credential's `vct#integrity`, from cache and never by fetching on this path (Section 2.9). If no cached document matches, fail the presentation and refresh the document out of band (Section 2.9), so that later presentations referencing it verify.
 4. Check the lifetime: reject if `exp` has passed or if `iat` is in the future beyond the skew of Section 3.4.
 5. If disclosures are present, confirm `_sd_alg` is a supported digest algorithm before use (RFC 9901 §7.1), verify each disclosure against its digest in `signals`, and reconstruct. Count the signals that remain withheld and surface the count; fail closed if it exceeds the Service Provider's policy threshold. Reject any presentation that discloses `iss`, `exp`, or `cnf`, which are not disclosable (RFC 9901 §9.7), or that reveals a signal the type metadata marks `sd: never`.
 6. Confirm the identity floor is present: `org`, `jur`, `kyc`, and at least one `dct` (Section 2.5.3).
 7. Read the key-binding JWT header (`typ` `kb+jwt`) and verify its signature against the `cnf` JWK.
 8. Confirm `aud` is this Service Provider, `nonce` is present (and, when the Service Provider issued one, that it matches and has not been used), and `sd_hash` matches the presented issuer-signed JWT and forwarded disclosures per RFC 9901 §4.3.1.
-9. Apply the freshness rule of Section 3.4, and, where the action requires it, confirm `req` (Section 3.4).
+9. Apply the freshness rule of Section 3.4; for a state-changing or split-topology action, confirm both a Service-Provider-issued single-use `nonce` and `req` (Section 3.4).
 10. Where the Service Provider's policy calls for it, check status (Section 3.5).
 
 If any step fails, reject. Ignore signal types that are not recognised (Section 2.5.7).
@@ -62,11 +62,11 @@ The mechanisms are settled by ADR 018 and ADR 020; this section is normative and
 
 **Freshness.** A Service Provider MUST reject a key-binding JWT whose `iat` is outside the window: reject if `iat > now + 30` seconds or `iat < now − 90` seconds. The maximum accepted age is therefore 90 seconds, with 30 seconds of skew. Correct time is a dependency; a Service Provider SHOULD monitor clock drift and, on a stale rejection, SHOULD return its own current time so the agent can correct.
 
-**Nonce.** `nonce` is always present (Section 2.4). At baseline the agent generates it, which with `aud` and the bounded `iat` bounds replay to the window against this Service Provider. Where the risk of the action warrants, the Service Provider issues a single-use, per-request `nonce` as a challenge and rejects a presentation that does not echo it, which closes the window.
+**Nonce.** `nonce` is always present (Section 2.4). At baseline the agent generates it, which with `aud` and the bounded `iat` bounds replay to the window against this Service Provider. Where the risk of the action warrants, and always for a state-changing action (Request binding below), the Service Provider issues a single-use, per-request `nonce` as a challenge and rejects a presentation that does not echo it, which closes the window.
 
-**Reuse.** A key-binding JWT is created for a single presentation. Where the Service Provider issues the nonce, it is single-use and a repeat MUST be rejected. On the offline baseline the Service Provider holds no per-request state, so it cannot detect reuse, and a key-binding JWT may be replayed within the freshness window; for a state-changing action `req` binds the presentation to one request, which is why `req` is required there.
+**Reuse.** A key-binding JWT is created for a single presentation. On the offline baseline the Service Provider holds no per-request state, so it cannot detect reuse, and a key-binding JWT may be replayed within the freshness window. `req` does not close this on its own: it binds the presentation to one request, so a substituted request is rejected, but an identical resubmission of the same request inside the window still matches every claim. Closing replay needs a Service-Provider-issued single-use `nonce`, which `req` does not replace and which does not replace `req`.
 
-**Request binding.** For a state-changing action, and for any action where the verifying component and the acting component differ, a Service Provider MUST require `req` (Section 2.4, ADR 020) and MUST confirm the `req` digest matches the request it will act on. Without `req`, the 90-second window is defensible only for a read: it binds the presenter to the credential and to this Service Provider, not to the action (Section 5.11).
+**Request binding.** For a state-changing action, and for any action where the verifying component and the acting component differ, a Service Provider MUST require `req` (Section 2.4, ADR 020) and MUST confirm that `req` matches the request it will act on: the method, the target URI, and, where the request has a body, the body digest. Because `req` binds the action but not its uniqueness, a state-changing action MUST also carry a Service-Provider-issued single-use `nonce`; the two are complementary, `req` closing substitution and the single-use nonce closing replay. A read needs neither: the 90-second window binds the presenter to the credential and to this Service Provider, which is enough when the action has no side effect (Section 5.11).
 
 ---
 
@@ -86,9 +86,11 @@ A Service Provider fetches URLs it did not choose: the issuer metadata at `iss`,
 
 ## 3.7 Error Handling, Degraded Mode, and Caching
 
-### 3.7.1 Fail closed
+### 3.7.1 Verification failure
 
-The following MUST result in rejection: an invalid or unsupported issuer or key-binding signature, an untrusted `iss`, an `x5c` header, an `alg` outside the permitted set, an unrecognised `vct`, a missing identity floor, an expired credential, a key-binding JWT that is stale, missing, or whose `aud`, `nonce`, `sd_hash`, or required `req` does not match, a set status entry, and a malformed presentation.
+This section governs the verification outcome; the access decision on a failed verification is the Service Provider's (Section 4.4.1). The following MUST result in a verification failure, and a failed verification MUST NOT be reported as verified: an invalid or unsupported issuer or key-binding signature, an untrusted `iss`, an `x5c` header, an `alg` outside the permitted set, an unrecognised `vct`, a `vct#integrity` mismatch, a missing identity floor, an expired credential, a key-binding JWT that is stale, missing, or whose `aud`, `nonce`, `sd_hash`, or required `req` does not match, a set status entry, and a malformed presentation.
+
+The default access posture on a failure is to reject. A Service Provider MAY instead log or annotate (Section 4.4.1); what it MUST NOT do is treat a failed verification as verified.
 
 Standard error codes:
 
@@ -122,7 +124,7 @@ A Service Provider MAY cache a verification result. A cached result MUST NOT be 
 - Confirm `alg` is permitted, `vct` is recognised, and the identity floor is present.
 - Verify the key-binding JWT against `cnf`; confirm `aud`, `nonce`, `sd_hash`, the freshness window (reject if `iat > now + 30` or `iat < now − 90`), and `req` where the action requires it.
 - Reject a set status entry with `BLOCKED`, verify the status-list token and pin its URI to the `iss` origin, and harden every fetch (Section 3.6).
-- Fail closed on any of the above, bound degraded-mode duration and cache lifetimes, and not leak issuer or algorithm detail in errors.
+- Treat any of the above as a verification failure, never report a failed verification as verified, bound degraded-mode duration and cache lifetimes, and not leak issuer or algorithm detail in errors.
 
 **Service Providers SHOULD:**
 - Monitor clock drift, return their time on a stale rejection, and use DNSSEC-validated resolution.

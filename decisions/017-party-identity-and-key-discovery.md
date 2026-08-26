@@ -102,7 +102,7 @@ Any further identifier that a specific signal type needs, for example a legal-en
 
 ## Consequences
 
-- Supersedes ADR 006. ADR 006 takes a forward pointer to this ADR; its body is unchanged.
+- Supersedes ADR 006. ADR 006 takes a forward pointer to this ADR; its body is unchanged except for the later TAP-to-TSAI naming rename, which was a naming purge rather than a decision change.
 - The Trust Authority publishes its signing keys at `/.well-known/jwt-vc-issuer` and identifies itself by an HTTPS `iss`. A `did:web` for the TA is not used.
 - The agent is identified by its `cnf` JWK; `sub`, if present, is an HTTPS identifier for continuity, not a DID.
 - Referenced third parties publish one canonical `did:web` each and are referenced by it.

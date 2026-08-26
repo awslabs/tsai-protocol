@@ -217,3 +217,5 @@ Use **fail-closed with degraded mode** (Option 3):
 - TSAI Architecture Specification Section 3.6.4 (Revocation Check Bypass)
 - Circuit Breaker Pattern (for degraded mode implementation)
 
+
+> Note: architecture section numbers in this ADR refer to the pre-2026-08 structure, before the specification was renumbered.

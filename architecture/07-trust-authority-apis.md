@@ -35,7 +35,7 @@ Before binding a credential to a key, the Trust Authority confirms the operator'
 
 ## 7.4 Holder-Directed Issuance and Honesty
 
-**Holder-directed issuance.** An agent MAY include a `signals` filter in the issuance request, asking for a subset such as identity only, without naming the Service Provider it will present to (ADR 022). The Trust Authority returns the requested subset and stays blind to the destination; it learns the agent's pattern of requests, which is far weaker than learning its destinations.
+**Holder-directed issuance.** An agent MAY include a `signals` filter in the issuance request, asking for a subset of the signals above the identity floor, such as identity plus compliance only, without naming the Service Provider it will present to (ADR 022). The Trust Authority returns the requested subset and stays blind to the destination; it learns the agent's pattern of requests, which is far weaker than learning its destinations. The filter narrows only the signals above the floor: a Trust Authority MUST include the identity floor (ADR 019) regardless of the filter, and, more generally, a filter can never remove a claim the type metadata marks `mandatory`.
 
 **Honesty.** The contents of a credential MUST match what the Trust Authority actually established. Specifically, a Trust Authority MUST verify the operator's identity before issuing, MUST perform the verification each signal claims — KYC for identity, DNS challenge or email for domain control, certificate validation or registry lookup for a certification, membership confirmation for an affiliation, and the basis it states for reputation — and MUST NOT populate a signal it has no basis to assert. Every credential carries the identity floor (ADR 019), and reputation is `sd: never` (ADR 022).
 
@@ -51,7 +51,7 @@ The short lifetime carries most of the lifecycle. To stop an agent within the wi
 
 ## 7.6 Key Repudiation
 
-An agent's binding key is its identity, so its compromise needs a path (Section 5.11, F.2). An operator MUST be able to repudiate a binding key at the Trust Authority through the authenticated channel. On repudiation the Trust Authority MUST refuse further issuance against that key and set the block for the affected agent, so that credentials already issued against the key stop verifying once a Service Provider consults status. Because the status list is keyed to the agent or operator rather than to the key, repudiating one key of an agent that uses a distinct key per Service Provider blocks the agent; an operator that needs finer granularity re-enrols the affected agent.
+An agent's binding key is its identity, so its compromise needs a path (Section 5.11). An operator MUST be able to repudiate a binding key at the Trust Authority through the authenticated channel. On repudiation the Trust Authority MUST refuse further issuance against that key and set the block for the affected agent, so that credentials already issued against the key stop verifying once a Service Provider consults status. Because the status list is keyed to the agent or operator rather than to the key, repudiating one key of an agent that uses a distinct key per Service Provider blocks the agent; an operator that needs finer granularity re-enrols the affected agent.
 
 ---
 
