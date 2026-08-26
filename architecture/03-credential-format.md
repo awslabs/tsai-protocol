@@ -81,7 +81,7 @@ At presentation the holder signs a key-binding JWT with the private key matching
 | Claim | Requirement | Meaning |
 |---|---|---|
 | `iat` | REQUIRED | Time the presentation was created. Its freshness is bounded per Section 3. |
-| `aud` | REQUIRED | The Service Provider the presentation is addressed to: the HTTPS origin of the service (Section 2.8), which the Service Provider MAY publish in its discovery documents. |
+| `aud` | REQUIRED | The Service Provider the presentation is addressed to: the HTTPS origin of the service (Section 2.8). On a transport with no HTTP origin, such as MCP over stdio, it is the stable audience identifier the server declares in its capability exchange (Section 4.2). The Service Provider MAY publish the expected value in its discovery documents. |
 | `nonce` | REQUIRED | A value binding the presentation to a transaction. The agent generates it from a cryptographically secure source, at least 128 bits, fresh per presentation; where the risk of the action warrants, the Service Provider issues it as a challenge instead (Section 3). |
 | `sd_hash` | REQUIRED | The digest over the issuer-signed JWT and any forwarded disclosures, computed per RFC 9901 §4.3.1. |
 | `req` | OPTIONAL | A request binding (ADR 020): the request method and target URI, and, when the request has a body, a content digest of the body per RFC 9530. REQUIRED for a state-changing action and where the verifying and acting components differ (Section 3). |
@@ -93,7 +93,7 @@ At presentation the holder signs a key-binding JWT with the private key matching
 ```json
 {
   "iat": 1781863250,
-  "aud": "https://trusted-shops.com",
+  "aud": "https://service-provider.example",
   "nonce": "9b8f2c1a7e4d6f0b3a5c8e2d1f4a6b9c",
   "sd_hash": "X9Dd6l3aY8p2Qq7rT1uV0wZ2xN4mK6sB8cE0fH1gJ2k"
 }
@@ -104,12 +104,12 @@ For a state-changing action, the `nonce` is the Service-Provider-issued single-u
 ```json
 {
   "iat": 1781863250,
-  "aud": "https://trusted-shops.com",
+  "aud": "https://service-provider.example",
   "nonce": "c1f4a6b9c8e2d1f49b8f2c1a7e4d6f0b",
   "sd_hash": "X9Dd6l3aY8p2Qq7rT1uV0wZ2xN4mK6sB8cE0fH1gJ2k",
   "req": {
     "method": "POST",
-    "uri": "https://trusted-shops.com/api/orders",
+    "uri": "https://service-provider.example/api/orders",
     "digest": "sha-256=:RjVcQo5Xk2n9pQ0rT1uV0wZ2xN4mK6sB8cE0fH1gJ2=:"
   }
 }
@@ -212,7 +212,7 @@ The `sd` control is a TSAI extension to type metadata (Section 2.9), so a generi
 An individual short-lived credential is not revoked; the control is a block on the agent or operator (ADR 018). A Trust Authority MUST publish an agent-and-operator status list, so a Service Provider can depend on the mechanism existing. A credential normally carries a `status` claim referencing it, keyed to the agent or operator identity, so that blocking one identity invalidates all of its credentials:
 
 ```json
-"status": { "status_list": { "idx": 94567, "uri": "https://trusted-shops.com/tsai/status/agents/1" } }
+"status": { "status_list": { "idx": 94567, "uri": "https://trust-authority.example/tsai/status/agents/1" } }
 ```
 
 A credential MAY omit `status` only where the agent requires unlinkability across Service Providers, accepting that no block can reach it within the lifetime (Section 5.7). When a Service Provider fetches and how it verifies the status list are specified in Section 3.
@@ -258,14 +258,14 @@ An issued credential, flat, before presentation:
 
 ```json
 {
-  "iss": "https://trusted-shops.com",
+  "iss": "https://trust-authority.example",
   "vct": "https://tsaiprotocol.org/credential/tsai/1",
   "vct#integrity": "sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=",
   "iat": 1781863200,
   "exp": 1781865000,
   "sub": "https://acme-corp.example/agents/shopper-v3",
   "cnf": { "jwk": { "kty": "OKP", "crv": "Ed25519", "x": "O8G5X-9Zichaemqq4fFOqQ3SyYI18A4INI1oWPWlLcc" } },
-  "status": { "status_list": { "idx": 94567, "uri": "https://trusted-shops.com/tsai/status/agents/1" } },
+  "status": { "status_list": { "idx": 94567, "uri": "https://trust-authority.example/tsai/status/agents/1" } },
   "signals": [
     { "cat": "idn", "typ": "org", "val": "Acme Corporation GmbH" },
     { "cat": "idn", "typ": "jur", "val": "DE" },

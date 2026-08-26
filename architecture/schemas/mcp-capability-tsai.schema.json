@@ -1,7 +1,7 @@
 {
   "$comment": "Copyright Amazon.com Inc. or its affiliates. SPDX-License-Identifier: Apache-2.0",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://tsai.example.org/schemas/mcp-capability-tsai.json",
+  "$id": "https://tsaiprotocol.org/schemas/mcp-capability-tsai.json",
   "title": "MCP TSAI Capability Declaration",
   "description": "TSAI capability declaration in an MCP initialization response",
   "type": "object",
@@ -21,6 +21,10 @@
         "description": "Accepted Trust Authority HTTPS issuer identifier"
       },
       "description": "List of accepted Trust Authority issuers"
+    },
+    "aud": {
+      "type": "string",
+      "description": "The audience identifier an agent places in the key-binding JWT aud on a transport with no HTTP origin (MCP over stdio). Stable across the server's sessions. Omitted where the HTTPS origin is the audience."
     }
   },
   "additionalProperties": false

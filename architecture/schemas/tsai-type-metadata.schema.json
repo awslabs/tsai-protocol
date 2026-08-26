@@ -1,7 +1,7 @@
 {
   "$comment": "Copyright Amazon.com Inc. or its affiliates. SPDX-License-Identifier: Apache-2.0",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://tsai.example.org/schemas/tsai-type-metadata.json",
+  "$id": "https://tsaiprotocol.org/schemas/tsai-type-metadata.json",
   "title": "TSAI Type Metadata",
   "description": "The type-metadata document for a TSAI vct (SD-JWT VC type metadata, §4). Declares per-claim mandatory presence and selective-disclosure controls, plus display.",
   "type": "object",

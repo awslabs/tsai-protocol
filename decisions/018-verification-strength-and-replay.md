@@ -7,6 +7,7 @@ SPDX-License-Identifier: Apache-2.0
 
 **Status:** Accepted  
 **Date:** 2026-07-31  
+**Amended:** 2026-08-26 — freshness bound tightened to 90 seconds and the nonce made mandatory, following the first architecture review; Sections 2.4 and 3.4 are authoritative.  
 **Deciders:** TSAI Working Group  
 **Relationship to ADR 009:** amends [ADR 009 — Timestamp-Based Replay Prevention](./009-timestamp-based-replay-prevention.md)  
 **Relationship to ADR 007:** amends [ADR 007 — Short-Lived Credentials](./007-short-lived-credentials.md)  
@@ -19,7 +20,7 @@ SPDX-License-Identifier: Apache-2.0
 
 ADR 004 defined the tiers, and two other decisions keyed behaviour to them. ADR 009 keyed replay prevention to the tier: a timestamp within a fixed window for T0 and T1, and a challenge-response with a nonce for T2 and T3. ADR 007 keyed the credential lifetime to the tier: two to four hours for T0 and T1, one hour for T2, thirty minutes for T3. ADR 016 removes the tiers, so both need re-expressing.
 
-The mechanisms to build on are already decided. Holder binding is a key-binding JWT per presentation (ADR 014), carrying `aud`, `iat`, an optional `nonce`, and `sd_hash`. A credential MAY carry a `status` claim keyed to the agent or operator identity (ADR 017, and the block decision recorded there). What remains is the policy over these mechanisms once there is no tier to key it to.
+The mechanisms to build on are already decided. Holder binding is a key-binding JWT per presentation (ADR 014), carrying `aud`, `iat`, a `nonce`, and `sd_hash`. A credential MAY carry a `status` claim keyed to the agent or operator identity (ADR 017, and the block decision recorded there). What remains is the policy over these mechanisms once there is no tier to key it to.
 
 ---
 
@@ -67,11 +68,11 @@ Adopt **Option 2**, with the following baseline and escalation.
 
 **Lifetime.** A credential has a single lifetime: `exp` is 30 minutes after `iat`. A flow that outlives it obtains a fresh credential. This amends ADR 007, replacing the tiered expiry table. The lifetime is the re-issue cadence and is a separate clock from presentation freshness.
 
-**Baseline, always applied.** Every presentation is verified per Section 3: the issuer signature, the key-binding signature against `cnf`, `aud` matching the Service Provider, `sd_hash`, and the lifetime. For freshness, the Service Provider bounds the age of the key-binding JWT: it SHOULD reject a key-binding JWT whose `iat` is more than 2 minutes old, with a clock-skew tolerance of 30 seconds. This is the offline baseline and needs nothing from the Trust Authority at request time. It amends ADR 009: the timestamp mechanism stands, and the tier-keying is removed.
+**Baseline, always applied.** Every presentation is verified per Section 3: the issuer signature, the key-binding signature against `cnf`, `aud` matching the Service Provider, a `nonce`, `sd_hash`, and the lifetime. A `nonce` is present on every key-binding JWT (RFC 9901 §4.3); at baseline the agent generates it, and escalation changes who supplies it rather than whether it is present. For freshness, the Service Provider bounds the age of the key-binding JWT: it MUST reject a key-binding JWT whose `iat` is more than 90 seconds old or more than 30 seconds in the future (§3.4). This is the offline baseline and needs nothing from the Trust Authority at request time. It amends ADR 009: the timestamp mechanism stands, and the tier-keying is removed.
 
 **Escalation, by the Service Provider's policy over the signals and the action.** Where the risk of the action warrants, the Service Provider adds either or both of:
 
-- a `nonce` it issues as a challenge, which the agent echoes in the key-binding JWT, closing the freshness window entirely;
+- a Service-Provider-issued single-use `nonce` in place of the agent-generated one, echoed in the key-binding JWT, which closes the freshness window entirely;
 - a fetch of the agent or operator status list, to honour a block within the lifetime.
 
 Which action warrants which addition is the Service Provider's policy, read from the signals and the value at stake, not from a tier.
@@ -86,6 +87,7 @@ The decisive reason is that the tier was always a stand-in for a decision that i
 - Amends ADR 007: the tiered expiry table is replaced by a single 30-minute lifetime with refresh.
 - The baseline is normative and offline; the escalation is the Service Provider's policy and is non-normative, so two Service Providers may verify the same credential with different rigour.
 - Section 3.4 of the verification document carries this rule directly, with this ADR cited for the rationale: the freshness bound, the nonce, and the status fetch on a risk basis.
+- The freshness bound is 90 seconds of age with 30 seconds of skew, and a `nonce` is present on every presentation. These tighten the original two-minute, optional-nonce baseline following the first architecture review; Section 2.4 and Section 3.4 are authoritative for the wire rule.
 - No tier is reintroduced.
 
 ---

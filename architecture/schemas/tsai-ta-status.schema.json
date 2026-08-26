@@ -1,7 +1,7 @@
 {
   "$comment": "Copyright Amazon.com Inc. or its affiliates. SPDX-License-Identifier: Apache-2.0",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://tsai.example.org/schemas/tsai-ta-status.json",
+  "$id": "https://tsaiprotocol.org/schemas/tsai-ta-status.json",
   "title": "TSAI Trust Authority Operational Status Report",
   "description": "The signed operational report a Trust Authority publishes at /.well-known/tsai-ta-status (Section 7.10.2). Aggregate metrics only; no individual credential, agent, or operator identifier.",
   "type": "object",

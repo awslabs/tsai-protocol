@@ -13,7 +13,7 @@ As agentic AI systems proliferated through 2025 and 2026, Service Providers face
 
 TSAI works through a three-party model. Independent Trust Authorities evaluate Agent behavior and issue cryptographically signed credentials as SD-JWT VCs. Agents present these credentials, bound to a key they hold, when accessing services. Service Providers verify credentials offline and make access decisions based on verified trust signals across four categories: identity, reputation, compliance, and assurance. There are no tiers; a Service Provider sets how strongly it verifies from the signals and the risk of the action.
 
-Built on open standards (SD-JWT VC, the key-binding JWT, and the IETF Token Status List), TSAI complements existing agentic protocols like MCP and A2A without replacing them. The protocol is designed for incremental adoption—Service Providers start with simple offline verification and add stronger checks only where the risk of the action calls for them. An independent foundation will assume governance in 2027 to ensure broad industry participation and vendor neutrality.
+Built on open standards (SD-JWT VC, the key-binding JWT, and the IETF Token Status List), TSAI complements existing agentic protocols like MCP and A2A without replacing them. The protocol is designed for incremental adoption—Service Providers start with simple offline verification and add stronger checks only where the risk of the action calls for them. TSAI is stewarded by AWS with key industry partners.
 
 ---
 
@@ -113,7 +113,7 @@ Documented design decisions with rationale and alternatives considered:
 - **Standards-based** - SD-JWT VC, the key-binding JWT, and HTTPS issuer discovery for interoperability
 - **Incremental adoption** - Start with identity signals; add reputation, compliance, and assurance as they become available
 - **Honest about limitations** - Credentials don't prevent LLM vulnerabilities or all Agent misbehavior
-- **Vendor-neutral governance** - Independent foundation with multi-stakeholder participation
+- **Stewarded by AWS with key partners** - Vendor-neutral by design: any Trust Authority can issue, and any Service Provider chooses which to trust
 
 ---
 
@@ -123,7 +123,7 @@ Documented design decisions with rationale and alternatives considered:
 **Date:** 2026-08  
 **Status:** Working Group Draft
 
-The protocol is in active development with pilot implementations planned for Q1-Q2 2026. Governance will transition to an independent foundation in 2027.
+TSAI is stewarded by AWS with key industry partners.
 
 ---
 

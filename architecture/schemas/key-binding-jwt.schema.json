@@ -1,7 +1,7 @@
 {
   "$comment": "Copyright Amazon.com Inc. or its affiliates. SPDX-License-Identifier: Apache-2.0",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://tsai.example.org/schemas/key-binding-jwt.json",
+  "$id": "https://tsaiprotocol.org/schemas/key-binding-jwt.json",
   "title": "TSAI Key-Binding JWT Claims Set",
   "description": "The claims set of the key-binding JWT a holder appends when presenting a TSAI credential. The JWT header carries typ kb+jwt. The signature is made with the private key matching the credential's cnf. Per RFC 9901 §4.3, iat, aud, nonce and sd_hash are required.",
   "type": "object",

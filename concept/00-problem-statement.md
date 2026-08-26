@@ -55,11 +55,9 @@ The ecosystem requires professional operation, not volunteer effort. TAs need su
 
 High barriers to TA entry ensure quality and sustainability rather than a race to the bottom.
 
-### 3. Independent Governance
+### 3. Governance and Stewardship
 
-A neutral governance body with multi-stakeholder representation prevents vendor capture and ensures the protocol serves the ecosystem rather than individual interests. This builds trust across competing organizations and enables transparent specification evolution.
-
-The path runs from industry consortium to independent foundation (such as Linux Foundation).
+TSAI is stewarded by AWS with key industry partners. Multi-stakeholder input into the specification guards against vendor capture and keeps its evolution transparent, while the protocol itself stays neutral: any Trust Authority can issue, and any Service Provider chooses which to trust.
 
 ### 4. Lightweight Yet Secure
 

@@ -140,11 +140,11 @@ A minimal TSAI credential with no selective disclosure is a plain signed JWT. Fi
 Issuer-signed JWT (header, then payload):
 
 ```json
-{ "alg": "EdDSA", "typ": "dc+sd-jwt", "kid": "did:web:trusted-shops.com:tsai:ta#key-1" }
+{ "alg": "EdDSA", "typ": "dc+sd-jwt", "kid": "did:web:trust-authority.example:tsai:ta#key-1" }
 ```
 ```json
 {
-  "iss": "did:web:trusted-shops.com:tsai:ta",
+  "iss": "did:web:trust-authority.example:tsai:ta",
   "vct": "https://tsaiprotocol.org/credentials/tsai",
   "exp": 1781866800,
   "cnf": { "jwk": { "kty": "OKP", "crv": "Ed25519", "x": "DfHY-Iwi7CKaERIgi321y0ixNYqzTCNiXPFRpIVzoXY" } },

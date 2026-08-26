@@ -7,6 +7,7 @@ SPDX-License-Identifier: Apache-2.0
 
 **Status:** Accepted  
 **Date:** 2026-07-16  
+**Amended:** 2026-08-26 — names the Service Provider audience, including the transport with no HTTP origin (MCP over stdio); Sections 2.4 and 4.2 are authoritative.  
 **Deciders:** TSAI Working Group  
 **Relationship to ADR 006:** supersedes [ADR 006 — DID Methods for TAs and Agents](./006-did-methods.md)  
 **Depends on:** ADR 014 (holder binding) and ADR 015 (credential serialisation format)
@@ -30,7 +31,7 @@ Some identifiers in a credential are not the issuer or the holder but parties th
 
 ### Scope
 
-This decides identity and key discovery for three roles: the issuer (Trust Authority), the holder (agent), and referenced third parties. Agent-to-agent discovery and service-endpoint publication are agent-ecosystem concerns and out of scope.
+This decides identity and key discovery for three roles: the issuer (Trust Authority), the holder (agent), and referenced third parties. It also names the Service Provider, the audience a presentation is addressed to. Agent-to-agent discovery and service-endpoint publication are agent-ecosystem concerns and out of scope.
 
 ---
 
@@ -98,6 +99,8 @@ The split follows a single rule: a party that holds a key in the credential is i
 
 Any further identifier that a specific signal type needs, for example a legal-entity identifier for a liability-bearing party, is a schema field defined with the schema, not fixed here.
 
+The Service Provider, the audience of a presentation, is named by its HTTPS origin in `aud`. On a transport with no HTTP origin, such as MCP over stdio, the server declares a stable audience identifier in its unauthenticated capability exchange, and the agent uses that value as `aud` (Sections 2.4 and 4.2). The identifier is stable across the server's sessions, so a presentation is bound to one audience and cannot be redirected. This extends the party-identity model to the verifier without giving it a key in the credential.
+
 ---
 
 ## Consequences
@@ -110,6 +113,7 @@ Any further identifier that a specific signal type needs, for example a legal-en
 - Revocation status is read from the credential's `status` claim; issuance discovery is agent-facing and out of scope.
 - `did:wba` is dropped.
 - Additional per-type identifiers (such as a legal-entity identifier on an assurance signal) are optional schema fields, decided with the schema.
+- The Service Provider is named by its HTTPS origin in `aud`; on a transport without an origin (MCP over stdio) the server declares a stable audience identifier in its capability exchange, which the agent uses as `aud` (Sections 2.4 and 4.2).
 
 ---
 

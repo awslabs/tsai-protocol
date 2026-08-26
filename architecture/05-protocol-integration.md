@@ -44,13 +44,13 @@ MCP has a host, a client, and a server, over stdio or Streamable HTTP, with OAut
 A server declares its accepted Trust Authorities so an agent can present an acceptable credential. The declaration must be readable before the agent commits a presentation, which the initialization response cannot provide, because the agent would have to present before learning what is accepted. TSAI resolves this two ways, and the applicable one depends on the transport:
 
 - A server on an HTTP transport MUST publish its TSAI requirement at `/.well-known/tsai-config.json` on its origin, so an agent reads the accepted issuers before connecting.
-- A server on stdio, which has no HTTP origin, MUST expose an unauthenticated `initialize` that returns the TSAI capability together with a server-issued `nonce`; the agent then sends an authenticated request carrying the presentation that echoes the `nonce`. An HTTP server MAY offer this as well, and doing so supplies the Service-Provider-issued nonce that Section 3.4 uses for state-changing actions.
+- A server on stdio, which has no HTTP origin, MUST expose an unauthenticated `initialize` that returns the TSAI capability together with a server-issued `nonce` and the server's audience identifier; the agent then sends an authenticated request carrying the presentation that echoes the `nonce` and sets `aud` to that identifier. An HTTP server MAY offer this as well, and doing so supplies the Service-Provider-issued nonce that Section 3.4 uses for state-changing actions.
 
-The capability is `{ "required": <bool>, "trustedAuthorities": [<https issuer>, ...] }`, per [`schemas/mcp-capability-tsai.schema.json`](schemas/mcp-capability-tsai.schema.json).
+The capability is `{ "required": <bool>, "trustedAuthorities": [<https issuer>, ...], "aud": <audience identifier> }`, per [`schemas/mcp-capability-tsai.schema.json`](schemas/mcp-capability-tsai.schema.json). The `aud` field carries the audience identifier a stdio server declares; an HTTP server omits it and the audience is its origin.
 
 ### 4.2.3 Transport
 
-Over HTTP the presentation travels in the `TSAI-Credential` header on requests; over stdio it travels in a `tsaiCredential` field of the authenticated request following the unauthenticated capability exchange. A server verifies per Section 3 before acting, and on each request, since credentials are short-lived. What the signals justify is the server's policy over the signals (Section 3), not a tier.
+Over HTTP the presentation travels in the `TSAI-Credential` header on requests; over stdio it travels in a `tsaiCredential` field of the authenticated request following the unauthenticated capability exchange, with the key-binding JWT `aud` set to the audience identifier the capability exchange declared. A server verifies per Section 3 before acting, and on each request, since credentials are short-lived. What the signals justify is the server's policy over the signals (Section 3), not a tier.
 
 ---
 

@@ -1,7 +1,7 @@
 {
   "$comment": "Copyright Amazon.com Inc. or its affiliates. SPDX-License-Identifier: Apache-2.0",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://tsai.example.org/schemas/tsai-ta-hsm-attestation.json",
+  "$id": "https://tsaiprotocol.org/schemas/tsai-ta-hsm-attestation.json",
   "title": "TSAI Trust Authority HSM Attestation",
   "description": "The signed HSM attestation a Trust Authority publishes at /.well-known/tsai-ta-hsm-attestation (Section 7.11). auditor, auditStandard, and reportUrl are optional so a self-attestation, which lacks a third party, still validates; an independent-audit MUST name an auditor and a standard (see allOf).",
   "type": "object",

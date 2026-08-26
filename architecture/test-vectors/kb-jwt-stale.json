@@ -5,7 +5,7 @@
   "expect": "STALE_PRESENTATION",
   "kb": {
     "iat": 1781863250,
-    "aud": "https://trusted-shops.com",
+    "aud": "https://service-provider.example",
     "nonce": "9b8f2c1a7e4d6f0b3a5c8e2d1f4a6b9c",
     "sd_hash": "X9Dd6l3aY8p2Qq7rT1uV0wZ2xN4mK6sB8cE0fH1gJ2k"
   }

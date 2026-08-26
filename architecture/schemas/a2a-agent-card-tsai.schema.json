@@ -1,7 +1,7 @@
 {
   "$comment": "Copyright Amazon.com Inc. or its affiliates. SPDX-License-Identifier: Apache-2.0",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://tsai.example.org/schemas/a2a-agent-card-tsai.json",
+  "$id": "https://tsaiprotocol.org/schemas/a2a-agent-card-tsai.json",
   "title": "A2A Agent Card TSAI Extension",
   "description": "TSAI declared as an A2A extension. The TSAI-specific fields live in capabilities.extensions (an AgentExtension with a uri and params); the securitySchemes.tsai entry, if present, is a plain httpAuthSecurityScheme carrying only scheme, bearerFormat and description (A2A v1.0).",
   "type": "object",

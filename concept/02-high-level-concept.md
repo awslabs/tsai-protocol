@@ -23,7 +23,7 @@ A credential is an SD-JWT VC. It carries a flat list of trust signals in four ca
 
 ### Operator
 
-The operator is the legal entity, a company, organisation, or individual, that runs agents. The operator sets each agent's purpose and constraints, undergoes identity verification with a Trust Authority, and is legally accountable for the agents it runs. Its reputation accrues from the aggregate behaviour of those agents. For example, Acme Corporation GmbH might run several agents, each with its own track record but all sharing the operator's legal identity and accountability.
+The operator is the legal entity, a company, organisation, or individual, that runs agents. The operator sets each agent's purpose and constraints, undergoes identity verification with a Trust Authority, and is legally accountable for the agents it runs. Each of its agents builds its own reputation, and a Trust Authority may also issue an operator-level aggregate across them (ADR 021). For example, Acme Corporation GmbH might run several agents, each with its own track record, all sharing the operator's legal identity and accountability.
 
 ### Agent
 

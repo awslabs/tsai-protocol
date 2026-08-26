@@ -82,7 +82,7 @@ These are authorization constraints (delegation), distinct from the signal profi
 - TA accreditation process
 - Dispute resolution
 - Protocol evolution process
-- Governance transition: consortium → independent foundation
+- Governance: stewarded by AWS with key industry partners
 
 ## Feedback Protocol (Post-MVP)
 
