@@ -99,7 +99,7 @@ The domain model behind the credential is in `02-tsai-ontology.md`. The JSON sch
 - **[SD-JWT-VC]** SD-JWT-based Verifiable Credentials, draft-ietf-oauth-sd-jwt-vc
 - **[SD-JWT]** Selective Disclosure for JWTs (SD-JWT), RFC 9901
 - **[STATUS-LIST]** Token Status List, draft-ietf-oauth-status-list
-- **[RFC7519]** JSON Web Token (JWT); **[RFC7515]** JSON Web Signature (JWS); **[RFC7638]** JWK Thumbprint; **[RFC7800]** Proof-of-Possession Key Semantics (`cnf`); **[RFC7517]** JSON Web Key (JWK)
+- **[RFC7519]** JSON Web Token (JWT); **[RFC7515]** JSON Web Signature (JWS); **[RFC7638]** JWK Thumbprint; **[RFC7800]** Proof-of-Possession Key Semantics (`cnf`); **[RFC7517]** JSON Web Key (JWK); **[RFC7518]** JSON Web Algorithms (ES256)
 - **[RFC2119]** Requirement-level keywords; **[RFC8259]** JSON
 
 ---

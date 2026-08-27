@@ -2,6 +2,7 @@
   "$comment": "Copyright Amazon.com Inc. or its affiliates. SPDX-License-Identifier: Apache-2.0",
   "description": "Future key-binding JWT: iat is 120 seconds after the verifier's now, beyond the 30-second skew allowance. Section 3.4 requires rejection with STALE_PRESENTATION.",
   "now": 1781863250,
+  "header": { "alg": "ES256", "typ": "kb+jwt" },
   "expect": "STALE_PRESENTATION",
   "kb": {
     "iat": 1781863370,

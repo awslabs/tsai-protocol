@@ -16,7 +16,7 @@ SPDX-License-Identifier: Apache-2.0
 ### 5.1.1 What TSAI trusts
 
 - **Trust Authorities** operate honestly, perform the verification they claim (identity, reputation, backing), populate a credential only with what they established (§7.4), protect their signing keys, and keep the block current.
-- **Cryptography**: EdDSA and ES256 are sound, keys have adequate length, random generation has sufficient entropy, and hashes are collision-resistant.
+- **Cryptography**: ES256, P-256, and SHA-256 are sound, keys have adequate length, random generation has sufficient entropy, and hashes are collision-resistant.
 - **Infrastructure**: HTTPS and DNS operate correctly, the certificate authorities behind HTTPS are trustworthy, and systems keep time with NTP.
 - **Participants**: Service Providers verify before granting access and read the signals honestly; agents present credentials they legitimately hold.
 
@@ -62,10 +62,15 @@ A network attacker cannot break HTTPS or forge a signature. A compromised agent 
 
 ## 5.4 Cryptographic Requirements
 
-- Implementations MUST support `EdDSA` (Ed25519) and `ES256`, and MAY support `ES384` and `ES512`. A verifier MUST reject any other algorithm, including `none` and RSA.
-- Keys are generated with a cryptographically secure random source, providing at least a 128-bit security level (Ed25519 and P-256).
-- Nonces use a cryptographically secure random source with at least 128 bits of entropy.
-- **Algorithm deprecation.** A deprecated algorithm MUST be announced with a migration timeline; implementations SHOULD warn when one is used and MUST reject a credential using it after the sunset date. This is the only stated path to changing algorithms, and it matters for the post-quantum migration on the roadmap.
+**Signature profile.** Every TSAI v1 protocol signature MUST use `ES256`: ECDSA over the NIST P-256 curve with SHA-256. This applies to issuer-signed credentials, key-binding JWTs, proof-of-control challenges, Status List Tokens, Trust Authority operational reports, and HSM attestations. Every signing JWK MUST use `kty` `EC` and `crv` `P-256`; a verifier MUST reject every other `alg`, key type, or curve. TSAI v1 performs no signature-algorithm negotiation.
+
+**Hash profile.** TSAI v1 uses SHA-256 for SD-JWT disclosure digests and `sd_hash`, RFC 7638 JWK thumbprints, type-metadata integrity, and RFC 9530 request content digests. A verifier MUST reject another digest algorithm in these protocol fields.
+
+**Key generation and use.** Keys and nonces MUST be generated with a cryptographically secure random source; P-256 keys provide at least a 128-bit security level, and nonces carry at least 128 bits of entropy. Implementations MUST use an established cryptographic library or HSM with secure ECDSA nonce generation; software signers SHOULD use deterministic ECDSA per RFC 6979. A TSAI signing key MUST be used only for signing and MUST NOT be reused for encryption or key agreement.
+
+**Encryption.** TSAI v1 defines no JWE or other payload-encryption scheme. HTTPS supplies confidentiality in transit, with cipher-suite selection governed by the applicable TLS version; encryption at rest is an implementation concern outside the protocol.
+
+**Algorithm migration.** Cryptographic agility is provided by a future protocol-version transition, not by accepting dormant alternatives in v1. A replacement algorithm MUST be introduced with a migration timeline and an explicit transition during which implementations can move to the new protocol version.
 
 ---
 
@@ -131,7 +136,7 @@ TSAI does not protect against LLM-specific attacks, poor output quality, an agen
 
 ## 5.12 Normative Requirements Summary
 
-**Trust Authorities MUST** hold signing keys in an HSM, support `EdDSA` and `ES256`, verify an agent and match contents to the evaluation before issuing (§7.4), keep the block current and publish the status list, support key repudiation (§7.6), and publish signed operational reports and their evaluation criteria (§7.10).
+**Trust Authorities MUST** hold EC/P-256 signing keys in an HSM, use `ES256` for every TSAI signature, verify an agent and match contents to the evaluation before issuing (§7.4), keep the block current and publish the status list, support key repudiation (§7.6), and publish signed operational reports and their evaluation criteria (§7.10).
 
 **Agents MUST** protect the `cnf` private key, present only over HTTPS, and present an unexpired credential.
 
@@ -144,5 +149,5 @@ TSAI does not protect against LLM-specific attacks, poor output quality, an agen
 ## References
 
 - draft-ietf-oauth-sd-jwt-vc; RFC 9901 (§10.1 correlation, §10.2 key storage); draft-ietf-oauth-status-list
-- RFC 7519, RFC 7515, RFC 7638, RFC 9530; NIST SP 800-57
+- RFC 7519, RFC 7518, RFC 7515, RFC 7638, RFC 8725, RFC 6979, RFC 9530; NIST SP 800-57
 - ADR 007, ADR 014, ADR 017, ADR 018, ADR 019, ADR 020, ADR 021

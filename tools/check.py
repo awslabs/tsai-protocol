@@ -160,6 +160,8 @@ def freshness_verdict(iat, now):
 for vec in sorted((ARCH / "test-vectors").glob("kb-jwt-*.json")):
     v = load_json(vec)
     validate(v["kb"], KB, f"test-vectors/{vec.name} (kb-jwt)")
+    if v.get("header") != {"alg": "ES256", "typ": "kb+jwt"}:
+        fail(f"[vector] {vec.name}: header must be exactly alg ES256 and typ kb+jwt")
     got = freshness_verdict(v["kb"]["iat"], v["now"])
     if got != v["expect"]:
         fail(f"[vector] {vec.name}: freshness rule gave {got}, expected {v['expect']}")

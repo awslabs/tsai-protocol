@@ -29,7 +29,7 @@ Issuance is authenticated as the enrolled operator: `POST /credentials/issue` an
 
 ## 7.3 Proof of Control
 
-Before binding a credential to a key, the Trust Authority confirms the operator's agent controls that key. The agent requests a challenge, signs it with the key to be bound, and returns the signature, which the Trust Authority verifies against the key it will place in `cnf`. Challenges are single-use and expire after five minutes; issuing and tracking them is the one piece of state the Trust Authority holds.
+Before binding a credential to a key, the Trust Authority confirms the operator's agent controls that key. The agent requests a challenge, signs the UTF-8 bytes of the challenge value exactly as received with ES256 using the P-256 key to be bound, and returns the base64url-encoded 64-octet `R || S` signature, which the Trust Authority verifies against the public key it will place in `cnf`. Challenges are single-use and expire after five minutes; issuing and tracking them is the one piece of state the Trust Authority holds.
 
 ---
 
@@ -57,7 +57,7 @@ An agent's binding key is its identity, so its compromise needs a path (Section 
 
 ## 7.7 Security
 
-Every Trust Authority API uses HTTPS with TLS 1.3, since a credential is a bearer of signed claims; HSTS prevents downgrade. The general transport floor elsewhere is TLS 1.2 (Section 5); the Trust Authority APIs hold the higher bar deliberately. Signing keys are held in a hardware security module and rotated periodically, with old keys retained to verify credentials signed before the rotation. Rate limits curb abuse; the recommended starting points are ten issuances, twenty refreshes, and one hundred challenges per minute, which an authority tunes to its capacity.
+Every Trust Authority API uses HTTPS with TLS 1.3, since a credential is a bearer of signed claims; HSTS prevents downgrade. The general transport floor elsewhere is TLS 1.2 (Section 5); the Trust Authority APIs hold the higher bar deliberately. Signing keys are EC/P-256 keys held in a hardware security module and rotated periodically, with old keys retained to verify credentials signed before the rotation. Rate limits curb abuse; the recommended starting points are ten issuances, twenty refreshes, and one hundred challenges per minute, which an authority tunes to its capacity.
 
 ---
 
@@ -69,7 +69,7 @@ A Trust Authority runs critical infrastructure, targets high availability, and c
 
 ## 7.9 Normative Requirements
 
-A Trust Authority MUST implement the OpenAPI specification, authenticate the operator at issuance, confirm proof of control of the binding key, and use HTTPS with TLS 1.3 and HSM-held signing keys. It MUST issue only contents it has established (Section 7.4), include the identity floor in every credential, and support key repudiation (Section 7.6). It MUST publish its signing keys at `/.well-known/jwt-vc-issuer`, a type-metadata document per `vct`, an agent-and-operator status list, and a signed operational report (Section 7.10). It MUST publish its evaluation criteria and disclose its data-collection, retention, and sharing practices (Section 7.10), and SHOULD minimise data collection to operational necessity.
+A Trust Authority MUST implement the OpenAPI specification, authenticate the operator at issuance, confirm ES256 proof of control of the P-256 binding key, and use HTTPS with TLS 1.3 and HSM-held EC/P-256 signing keys. It MUST issue only contents it has established (Section 7.4), include the identity floor in every credential, and support key repudiation (Section 7.6). It MUST publish its signing keys at `/.well-known/jwt-vc-issuer`, a type-metadata document per `vct`, an agent-and-operator status list, and a signed operational report (Section 7.10). It MUST publish its evaluation criteria and disclose its data-collection, retention, and sharing practices (Section 7.10), and SHOULD minimise data collection to operational necessity.
 
 ---
 
@@ -93,8 +93,7 @@ A Trust Authority MUST serve a signed JSON document at `/.well-known/tsai-ta-sta
   "issuedInPeriod": 1035,
   "blockedInPeriod": 15,
   "lastKeyRotation": "2026-02-15T00:00:00Z",
-  "supportedAlgorithms": ["ES256", "EdDSA"],
-  "proof": { "alg": "EdDSA", "kid": "key-1" }
+  "proof": { "alg": "ES256", "kid": "key-1" }
 }
 ```
 
@@ -117,7 +116,7 @@ HSM key storage is required but the protocol cannot check it, so a Trust Authori
   "scope": "Signing key generation, storage, and use for TSAI credential issuance",
   "reportUrl": "https://ta.example.com/audits/2026-hsm-attestation.pdf",
   "nextAuditDate": "2027-01-15",
-  "proof": { "alg": "EdDSA", "kid": "key-1" }
+  "proof": { "alg": "ES256", "kid": "key-1" }
 }
 ```
 

@@ -5,7 +5,7 @@
   "title": "TSAI Trust Authority Operational Status Report",
   "description": "The signed operational report a Trust Authority publishes at /.well-known/tsai-ta-status (Section 7.10.2). Aggregate metrics only; no individual credential, agent, or operator identifier.",
   "type": "object",
-  "required": ["version", "taIdentifier", "reportTimestamp", "reportingPeriod", "activeCredentials", "issuedInPeriod", "blockedInPeriod", "lastKeyRotation", "supportedAlgorithms", "proof"],
+  "required": ["version", "taIdentifier", "reportTimestamp", "reportingPeriod", "activeCredentials", "issuedInPeriod", "blockedInPeriod", "lastKeyRotation", "proof"],
   "properties": {
     "version": { "type": "string", "description": "Report format version" },
     "taIdentifier": { "type": "string", "format": "uri", "pattern": "^https://", "description": "The Trust Authority HTTPS issuer identifier the report is for" },
@@ -15,18 +15,12 @@
     "issuedInPeriod": { "type": "integer", "minimum": 0, "description": "Credentials issued during the reporting period" },
     "blockedInPeriod": { "type": "integer", "minimum": 0, "description": "Agents or operators blocked during the reporting period" },
     "lastKeyRotation": { "type": "string", "format": "date-time", "description": "When the signing key was last rotated, RFC 3339" },
-    "supportedAlgorithms": {
-      "type": "array",
-      "minItems": 1,
-      "description": "The signature algorithms the Trust Authority issues credentials under",
-      "items": { "type": "string", "enum": ["EdDSA", "ES256", "ES384", "ES512"] }
-    },
     "proof": {
       "type": "object",
       "description": "The signature over the report, made with the current signing key",
       "required": ["alg", "kid"],
       "properties": {
-        "alg": { "type": "string", "enum": ["EdDSA", "ES256", "ES384", "ES512"], "description": "Signature algorithm" },
+        "alg": { "const": "ES256", "description": "TSAI v1 signature algorithm" },
         "kid": { "type": "string", "description": "Identifier of the signing key within the issuer key set" }
       },
       "additionalProperties": true

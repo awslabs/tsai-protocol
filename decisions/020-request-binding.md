@@ -26,7 +26,7 @@ ADR 014 rated variant 1a's binding strength "strong" and did not account for req
 
 ## Decision
 
-Add an OPTIONAL `req` claim to the key-binding JWT: a digest over the request, computed as a content digest of the body per RFC 9530, together with the method and target URI. The body digest is the essential component, because on JSON-RPC transports the method and URI carry no distinction.
+Add an OPTIONAL `req` claim to the key-binding JWT: a digest over the request, computed as a SHA-256 content digest of the body per RFC 9530, together with the method and target URI. The body digest is the essential component, because on JSON-RPC transports the method and URI carry no distinction.
 
 `req` is OPTIONAL at baseline and REQUIRED where the risk of the action warrants it, which is the escalation vocabulary ADR 018 already defines; a Service Provider whose verifying and acting components differ requires it for state-changing actions. This closes substitution inside the freshness window for those actions, and it makes ADR 018's window defensible: a read is exposed only to replay, which `aud` and the window bound, and a state-changing action is bound to its request.
 
@@ -36,7 +36,7 @@ Add an OPTIONAL `req` claim to the key-binding JWT: a digest over the request, c
 
 ## Consequences
 
-- Substitution is closed for state-changing actions that carry `req`; reads remain exposed only to bounded replay.
+- Substitution is closed for state-changing actions that carry `req`; the content-digest algorithm is fixed to SHA-256; reads remain exposed only to bounded replay.
 - The key-binding JWT carries a claim beyond the RFC 9901 set, recorded here as a deliberate deviation.
 - A Service Provider that separates verification from action MUST require `req` for state-changing actions; §5.3 and §5.11 state the residual risk for the case where it is absent.
 - ADR 014's criterion-1 comparison is corrected: variant 1a does not bind the request, and `req` supplies the property without adopting the RFC 9421 acceptance path ADR 014 rejected.

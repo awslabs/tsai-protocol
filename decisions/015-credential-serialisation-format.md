@@ -119,6 +119,14 @@ Two further qualifications matter. Selective disclosure looks like the obvious r
 
 Option C was not chosen for the reason that decided ADR 014: inventing revocation, issuer discovery, and type semantics is a larger security-flaw surface than adopting standardised ones.
 
+### TSAI v1 cryptographic profile
+
+TSAI v1 fixes one cryptographic suite rather than offering algorithm choice. Every protocol signature uses `ES256`, and every signing JWK uses `kty` `EC` with `crv` `P-256`. This applies to issuer-signed credentials, key-binding JWTs, proof-of-control challenges, Status List Tokens, Trust Authority operational reports, and HSM attestations. Verifiers reject every other signature algorithm, key type, and curve; there is no v1 algorithm negotiation.
+
+SHA-256 is likewise fixed for SD-JWT disclosure digests and `sd_hash`, RFC 7638 JWK thumbprints, type-metadata integrity, and RFC 9530 request content digests. The single suite gives every implementation one signing and verification path and avoids carrying alternatives without a concrete interoperability requirement. ES256 and P-256 are `Recommended+` in the JOSE registry.
+
+ES256 is a signature algorithm, not an encryption algorithm. TSAI v1 defines no JWE or payload-encryption scheme; TLS provides confidentiality in transit, and signing keys are not reused for encryption or key agreement. Future algorithm migration is a protocol-version transition with an explicit migration period, not an extension of the v1 allowlist.
+
 The residual costs are the two tensions the decision does not dissolve: TSAI depends on a profile that is not yet an RFC, and it calls for a follow-on ADR on issuer identity and discovery, since ADR 006 is DID-centric. The agent key remains a JWK, expressible as `did:jwk` or `did:key` only where a DID string is required, and TSAI does not depend on `did:wba`.
 
 ---
@@ -126,7 +134,7 @@ The residual costs are the two tensions the decision does not dissolve: TSAI dep
 ## Consequences
 
 - ADR 003 is superseded.
-- The self-contained binding of ADR 014 is realised as the SD-JWT key-binding JWT, and the holder key is the `cnf` JWK.
+- The self-contained binding of ADR 014 is realised as an ES256-signed SD-JWT key-binding JWT, and the holder key is the EC/P-256 `cnf` JWK.
 - Revocation uses the IETF Token Status List, referenced by an optional `status` claim. Where a Service Provider relies on short expiry, `status` may be omitted.
 - TSAI adopts the `vct` type claim and the `application/dc+sd-jwt` media type, and publishes type metadata for each `vct`. That type metadata carries the schema and display rules and is where TSAI declares which fields are required, replacing the `@context` and `type` semantics of the W3C model.
 - The trust signals from ADR 016 are carried in a single top-level `signals` claim, holding the flat list of category-discriminated objects that decision fixes. Selective disclosure is available per claim, and within the list per array element, but is unused by default, so a credential is a flat JWT and only the fields deliberately made disclosable ever appear as digests. Disclosing the `signals` claim as a whole is all-or-nothing across the list; revealing individual signals while withholding others requires the per-element form.
@@ -140,14 +148,14 @@ A minimal TSAI credential with no selective disclosure is a plain signed JWT. Fi
 Issuer-signed JWT (header, then payload):
 
 ```json
-{ "alg": "EdDSA", "typ": "dc+sd-jwt", "kid": "did:web:trust-authority.example:tsai:ta#key-1" }
+{ "alg": "ES256", "typ": "dc+sd-jwt", "kid": "did:web:trust-authority.example:tsai:ta#key-1" }
 ```
 ```json
 {
   "iss": "did:web:trust-authority.example:tsai:ta",
   "vct": "https://tsaiprotocol.org/credentials/tsai",
   "exp": 1781866800,
-  "cnf": { "jwk": { "kty": "OKP", "crv": "Ed25519", "x": "DfHY-Iwi7CKaERIgi321y0ixNYqzTCNiXPFRpIVzoXY" } },
+  "cnf": { "jwk": { "kty": "EC", "crv": "P-256", "x": "TCAER19Zvu3OHF4j4W4vfSVoHIP1ILilDls7vCeGemc", "y": "ZxjiWWbZMQGHVWKVQ4hbSIirsVfuecCE6t4jT9F2HZQ" } },
   "signals": [
     { "category": "‹category›", "type": "‹type›", "verified_at": "2026-06-14" },
     { "category": "‹category›", "type": "‹type›", "score": 0.87, "count": 3518 }
@@ -158,7 +166,7 @@ Issuer-signed JWT (header, then payload):
 Key-binding JWT at presentation (header, then payload), signed by the `cnf` key:
 
 ```json
-{ "alg": "EdDSA", "typ": "kb+jwt" }
+{ "alg": "ES256", "typ": "kb+jwt" }
 ```
 ```json
 {
@@ -193,5 +201,8 @@ The issuer identity in this example is interim. `iss` and `kid` use the `did:web
 - [draft-ietf-oauth-sd-jwt-vc](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-sd-jwt-vc)
 - [RFC 9901 — Selective Disclosure for JSON Web Tokens (SD-JWT)](https://www.rfc-editor.org/rfc/rfc9901)
 - [RFC 7638 — JSON Web Key (JWK) Thumbprint](https://www.rfc-editor.org/rfc/rfc7638)
+- [RFC 7518 — JSON Web Algorithms](https://www.rfc-editor.org/rfc/rfc7518)
+- [RFC 8725 — JSON Web Token Best Current Practices](https://www.rfc-editor.org/rfc/rfc8725)
+- [RFC 6979 — Deterministic Usage of DSA and ECDSA](https://www.rfc-editor.org/rfc/rfc6979)
 - [IETF Token Status List](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-status-list)
 - [W3C Verifiable Credentials Data Model 2.0](https://www.w3.org/TR/vc-data-model-2.0/)

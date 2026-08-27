@@ -21,7 +21,7 @@
       "description": "The signature over the attestation, made with the current signing key",
       "required": ["alg", "kid"],
       "properties": {
-        "alg": { "type": "string", "enum": ["EdDSA", "ES256", "ES384", "ES512"], "description": "Signature algorithm" },
+        "alg": { "const": "ES256", "description": "TSAI v1 signature algorithm" },
         "kid": { "type": "string", "description": "Identifier of the signing key within the issuer key set" }
       },
       "additionalProperties": true

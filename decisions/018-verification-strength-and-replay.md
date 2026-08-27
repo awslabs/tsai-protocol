@@ -7,7 +7,6 @@ SPDX-License-Identifier: Apache-2.0
 
 **Status:** Accepted  
 **Date:** 2026-07-31  
-**Amended:** 2026-08-26 — freshness bound tightened to 90 seconds and the nonce made mandatory, following the first architecture review; Sections 2.4 and 3.4 are authoritative.  
 **Deciders:** TSAI Working Group  
 **Relationship to ADR 009:** amends [ADR 009 — Timestamp-Based Replay Prevention](./009-timestamp-based-replay-prevention.md)  
 **Relationship to ADR 007:** amends [ADR 007 — Short-Lived Credentials](./007-short-lived-credentials.md)  
@@ -87,7 +86,7 @@ The decisive reason is that the tier was always a stand-in for a decision that i
 - Amends ADR 007: the tiered expiry table is replaced by a single 30-minute lifetime with refresh.
 - The baseline is normative and offline; the escalation is the Service Provider's policy and is non-normative, so two Service Providers may verify the same credential with different rigour.
 - Section 3.4 of the verification document carries this rule directly, with this ADR cited for the rationale: the freshness bound, the nonce, and the status fetch on a risk basis.
-- The freshness bound is 90 seconds of age with 30 seconds of skew, and a `nonce` is present on every presentation. These tighten the original two-minute, optional-nonce baseline following the first architecture review; Section 2.4 and Section 3.4 are authoritative for the wire rule.
+- The freshness bound is 90 seconds of age with 30 seconds of skew, and a `nonce` is present on every presentation; Section 2.4 and Section 3.4 are authoritative for the wire rule.
 - No tier is reintroduced.
 
 ---

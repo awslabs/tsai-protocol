@@ -38,10 +38,10 @@ where the disclosures are present only under selective disclosure (Section 2.6);
 ### 2.3.1 Header
 
 ```json
-{ "alg": "EdDSA", "typ": "dc+sd-jwt", "kid": "key-1" }
+{ "alg": "ES256", "typ": "dc+sd-jwt", "kid": "key-1" }
 ```
 
-- `alg` MUST be one of `EdDSA` (Ed25519), `ES256`, `ES384`, or `ES512`. A verifier MUST reject any other value, including `none` and RSA algorithms.
+- `alg` MUST be `ES256`. A verifier MUST reject every other value. TSAI v1 does not negotiate signature algorithms.
 - `typ` MUST be `dc+sd-jwt`, the media type `application/dc+sd-jwt`.
 - `kid` MUST identify the Trust Authority signing key within the issuer's key set (Section 2.8).
 
@@ -69,12 +69,12 @@ A TSAI credential is bound to a key the holder controls, carried in `cnf` and pr
 `cnf` contains the holder's public key as a JWK:
 
 ```json
-"cnf": { "jwk": { "kty": "OKP", "crv": "Ed25519", "x": "O8G5X-9Zichaemqq4fFOqQ3SyYI18A4INI1oWPWlLcc" } }
+"cnf": { "jwk": { "kty": "EC", "crv": "P-256", "x": "TCAER19Zvu3OHF4j4W4vfSVoHIP1ILilDls7vCeGemc", "y": "ZxjiWWbZMQGHVWKVQ4hbSIirsVfuecCE6t4jT9F2HZQ" } }
 ```
 
-At presentation the holder signs a key-binding JWT with the private key matching `cnf`:
+The `cnf` JWK MUST have `kty` `EC` and `crv` `P-256`, MUST contain the public `x` and `y` coordinates, and MUST NOT contain private key material. At presentation the holder signs a key-binding JWT with the private key matching `cnf`:
 
-**Header:** `{ "alg": "EdDSA", "typ": "kb+jwt" }`
+**Header:** `{ "alg": "ES256", "typ": "kb+jwt" }`
 
 **Payload:**
 
@@ -83,12 +83,12 @@ At presentation the holder signs a key-binding JWT with the private key matching
 | `iat` | REQUIRED | Time the presentation was created. Its freshness is bounded per Section 3. |
 | `aud` | REQUIRED | The Service Provider the presentation is addressed to: the HTTPS origin of the service (Section 2.8). On a transport with no HTTP origin, such as MCP over stdio, it is the stable audience identifier the server declares in its capability exchange (Section 4.2). The Service Provider MAY publish the expected value in its discovery documents. |
 | `nonce` | REQUIRED | A value binding the presentation to a transaction. The agent generates it from a cryptographically secure source, at least 128 bits, fresh per presentation; where the risk of the action warrants, the Service Provider issues it as a challenge instead (Section 3). |
-| `sd_hash` | REQUIRED | The digest over the issuer-signed JWT and any forwarded disclosures, computed per RFC 9901 §4.3.1. |
-| `req` | OPTIONAL | A request binding (ADR 020): the request method and target URI, and, when the request has a body, a content digest of the body per RFC 9530. REQUIRED for a state-changing action and where the verifying and acting components differ (Section 3). |
+| `sd_hash` | REQUIRED | The SHA-256 digest over the issuer-signed JWT and any forwarded disclosures, computed per RFC 9901 §4.3.1. |
+| `req` | OPTIONAL | A request binding (ADR 020): the request method and target URI, and, when the request has a body, a SHA-256 content digest of the body per RFC 9530. REQUIRED for a state-changing action and where the verifying and acting components differ (Section 3). |
 
 `nonce` is REQUIRED in every key-binding JWT, per RFC 9901 §4.3; the escalation decision concerns who supplies it, not whether it is present. `req` is an added claim, adopted deliberately per ADR 020.
 
-**Worked example.** The header is `{ "alg": "EdDSA", "typ": "kb+jwt" }`. The baseline claims set for a read, with an agent-generated `nonce`:
+**Worked example.** The header is `{ "alg": "ES256", "typ": "kb+jwt" }`. The baseline claims set for a read, with an agent-generated `nonce`:
 
 ```json
 {
@@ -195,7 +195,7 @@ A Trust Authority MAY define types beyond the registered set. A custom type is a
 
 ## 2.6 Selective Disclosure
 
-Selective disclosure is optional and off by default. When used, the issuer replaces a signal in `signals` with a digest object `{"...": "<digest>"}`, emits the disclosure alongside the credential, and sets `_sd_alg`. A signal marked `sd: never` in the type metadata (Section 2.9), reputation among them, MUST NOT be made disclosable by the issuer. A withheld signal remains visible to the verifier as a digest object until reconstruction, so the verifier can count how many were withheld; the verifier surfaces that count and MAY fail closed above a policy threshold (Section 3, ADR 022).
+Selective disclosure is optional and off by default. When used, the issuer replaces a signal in `signals` with a digest object `{"...": "<digest>"}`, emits the disclosure alongside the credential, and sets `_sd_alg` to `sha-256`; a TSAI verifier MUST reject any other disclosure digest algorithm. A signal marked `sd: never` in the type metadata (Section 2.9), reputation among them, MUST NOT be made disclosable by the issuer. A withheld signal remains visible to the verifier as a digest object until reconstruction, so the verifier can count how many were withheld; the verifier surfaces that count and MAY fail closed above a policy threshold (Section 3, ADR 022).
 
 The `sd` control is a TSAI extension to type metadata (Section 2.9), so a generic SD-JWT VC consumer does not enforce it; a TSAI verifier enforces `sd: never` explicitly (Section 3.3). This is a known property of the design, not an omission.
 
@@ -209,7 +209,7 @@ The `sd` control is a TSAI extension to type metadata (Section 2.9), so a generi
 
 ### 2.7.2 Status
 
-An individual short-lived credential is not revoked; the control is a block on the agent or operator (ADR 018). A Trust Authority MUST publish an agent-and-operator status list, so a Service Provider can depend on the mechanism existing. A credential normally carries a `status` claim referencing it, keyed to the agent or operator identity, so that blocking one identity invalidates all of its credentials:
+An individual short-lived credential is not revoked; the control is a block on the agent or operator (ADR 018). A Trust Authority MUST publish an agent-and-operator status list, so a Service Provider can depend on the mechanism existing. A credential normally carries a `status` claim referencing it, keyed to the agent or operator identity, so that blocking one identity invalidates all of its credentials. The Status List Token MUST be signed with ES256:
 
 ```json
 "status": { "status_list": { "idx": 94567, "uri": "https://trust-authority.example/tsai/status/agents/1" } }
@@ -223,7 +223,7 @@ A credential MAY omit `status` only where the agent requires unlinkability acros
 
 Identity and key discovery follow ADR 017.
 
-- **Trust Authority.** Identified by the HTTPS `iss`, an origin with no path, query, fragment, or trailing slash, with signing keys at `/.well-known/jwt-vc-issuer`; `kid` selects one. The absence of a path is deliberate: SD-JWT VC §3 forms the metadata location by inserting the well-known segment between the host and the path of `iss`, so forbidding a path makes that location coincide with the simple join. This is the only key-discovery mechanism: a credential carrying an `x5c` header MUST be rejected, and the verifier MUST confirm that the metadata's `issuer` equals `iss` (Section 3).
+- **Trust Authority.** Identified by the HTTPS `iss`, an origin with no path, query, fragment, or trailing slash, with EC/P-256 signing keys at `/.well-known/jwt-vc-issuer`; `kid` selects one. The absence of a path is deliberate: SD-JWT VC §3 forms the metadata location by inserting the well-known segment between the host and the path of `iss`, so forbidding a path makes that location coincide with the simple join. This is the only key-discovery mechanism: a credential carrying an `x5c` header MUST be rejected, and the verifier MUST confirm that the metadata's `issuer` equals `iss` (Section 3).
 - **Agent.** Identified by the `cnf` key; an optional `sub` gives a stable HTTPS name, not a DID.
 - **Referenced third parties.** A certifier (`cmp`) or a backer (`asr`) is identified by its own `did:web` in `prv`; an assurance party MAY additionally carry an `lei`.
 
@@ -238,7 +238,7 @@ Each `vct` resolves to a type-metadata document (ADR 022) that carries display r
 
 **Deviation from SD-JWT VC claim addressing.** SD-JWT VC §4.6 addresses a claim by `path`, an ordered array that selects by position. TSAI signals are array elements distinguished by content rather than position, so the document addresses each control by a `signal` selector `{cat, typ}` rather than by `path`. This is a deliberate TSAI extension. Its consequence is that a generic SD-JWT VC consumer, which per SD-JWT VC §4.2 ignores properties it does not understand, ignores every `signal` entry and with it every `mandatory` and `sd` control; the controls are therefore enforced by TSAI-specific processing (Sections 2.6 and 3.3), not by a generic consumer. The document otherwise follows SD-JWT VC §4, including `locale` for display objects.
 
-**Integrity and caching.** The credential carries a `vct#integrity` claim (Section 2.3.2) whose value is the integrity metadata of this document, per SD-JWT VC §5. A Service Provider MUST obtain the type-metadata document out of band or from cache and MUST NOT fetch it on the verification path. The cache is content-addressed: a Service Provider keys each type-metadata document by its `vct#integrity` value, and a credential's `vct#integrity` selects the document that applies to it. Documents from before and after an in-place change (Section 2.10) therefore coexist in the cache, and a credential keeps matching the document it was issued against, which is why the document may be cached indefinitely (SD-JWT VC §4.3.4 and §6.4). If a Service Provider does not hold the document a credential's `vct#integrity` names, it MUST fail the current presentation (Section 3.7.1) and SHOULD refresh the document out of band, after which later presentations that reference it verify. Substitution is caught the same way: an integrity value that no authentic published document matches never verifies, which is why the check is on the base verification path (Section 3.3).
+**Integrity and caching.** The credential carries a `vct#integrity` claim (Section 2.3.2) using SHA-256 integrity metadata for this document, per SD-JWT VC §5. A Service Provider MUST obtain the type-metadata document out of band or from cache and MUST NOT fetch it on the verification path. The cache is content-addressed: a Service Provider keys each type-metadata document by its `vct#integrity` value, and a credential's `vct#integrity` selects the document that applies to it. Documents from before and after an in-place change (Section 2.10) therefore coexist in the cache, and a credential keeps matching the document it was issued against, which is why the document may be cached indefinitely (SD-JWT VC §4.3.4 and §6.4). If a Service Provider does not hold the document a credential's `vct#integrity` names, it MUST fail the current presentation (Section 3.7.1) and SHOULD refresh the document out of band, after which later presentations that reference it verify. Substitution is caught the same way: an integrity value that no authentic published document matches never verifies, which is why the check is on the base verification path (Section 3.3).
 
 The schema for the type-metadata document is [`schemas/tsai-type-metadata.schema.json`](schemas/tsai-type-metadata.schema.json).
 
@@ -264,7 +264,7 @@ An issued credential, flat, before presentation:
   "iat": 1781863200,
   "exp": 1781865000,
   "sub": "https://acme-corp.example/agents/shopper-v3",
-  "cnf": { "jwk": { "kty": "OKP", "crv": "Ed25519", "x": "O8G5X-9Zichaemqq4fFOqQ3SyYI18A4INI1oWPWlLcc" } },
+  "cnf": { "jwk": { "kty": "EC", "crv": "P-256", "x": "TCAER19Zvu3OHF4j4W4vfSVoHIP1ILilDls7vCeGemc", "y": "ZxjiWWbZMQGHVWKVQ4hbSIirsVfuecCE6t4jT9F2HZQ" } },
   "status": { "status_list": { "idx": 94567, "uri": "https://trust-authority.example/tsai/status/agents/1" } },
   "signals": [
     { "cat": "idn", "typ": "org", "val": "Acme Corporation GmbH" },
@@ -292,16 +292,16 @@ Authorization and mandate — value limits, permitted operations, rate limits, a
 ## 2.13 Normative Requirements Summary
 
 **Trust Authorities MUST:**
-- Issue SD-JWT VC credentials with `typ` `dc+sd-jwt`, `alg` in the permitted set, and `exp` 30 minutes after `iat`.
-- Carry a `vct#integrity` claim binding the credential to its type-metadata document (Section 2.9).
+- Issue SD-JWT VC credentials with `typ` `dc+sd-jwt`, `alg` `ES256`, and `exp` 30 minutes after `iat`.
+- Carry a SHA-256 `vct#integrity` claim binding the credential to its type-metadata document (Section 2.9).
 - Include the identity floor (`org`, `jur`, `kyc`, `dct`) in every credential (ADR 019).
 - Include `cnt` and the observation window whenever a reputation signal carries `band` or `scr` (ADR 021).
 - Not make an `sd: never` signal, reputation among them, selectively disclosable.
 - Publish signing keys at `/.well-known/jwt-vc-issuer`, a type-metadata document per `vct`, and an agent-and-operator status list.
 
 **Agents MUST:**
-- Present a credential that has not expired, with a key-binding JWT carrying `iat`, `aud`, `nonce`, and `sd_hash`, and `req` where the action and topology require it.
+- Present a credential that has not expired, with an ES256 key-binding JWT carrying `iat`, `aud`, `nonce`, and `sd_hash`, and `req` where the action and topology require it.
 
 **Service Providers MUST:**
-- Verify per Section 3, reject an unrecognised `vct` or `alg` or an `x5c` header, and ignore unrecognised signal types.
+- Verify per Section 3, reject any `alg` other than `ES256`, reject an unrecognised `vct` or an `x5c` header, and ignore unrecognised signal types.
 - Obtain type metadata out of band or from cache, never on the verification path, and check `vct#integrity` (Section 2.9).

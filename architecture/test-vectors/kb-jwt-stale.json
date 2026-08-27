@@ -2,6 +2,7 @@
   "$comment": "Copyright Amazon.com Inc. or its affiliates. SPDX-License-Identifier: Apache-2.0",
   "description": "Stale key-binding JWT: iat is one hour before the verifier's now, past the 90-second maximum age. Section 3.4 requires rejection with STALE_PRESENTATION.",
   "now": 1781866850,
+  "header": { "alg": "ES256", "typ": "kb+jwt" },
   "expect": "STALE_PRESENTATION",
   "kb": {
     "iat": 1781863250,

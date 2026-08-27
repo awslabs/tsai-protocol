@@ -42,12 +42,12 @@ A compliance or assurance signal names its provider by a `did:web` in `prv`. A S
 Given a presentation `<issuer-signed JWT>~<disclosure 1>~...~<disclosure N>~<key-binding JWT>`:
 
 1. Split on `~`. A presentation MUST end with a key-binding JWT; a bare SD-JWT with an empty final element MUST be rejected. Whether to check key binding MUST NOT depend on whether the holder supplied a key-binding JWT (RFC 9901 §7.3).
-2. Read the issuer-signed JWT header: confirm `typ` is `dc+sd-jwt` and `alg` is in the permitted set (EdDSA, ES256, ES384, ES512), reject `x5c`. Read `iss`, confirm it is trusted, obtain its key (Section 3.2.1), and verify the issuer signature.
+2. Read the issuer-signed JWT header: confirm `typ` is `dc+sd-jwt` and `alg` is `ES256`, reject every other algorithm and reject `x5c`. Read `iss`, confirm it is trusted, obtain its key (Section 3.2.1), and verify the issuer signature.
 3. Confirm `vct` is recognised. Look up the type-metadata document whose integrity equals the credential's `vct#integrity`, from cache and never by fetching on this path (Section 2.9). If no cached document matches, fail the presentation and refresh the document out of band (Section 2.9), so that later presentations referencing it verify.
 4. Check the lifetime: reject if `exp` has passed or if `iat` is in the future beyond the skew of Section 3.4.
-5. If disclosures are present, confirm `_sd_alg` is a supported digest algorithm before use (RFC 9901 §7.1), verify each disclosure against its digest in `signals`, and reconstruct. Count the signals that remain withheld and surface the count; fail closed if it exceeds the Service Provider's policy threshold. Reject any presentation that discloses `iss`, `exp`, or `cnf`, which are not disclosable (RFC 9901 §9.7), or that reveals a signal the type metadata marks `sd: never`.
+5. If disclosures are present, confirm `_sd_alg` is `sha-256` before use (RFC 9901 §7.1), verify each disclosure against its digest in `signals`, and reconstruct. Count the signals that remain withheld and surface the count; fail closed if it exceeds the Service Provider's policy threshold. Reject any presentation that discloses `iss`, `exp`, or `cnf`, which are not disclosable (RFC 9901 §9.7), or that reveals a signal the type metadata marks `sd: never`.
 6. Confirm the identity floor is present: `org`, `jur`, `kyc`, and at least one `dct` (Section 2.5.3).
-7. Read the key-binding JWT header (`typ` `kb+jwt`) and verify its signature against the `cnf` JWK.
+7. Read the key-binding JWT header, confirm `typ` is `kb+jwt` and `alg` is `ES256`, confirm the `cnf` JWK is an EC/P-256 public key, and verify the signature against it.
 8. Confirm `aud` is this Service Provider, `nonce` is present (and, when the Service Provider issued one, that it matches and has not been used), and `sd_hash` matches the presented issuer-signed JWT and forwarded disclosures per RFC 9901 §4.3.1.
 9. Apply the freshness rule of Section 3.4; for a state-changing or split-topology action, confirm both a Service-Provider-issued single-use `nonce` and `req` (Section 3.4).
 10. Where the Service Provider's policy calls for it, check status (Section 3.5).
@@ -74,7 +74,7 @@ The mechanisms are settled by ADR 018 and ADR 020; this section is normative and
 
 A credential MAY carry a `status` claim (Section 2.7.2). A Service Provider fetches the status list where its risk policy calls for it; the base path does not, and stays offline.
 
-When it fetches, a Service Provider MUST verify the status-list token's signature, MUST confirm the token's issuer matches the credential's `iss`, MUST reject a token older than a bounded age, and MUST fetch the status URI only after confirming it shares the origin of `iss` (the status URI is issuer-controlled and is not otherwise pinned). The fetch is subject to Section 3.6. If the status entry for the agent or operator is set, the credential MUST be rejected with the `BLOCKED` code. If the status list is unreachable, the Service Provider applies the degraded-mode rule of Section 3.7.
+When it fetches, a Service Provider MUST confirm the status-list token uses `ES256`, MUST verify its signature, MUST confirm the token's issuer matches the credential's `iss`, MUST reject a token older than a bounded age, and MUST fetch the status URI only after confirming it shares the origin of `iss` (the status URI is issuer-controlled and is not otherwise pinned). The fetch is subject to Section 3.6. If the status entry for the agent or operator is set, the credential MUST be rejected with the `BLOCKED` code. If the status list is unreachable, the Service Provider applies the degraded-mode rule of Section 3.7.
 
 ---
 
@@ -88,7 +88,7 @@ A Service Provider fetches URLs it did not choose: the issuer metadata at `iss`,
 
 ### 3.7.1 Verification failure
 
-This section governs the verification outcome; the access decision on a failed verification is the Service Provider's (Section 4.4.1). The following MUST result in a verification failure, and a failed verification MUST NOT be reported as verified: an invalid or unsupported issuer or key-binding signature, an untrusted `iss`, an `x5c` header, an `alg` outside the permitted set, an unrecognised `vct`, a `vct#integrity` mismatch, a missing identity floor, an expired credential, a key-binding JWT that is stale, missing, or whose `aud`, `nonce`, `sd_hash`, or required `req` does not match, a set status entry, and a malformed presentation.
+This section governs the verification outcome; the access decision on a failed verification is the Service Provider's (Section 4.4.1). The following MUST result in a verification failure, and a failed verification MUST NOT be reported as verified: an invalid or unsupported issuer or key-binding signature, an untrusted `iss`, an `x5c` header, an `alg` other than `ES256`, an unrecognised `vct`, a `vct#integrity` mismatch, a missing identity floor, an expired credential, a key-binding JWT that is stale, missing, or whose `aud`, `nonce`, `sd_hash`, or required `req` does not match, a set status entry, and a malformed presentation.
 
 The default access posture on a failure is to reject. A Service Provider MAY instead log or annotate (Section 4.4.1); what it MUST NOT do is treat a failed verification as verified.
 
@@ -120,8 +120,8 @@ A Service Provider MAY cache a verification result. A cached result MUST NOT be 
 ## 3.8 Normative Requirements Summary
 
 **Service Providers MUST:**
-- Obtain the Trust Authority key from `iss` and `/.well-known/jwt-vc-issuer`, confirm `issuer` equals `iss`, reject `x5c`, and verify the issuer signature.
-- Confirm `alg` is permitted, `vct` is recognised, and the identity floor is present.
+- Obtain the Trust Authority EC/P-256 key from `iss` and `/.well-known/jwt-vc-issuer`, confirm `issuer` equals `iss`, reject `x5c`, require `alg` `ES256`, and verify the issuer signature.
+- Confirm `alg` is `ES256`, `vct` is recognised, and the identity floor is present.
 - Verify the key-binding JWT against `cnf`; confirm `aud`, `nonce`, `sd_hash`, the freshness window (reject if `iat > now + 30` or `iat < now − 90`), and `req` where the action requires it.
 - Reject a set status entry with `BLOCKED`, verify the status-list token and pin its URI to the `iss` origin, and harden every fetch (Section 3.6).
 - Treat any of the above as a verification failure, never report a failed verification as verified, bound degraded-mode duration and cache lifetimes, and not leak issuer or algorithm detail in errors.

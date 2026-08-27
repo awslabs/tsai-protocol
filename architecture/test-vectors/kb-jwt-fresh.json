@@ -2,6 +2,7 @@
   "$comment": "Copyright Amazon.com Inc. or its affiliates. SPDX-License-Identifier: Apache-2.0",
   "description": "Fresh key-binding JWT: iat 10 seconds before the verifier's now. Passes the Section 3.4 freshness rule.",
   "now": 1781863260,
+  "header": { "alg": "ES256", "typ": "kb+jwt" },
   "expect": "OK",
   "kb": {
     "iat": 1781863250,

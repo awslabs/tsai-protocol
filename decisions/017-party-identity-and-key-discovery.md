@@ -7,7 +7,6 @@ SPDX-License-Identifier: Apache-2.0
 
 **Status:** Accepted  
 **Date:** 2026-07-16  
-**Amended:** 2026-08-26 — names the Service Provider audience, including the transport with no HTTP origin (MCP over stdio); Sections 2.4 and 4.2 are authoritative.  
 **Deciders:** TSAI Working Group  
 **Relationship to ADR 006:** supersedes [ADR 006 — DID Methods for TAs and Agents](./006-did-methods.md)  
 **Depends on:** ADR 014 (holder binding) and ADR 015 (credential serialisation format)
@@ -19,7 +18,7 @@ SPDX-License-Identifier: Apache-2.0
 
 ADR 006 identified every party by a DID: the Trust Authority by `did:web`, the agent by `did:key`, `did:web`, or `did:wba`. Three later decisions change that.
 
-- ADR 014 makes holder binding a key-binding JWT signed by the credential's `cnf` key, so the agent's binding identity is a JWK, not a DID.
+- ADR 014 makes holder binding a key-binding JWT signed by the credential's EC/P-256 `cnf` key using ES256, so the agent's binding identity is a JWK, not a DID.
 - ADR 015 adopts SD-JWT VC, which discovers the issuer's key through an HTTPS `iss` and the `jwt-vc-issuer` endpoint, and carries revocation as a `status` claim inside the credential.
 - The protocols TSAI sits beside, Web Bot Auth and OpenID4VC, identify keys by JWK and RFC 7638 thumbprint.
 
@@ -59,7 +58,7 @@ TA, agent, and referenced parties are all `did:web`.
 ### Option 2: Key-holders by their key, referenced parties by `did:web` (decided)
 
 - **Trust Authority:** an HTTPS `iss` with keys at `/.well-known/jwt-vc-issuer`. Key rotation is publishing a new key there.
-- **Agent:** the `cnf` JWK is the identity. A stable name in `sub` is optional and, if present, is an HTTPS identifier the operator controls.
+- **Agent:** the EC/P-256 `cnf` JWK is the identity. A stable name in `sub` is optional and, if present, is an HTTPS identifier the operator controls.
 - **Referenced third parties:** their own `did:web`, one canonical DID per party.
 
 **Pros.** Key-holders use their native key discovery, which is idiom-coherent and needs no extra infrastructure (criteria 3, 4). Referenced parties get an entity-controlled, uniformly resolvable identifier (criteria 1, 2). The verifier obtains the issuer key and the status without resolving the issuer (criterion 6). Rotation is handled by `jwt-vc-issuer` for the TA and by re-issuance against the durable identity for the agent (criterion 5).
@@ -107,7 +106,7 @@ The Service Provider, the audience of a presentation, is named by its HTTPS orig
 
 - Supersedes ADR 006. ADR 006 takes a forward pointer to this ADR; its body is unchanged except for the later TAP-to-TSAI naming rename, which was a naming purge rather than a decision change.
 - The Trust Authority publishes its signing keys at `/.well-known/jwt-vc-issuer` and identifies itself by an HTTPS `iss`. A `did:web` for the TA is not used.
-- The agent is identified by its `cnf` JWK; `sub`, if present, is an HTTPS identifier for continuity, not a DID.
+- The agent is identified by its EC/P-256 `cnf` JWK; `sub`, if present, is an HTTPS identifier for continuity, not a DID.
 - Referenced third parties publish one canonical `did:web` each and are referenced by it.
 - Platforms no longer resolve multiple DID methods for core verification, which removes the platform-complexity cost ADR 006 accepted.
 - Revocation status is read from the credential's `status` claim; issuance discovery is agent-facing and out of scope.

@@ -50,6 +50,21 @@ JSON Web Key (JWK)
 IETF RFC 7517  
 https://www.rfc-editor.org/rfc/rfc7517
 
+**[RFC7518]**  
+JSON Web Algorithms (JWA), including ES256  
+IETF RFC 7518  
+https://www.rfc-editor.org/rfc/rfc7518
+
+**[RFC8725]**  
+JSON Web Token Best Current Practices  
+IETF BCP 225 / RFC 8725  
+https://www.rfc-editor.org/rfc/rfc8725
+
+**[RFC6979]**  
+Deterministic Usage of DSA and ECDSA  
+IETF RFC 6979  
+https://www.rfc-editor.org/rfc/rfc6979
+
 **[DID-WEB]**  
 did:web Method Specification (referenced third parties)  
 W3C CCG  
