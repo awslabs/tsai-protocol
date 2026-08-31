@@ -64,7 +64,7 @@ Adopt **Option 3**. A Trust Authority MUST NOT issue a TSAI credential unless it
 - the verification depth (`kyc`, one of `basic`, `enhanced`, `institutional`), and
 - at least one verified controlled domain (`dct`).
 
-These are all identity (`idn`) signals, verified by the Trust Authority, so they carry no `prv`. The credential schema enforces their presence, and the type metadata (ADR 022) marks them `mandatory`. The floor is not a tier and defines no ordering; a signal profile (the profile work) references it as its base.
+These are all identity (`idn`) signals, verified by the Trust Authority, so they carry no `prv`. The credential schema enforces their presence, and `tsai_signal_metadata` (ADR 022) marks them `sd: never`. The floor is not a tier and defines no ordering; a signal profile (the profile work) references it as its base.
 
 ---
 

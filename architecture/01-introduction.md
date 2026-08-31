@@ -57,7 +57,7 @@ This specification uses RFC 2119 terminology: MUST, MUST NOT, SHOULD, SHOULD NOT
 
 **Signal profile** — a named, versioned predicate over the signals that a Service Provider applies at admission (Section 8); not carried in the credential.
 
-**Type metadata** — the per-`vct` document that declares each claim's schema, display, mandatory presence, and selective-disclosure control (Section 2.9).
+**Type metadata** — the per-`vct` document carrying standard path-based claim controls plus TSAI signal disclosure/display controls. The TSAI profile binds each type to an integrity-protected JSON Schema that is authoritative for format and presence (Section 2.9).
 
 **Request binding** — an optional `req` digest in the key-binding JWT that binds a presentation to the request it accompanies (Section 3.4).
 

@@ -2,23 +2,125 @@
   "$comment": "Copyright Amazon.com Inc. or its affiliates. SPDX-License-Identifier: Apache-2.0",
   "vct": "https://tsaiprotocol.org/credential/tsai/1",
   "name": "TSAI Credential",
-  "description": "Type metadata for the TSAI credential (SD-JWT VC). Declares the identity floor as mandatory and reputation as non-disclosable. Signals are addressed by a TSAI signal selector (cat, typ) rather than by an SD-JWT VC path, because signals is an array whose elements are distinguished by content; see credential-format Section 2.9 for the deviation and its consequence.",
+  "description": "Type Metadata for the canonical TSAI credential. Standard claims metadata is path-based; TSAI signal disclosure and display controls use tsai_signal_metadata because signals are selected by content.",
+  "tsai_schema_uri": "https://tsaiprotocol.org/schemas/tsai-credential/1.json",
+  "tsai_schema_uri#integrity": "sha256-2YJyOL87L6XfVN55LdBtK0eKL2Af+UJjfuZ/qLhC8uE=",
   "claims": [
-    { "signal": { "cat": "idn", "typ": "org" }, "mandatory": true, "sd": "never",
-      "display": [{ "locale": "en", "label": "Operator legal name" }] },
-    { "signal": { "cat": "idn", "typ": "jur" }, "mandatory": true, "sd": "never",
-      "display": [{ "locale": "en", "label": "Operator jurisdiction" }] },
-    { "signal": { "cat": "idn", "typ": "kyc" }, "mandatory": true, "sd": "never",
-      "display": [{ "locale": "en", "label": "Verification depth" }] },
-    { "signal": { "cat": "idn", "typ": "dct" }, "mandatory": true, "sd": "never",
-      "display": [{ "locale": "en", "label": "Verified controlled domain" }] },
-    { "signal": { "cat": "idn", "typ": "dag" }, "mandatory": false, "sd": "allowed",
-      "display": [{ "locale": "en", "label": "Domain age" }] },
-    { "signal": { "cat": "rep" }, "mandatory": false, "sd": "never",
-      "display": [{ "locale": "en", "label": "Reputation" }] },
-    { "signal": { "cat": "cmp" }, "mandatory": false, "sd": "allowed",
-      "display": [{ "locale": "en", "label": "Compliance certification" }] },
-    { "signal": { "cat": "asr" }, "mandatory": false, "sd": "allowed",
-      "display": [{ "locale": "en", "label": "Assurance" }] }
+    {
+      "path": [
+        "aka_vcts"
+      ],
+      "mandatory": false,
+      "sd": "never",
+      "display": [
+        {
+          "locale": "en",
+          "label": "Additional credential types"
+        }
+      ]
+    }
+  ],
+  "tsai_signal_metadata": [
+    {
+      "signal": {
+        "cat": "idn",
+        "typ": "org"
+      },
+      "sd": "never",
+      "display": [
+        {
+          "locale": "en",
+          "label": "Operator legal name"
+        }
+      ]
+    },
+    {
+      "signal": {
+        "cat": "idn",
+        "typ": "jur"
+      },
+      "sd": "never",
+      "display": [
+        {
+          "locale": "en",
+          "label": "Operator jurisdiction"
+        }
+      ]
+    },
+    {
+      "signal": {
+        "cat": "idn",
+        "typ": "kyc"
+      },
+      "sd": "never",
+      "display": [
+        {
+          "locale": "en",
+          "label": "Verification depth"
+        }
+      ]
+    },
+    {
+      "signal": {
+        "cat": "idn",
+        "typ": "dct"
+      },
+      "sd": "never",
+      "display": [
+        {
+          "locale": "en",
+          "label": "Verified controlled domain"
+        }
+      ]
+    },
+    {
+      "signal": {
+        "cat": "idn",
+        "typ": "dag"
+      },
+      "sd": "allowed",
+      "display": [
+        {
+          "locale": "en",
+          "label": "Domain age"
+        }
+      ]
+    },
+    {
+      "signal": {
+        "cat": "rep"
+      },
+      "sd": "never",
+      "display": [
+        {
+          "locale": "en",
+          "label": "Reputation"
+        }
+      ]
+    },
+    {
+      "signal": {
+        "cat": "cmp"
+      },
+      "sd": "allowed",
+      "display": [
+        {
+          "locale": "en",
+          "label": "Compliance certification"
+        }
+      ]
+    },
+    {
+      "signal": {
+        "cat": "asr"
+      },
+      "sd": "allowed",
+      "display": [
+        {
+          "locale": "en",
+          "label": "Assurance"
+        }
+      ]
+    }
   ]
 }

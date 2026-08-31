@@ -51,12 +51,13 @@ Normative technical specification defining the TSAI protocol. These documents sp
   - [tsai-type-metadata.schema.json](./architecture/schemas/tsai-type-metadata.schema.json) - Type-metadata document structure
   - [tsai-ta-status.schema.json](./architecture/schemas/tsai-ta-status.schema.json) - Trust Authority operational status report
   - [tsai-ta-hsm-attestation.schema.json](./architecture/schemas/tsai-ta-hsm-attestation.schema.json) - Trust Authority HSM attestation
-- **type-metadata/** - Per-`vct` type metadata (mandatory and selective-disclosure controls)
-- **test-vectors/** - Key-binding JWT freshness vectors exercised by the checker
+  - [example-ta-tsai-credential.schema.json](./architecture/schemas/example-ta-tsai-credential.schema.json) - Illustrative derived TSAI credential schema
+- **type-metadata/** - Canonical and illustrative derived per-`vct` Type Metadata
+- **test-vectors/** - Key-binding JWT freshness and derived-`vct` validation vectors exercised by the checker
 
 ### Tooling (`tools/`)
 
-- **[tools/check.py](./tools/check.py)** - Conformance checker. Validates the JSON schemas as Draft 2020-12, every JSON example in the documents against its schema, the key-binding JWT freshness vectors, internal cross-references, and the OpenAPI servers block. Run `python3 tools/check.py` before pushing; it requires `jsonschema` and `pyyaml`.
+- **[tools/check.py](./tools/check.py)** - Conformance checker. Validates the JSON schemas as Draft 2020-12, every JSON example in the documents against its schema, Type Metadata and schema inheritance and integrity, the test vectors, internal cross-references, and the OpenAPI servers block. Run `python3 tools/check.py` before pushing; it requires `jsonschema` and `pyyaml`.
 
 ### Architecture Decision Records (`decisions/`)
 

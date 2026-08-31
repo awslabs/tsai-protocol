@@ -56,7 +56,7 @@ The four categories answer four questions a Service Provider asks.
 
 One operator can run several agents. Each agent builds its own reputation, while all share the operator's identity, compliance, and assurance signals.
 
-**The identity floor.** Every credential carries a minimum identity set: the operator's legal name, jurisdiction, depth of identity verification, and at least one controlled domain. This is not a tier; it is the floor below which no credential is issued, declared mandatory in the credential's type metadata, so a verified credential always names an accountable operator (ADR 019).
+**The identity floor.** Every credential carries a minimum identity set: the operator's legal name, jurisdiction, depth of identity verification, and at least one controlled domain. This is not a tier; it is the floor below which no credential is issued. The credential schema requires it and the signal metadata prevents its disclosure, so a verified credential always names an accountable operator (ADR 019).
 
 Authorization, the constraints on what an agent may do, is not a trust signal. It is a matter of delegation and is handled separately (ADR 001), not as a signal category.
 

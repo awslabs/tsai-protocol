@@ -20,6 +20,9 @@ Exit status is non-zero if any check other than the cross-reference warning fail
 
 Requires: jsonschema, pyyaml.
 """
+import base64
+import copy
+import hashlib
 import json
 import re
 import sys
@@ -52,11 +55,16 @@ def load_json(path):
 # ---- 1. schemas are valid Draft 2020-12 -----------------------------------
 schema_files = sorted(SCHEMAS.glob("*.schema.json"))
 schemas = {}
+schemas_by_id = {}
+schema_paths_by_id = {}
 for sf in schema_files:
     try:
         s = load_json(sf)
         Draft202012Validator.check_schema(s)
         schemas[sf.name] = s
+        if "$id" in s:
+            schemas_by_id[s["$id"]] = s
+            schema_paths_by_id[s["$id"]] = sf
     except Exception as e:  # noqa: BLE001
         fail(f"[schema] {sf.name} is not a valid Draft 2020-12 schema: {e}")
 
@@ -141,12 +149,350 @@ for doc in doc_files:
         classify_and_validate(obj, f"{doc.relative_to(ROOT)} block#{i+1}")
 
 
-# ---- 3. type-metadata instance --------------------------------------------
-tm_instance = ARCH / "type-metadata" / "tsai-1.json"
-if tm_instance.exists():
-    validate(load_json(tm_instance), TM, "type-metadata/tsai-1.json")
+# ---- 3. type metadata, schemas, inheritance, and integrity ----------------
+BASE_VCT = "https://tsaiprotocol.org/credential/tsai/1"
+BASE_SCHEMA_ID = "https://tsaiprotocol.org/schemas/tsai-credential/1.json"
+
+
+def sri(path):
+    digest = hashlib.sha256(path.read_bytes()).digest()
+    return "sha256-" + base64.b64encode(digest).decode()
+
+
+def refs_in(value):
+    if isinstance(value, dict):
+        for key, child in value.items():
+            if key == "$ref" and isinstance(child, str):
+                yield child
+            yield from refs_in(child)
+    elif isinstance(value, list):
+        for child in value:
+            yield from refs_in(child)
+
+
+def json_pointer(document, fragment):
+    if fragment in {"", "#"}:
+        return document
+    if not fragment.startswith("#/"):
+        raise ValueError(f"unsupported JSON Reference fragment: {fragment}")
+    current = document
+    for token in fragment[2:].split("/"):
+        token = token.replace("~1", "/").replace("~0", "~")
+        current = current[int(token)] if isinstance(current, list) else current[token]
+    return current
+
+
+def inline_local_refs(value, current_schema_id, stack=()):
+    """Resolve references from the already loaded local schema registry only."""
+    if isinstance(value, dict):
+        if "$ref" in value:
+            ref = value["$ref"]
+            uri, marker, suffix = ref.partition("#")
+            target_id = uri or current_schema_id
+            target_schema = schemas_by_id.get(target_id)
+            if target_schema is None:
+                raise ValueError(f"schema reference is not local: {ref}")
+            fragment = "#" + suffix if marker else ""
+            key = (target_id, fragment)
+            if key in stack:
+                raise ValueError(f"circular schema reference: {ref}")
+            target = copy.deepcopy(json_pointer(target_schema, fragment))
+            resolved = inline_local_refs(target, target_id, stack + (key,))
+            siblings = {key_: child for key_, child in value.items() if key_ != "$ref"}
+            if siblings:
+                return {
+                    "allOf": [
+                        resolved,
+                        inline_local_refs(siblings, current_schema_id, stack),
+                    ]
+                }
+            return resolved
+        return {
+            key: inline_local_refs(child, current_schema_id, stack)
+            for key, child in value.items()
+        }
+    if isinstance(value, list):
+        return [inline_local_refs(child, current_schema_id, stack) for child in value]
+    return value
+
+
+def selector_matches(parent, child):
+    if parent.get("cat") != child.get("cat"):
+        return False
+    return "typ" not in parent or parent.get("typ") == child.get("typ")
+
+
+def required_signal_selectors(value):
+    selectors = set()
+    if isinstance(value, dict):
+        contained = value.get("contains")
+        if isinstance(contained, dict):
+            props = contained.get("properties", {})
+            cat = props.get("cat", {}).get("const") if isinstance(props.get("cat"), dict) else None
+            typ = props.get("typ", {}).get("const") if isinstance(props.get("typ"), dict) else None
+            if cat is not None and typ is not None:
+                selectors.add((cat, typ))
+        for child in value.values():
+            selectors.update(required_signal_selectors(child))
+    elif isinstance(value, list):
+        for child in value:
+            selectors.update(required_signal_selectors(child))
+    return selectors
+
+
+def signal_sd_errors(parent_entries, child_entries):
+    errors = []
+    for entry in child_entries:
+        child_selector = entry.get("signal")
+        if not child_selector:
+            continue
+        for parent_entry in parent_entries:
+            parent_selector = parent_entry.get("signal")
+            if not parent_selector or not selector_matches(parent_selector, child_selector):
+                continue
+            parent_sd = parent_entry.get("sd", "allowed")
+            child_sd = entry.get("sd", "allowed")
+            if parent_sd in {"always", "never"} and child_sd != parent_sd:
+                errors.append(child_selector)
+    return errors
+
+
+def exact_signal_selectors(value):
+    selectors = set()
+    if isinstance(value, dict):
+        props = value.get("properties", {})
+        if isinstance(props, dict):
+            cat = props.get("cat", {}).get("const") if isinstance(props.get("cat"), dict) else None
+            typ = props.get("typ", {}).get("const") if isinstance(props.get("typ"), dict) else None
+            if cat is not None and typ is not None:
+                selectors.add((cat, typ))
+        for child in value.values():
+            selectors.update(exact_signal_selectors(child))
+    elif isinstance(value, list):
+        for child in value:
+            selectors.update(exact_signal_selectors(child))
+    return selectors
+
+
+def chain_error(start_vct, registry, base_vct):
+    seen = set()
+    cursor = start_vct
+    while cursor in registry:
+        if cursor in seen:
+            return f"circular extends chain at {cursor}"
+        seen.add(cursor)
+        cursor = registry[cursor].get("extends")
+        if cursor is None:
+            if base_vct not in seen:
+                return f"chain for {start_vct} is not rooted in canonical TSAI vct"
+            return None
+    return f"parent {cursor!r} is unavailable"
+
+
+tm_dir = ARCH / "type-metadata"
+tm_paths = sorted(tm_dir.glob("*.json"))
+metadata_by_vct = {}
+metadata_paths_by_vct = {}
+for tm_path in tm_paths:
+    tm = load_json(tm_path)
+    validate(tm, TM, f"type-metadata/{tm_path.name}")
+    vct = tm.get("vct")
+    if vct in metadata_by_vct:
+        fail(f"[type-metadata] duplicate vct {vct}")
+    metadata_by_vct[vct] = tm
+    metadata_paths_by_vct[vct] = tm_path
+
+if BASE_VCT not in metadata_by_vct:
+    fail("[type-metadata] canonical TSAI metadata is missing")
+
+for vct, tm in metadata_by_vct.items():
+    tm_path = metadata_paths_by_vct[vct]
+    tsai_schema_uri = tm.get("tsai_schema_uri")
+    schema_path = schema_paths_by_id.get(tsai_schema_uri)
+    if schema_path is None:
+        fail(f"[type-metadata] {tm_path.name}: tsai_schema_uri {tsai_schema_uri!r} is not a local schema $id")
+    elif tm.get("tsai_schema_uri#integrity") != sri(schema_path):
+        fail(f"[type-metadata] {tm_path.name}: tsai_schema_uri#integrity does not match {schema_path.name}")
+
+    schema = schemas_by_id.get(tsai_schema_uri, {})
+    controls = {
+        (entry["signal"].get("cat"), entry["signal"].get("typ")): entry
+        for entry in tm.get("tsai_signal_metadata", [])
+        if entry.get("signal", {}).get("typ") is not None
+    }
+    category_controls = {
+        entry["signal"].get("cat"): entry
+        for entry in tm.get("tsai_signal_metadata", [])
+        if entry.get("signal", {}).get("typ") is None
+    }
+    for selector in required_signal_selectors(schema):
+        control = controls.get(selector) or category_controls.get(selector[0])
+        if control is None:
+            fail(f"[type-metadata] {tm_path.name}: schema-required signal {selector} has no effective tsai_signal_metadata control")
+        elif control.get("sd") != "never":
+            fail(f"[type-metadata] {tm_path.name}: schema-required signal {selector} must be sd never")
+
+    for claim in tm.get("claims", []):
+        if "path" not in claim:
+            fail(f"[type-metadata] {tm_path.name}: standard claims entry has no path")
+        if claim.get("mandatory") is True and claim.get("sd") != "never":
+            fail(f"[type-metadata] {tm_path.name}: mandatory standard claim must set sd to never")
+
+    parent_vct = tm.get("extends")
+    if parent_vct:
+        parent_path = metadata_paths_by_vct.get(parent_vct)
+        if parent_path is None:
+            fail(f"[type-metadata] {tm_path.name}: parent {parent_vct!r} is unavailable")
+            continue
+        if tm.get("extends#integrity") != sri(parent_path):
+            fail(f"[type-metadata] {tm_path.name}: extends#integrity does not match {parent_path.name}")
+        parent = metadata_by_vct[parent_vct]
+        parent_tsai_schema_uri = parent.get("tsai_schema_uri")
+        if parent_tsai_schema_uri not in set(refs_in(schema)):
+            fail(f"[type-metadata] {tm_path.name}: derived schema does not $ref parent schema {parent_tsai_schema_uri}")
+        direct_parent = any(
+            item == {"$ref": parent_tsai_schema_uri}
+            for item in schema.get("allOf", [])
+            if isinstance(item, dict)
+        )
+        if not direct_parent:
+            fail(f"[type-metadata] {tm_path.name}: parent schema is not a direct top-level allOf member")
+
+        child_exact_controls = {
+            (entry["signal"].get("cat"), entry["signal"].get("typ"))
+            for entry in tm.get("tsai_signal_metadata", [])
+            if entry.get("signal", {}).get("typ") is not None
+        }
+        for selector in exact_signal_selectors(schema):
+            if selector not in child_exact_controls:
+                fail(f"[type-metadata] {tm_path.name}: schema-defined custom signal {selector} has no exact tsai_signal_metadata entry")
+
+        parent_claims_by_path = {
+            tuple(claim.get("path", [])): claim
+            for claim in parent.get("claims", [])
+            if claim.get("path")
+        }
+        for claim in tm.get("claims", []):
+            inherited = parent_claims_by_path.get(tuple(claim.get("path", [])))
+            if not inherited:
+                continue
+            if inherited.get("mandatory") is True and claim.get("mandatory") is False:
+                fail(f"[type-metadata] {tm_path.name}: child weakens mandatory for path {claim['path']}")
+            parent_sd = inherited.get("sd", "allowed")
+            child_sd = claim.get("sd", "allowed")
+            if parent_sd in {"always", "never"} and child_sd != parent_sd:
+                fail(f"[type-metadata] {tm_path.name}: child weakens sd for path {claim['path']}")
+
+        parent_entries = parent.get("tsai_signal_metadata", [])
+        for selector in signal_sd_errors(parent_entries, tm.get("tsai_signal_metadata", [])):
+            fail(f"[type-metadata] {tm_path.name}: child weakens sd for {selector}")
+
+        error = chain_error(vct, metadata_by_vct, BASE_VCT)
+        if error:
+            fail(f"[type-metadata] {tm_path.name}: {error}")
+
+# Exercise the inheritance helpers independently of the one concrete fixture.
+_synthetic_chain = {
+    BASE_VCT: {},
+    "urn:example:middle": {"extends": BASE_VCT},
+    "urn:example:leaf": {"extends": "urn:example:middle"},
+}
+if chain_error("urn:example:leaf", _synthetic_chain, BASE_VCT):
+    fail("[type-metadata] three-level extends chain was rejected")
+_synthetic_cycle = {
+    BASE_VCT: {},
+    "urn:example:a": {"extends": "urn:example:b"},
+    "urn:example:b": {"extends": "urn:example:a"},
+}
+if not chain_error("urn:example:a", _synthetic_cycle, BASE_VCT):
+    fail("[type-metadata] circular extends self-test was accepted")
+_parent_sd = [{"signal": {"cat": "rep"}, "sd": "never"}]
+_child_sd = [{"signal": {"cat": "rep", "typ": "risk"}, "sd": "allowed"}]
+if not signal_sd_errors(_parent_sd, _child_sd):
+    fail("[type-metadata] inherited sd weakening self-test was accepted")
+
+
+# Validate the concrete derived credential against both its base and derived
+# schemas, resolving the immutable base schema from the local registry.
+derived_vector_path = ARCH / "test-vectors" / "derived-vct-credential.json"
+if derived_vector_path.exists():
+    derived_vector = load_json(derived_vector_path)
+    derived_vct = derived_vector.get("vct")
+    derived_tm = metadata_by_vct.get(derived_vct)
+    if derived_tm is None:
+        fail(f"[derived-vector] no Type Metadata for {derived_vct}")
+    else:
+        derived_schema = schemas_by_id.get(derived_tm.get("tsai_schema_uri"))
+        if derived_schema is None:
+            fail("[derived-vector] derived schema is unavailable")
+        else:
+            try:
+                resolved_derived_schema = inline_local_refs(
+                    derived_schema,
+                    derived_schema["$id"],
+                )
+            except (KeyError, TypeError, ValueError) as error:
+                fail(f"[derived-vector] schema reference resolution failed: {error}")
+                resolved_derived_schema = {"not": {}}
+            errs = sorted(
+                Draft202012Validator(resolved_derived_schema).iter_errors(derived_vector),
+                key=str,
+            )
+            for error in errs:
+                loc = "/".join(str(part) for part in error.absolute_path) or "(root)"
+                fail(f"[derived-vector] {loc}: {error.message}")
+        if derived_vector.get("vct#integrity") != sri(metadata_paths_by_vct[derived_vct]):
+            fail("[derived-vector] vct#integrity does not match derived Type Metadata")
+        if BASE_VCT not in derived_vector.get("aka_vcts", []):
+            fail("[derived-vector] aka_vcts does not include canonical TSAI vct")
+        if derived_vct in derived_vector.get("aka_vcts", []):
+            fail("[derived-vector] aka_vcts contains the primary vct")
+        exact_selectors = {
+            (entry["signal"].get("cat"), entry["signal"].get("typ"))
+            for entry in derived_tm.get("tsai_signal_metadata", [])
+            if entry.get("signal", {}).get("typ") is not None
+        }
+        vector_selectors = {
+            (signal.get("cat"), signal.get("typ"))
+            for signal in derived_vector.get("signals", [])
+            if isinstance(signal, dict)
+        }
+        if not exact_selectors.issubset(vector_selectors):
+            fail("[derived-vector] not every exact derived signal selector is represented")
+
+        def must_reject(instance, validator, label):
+            if not list(validator.iter_errors(instance)):
+                fail(f"[derived-vector] negative case was accepted: {label}")
+
+        derived_validator = Draft202012Validator(resolved_derived_schema)
+        bad = copy.deepcopy(derived_vector)
+        bad["signals"][-1]["level"] = "unknown"
+        must_reject(bad, derived_validator, "custom enum")
+
+        bad = copy.deepcopy(derived_vector)
+        bad.pop("aka_vcts", None)
+        must_reject(bad, derived_validator, "missing aka_vcts")
+
+        bad = copy.deepcopy(derived_vector)
+        bad["aka_vcts"].append(bad["vct"])
+        must_reject(bad, derived_validator, "aka_vcts contains primary vct")
+
+        bad = copy.deepcopy(derived_vector)
+        bad["signals"].append({
+            "cat": "rep", "typ": "undeclared", "level": "low", "asof": 1781800000
+        })
+        must_reject(bad, derived_validator, "undeclared custom signal")
+
+        bad = copy.deepcopy(derived_vector)
+        bad["vct"] = BASE_VCT
+        bad.pop("aka_vcts", None)
+        must_reject(
+            bad,
+            Draft202012Validator(schemas_by_id[BASE_SCHEMA_ID]),
+            "custom signal under canonical vct",
+        )
 else:
-    fail("[type-metadata] tsai-1.json is missing")
+    fail("[derived-vector] derived-vct-credential.json is missing")
 
 
 # ---- 4. key-binding-JWT test vectors: schema + freshness rule -------------
@@ -185,6 +531,13 @@ for oa in sorted((ARCH / "openapi").glob("*.yaml")):
         continue
     if not doc.get("servers"):
         fail(f"[openapi] {oa.name} declares no servers block")
+    ta_metadata = doc.get("components", {}).get("schemas", {}).get("TAMetadata", {})
+    required = set(ta_metadata.get("required", []))
+    properties = ta_metadata.get("properties", {})
+    if "credentialTypes" not in required or "credentialTypes" not in properties:
+        fail(f"[openapi] {oa.name} TAMetadata must require credentialTypes")
+    if "schemaUri" in properties or "schema_uri" in properties:
+        fail(f"[openapi] {oa.name} TAMetadata duplicates schema location from Type Metadata")
 
 
 # ---- 7. cross-reference resolution (warning only) -------------------------

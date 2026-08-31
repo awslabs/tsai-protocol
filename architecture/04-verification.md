@@ -43,16 +43,16 @@ Given a presentation `<issuer-signed JWT>~<disclosure 1>~...~<disclosure N>~<key
 
 1. Split on `~`. A presentation MUST end with a key-binding JWT; a bare SD-JWT with an empty final element MUST be rejected. Whether to check key binding MUST NOT depend on whether the holder supplied a key-binding JWT (RFC 9901 §7.3).
 2. Read the issuer-signed JWT header: confirm `typ` is `dc+sd-jwt` and `alg` is `ES256`, reject every other algorithm and reject `x5c`. Read `iss`, confirm it is trusted, obtain its key (Section 3.2.1), and verify the issuer signature.
-3. Confirm `vct` is recognised. Look up the type-metadata document whose integrity equals the credential's `vct#integrity`, from cache and never by fetching on this path (Section 2.9). If no cached document matches, fail the presentation and refresh the document out of band (Section 2.9), so that later presentations referencing it verify.
+3. Resolve the credential type from cache, never by fetching on this path (Section 2.9). Verify `vct#integrity` and load the integrity-pinned JSON Schema. If `aka_vcts` is present, reject it if it contains the primary `vct`. For a derived type, require `aka_vcts` to contain the canonical TSAI `vct`; follow and integrity-check the `extends` chain to that canonical type; reject circular or unrelated chains; confirm the derived schema composes the immutable base schema; process inherited standard `claims` metadata and TSAI `tsai_signal_metadata`; and confirm that every custom signal is declared by the derived metadata and schema. If any document is absent or invalid, fail the presentation and refresh the chain out of band. Field-level schema validation occurs after disclosure processing in step 5.
 4. Check the lifetime: reject if `exp` has passed or if `iat` is in the future beyond the skew of Section 3.4.
-5. If disclosures are present, confirm `_sd_alg` is `sha-256` before use (RFC 9901 §7.1), verify each disclosure against its digest in `signals`, and reconstruct. Count the signals that remain withheld and surface the count; fail closed if it exceeds the Service Provider's policy threshold. Reject any presentation that discloses `iss`, `exp`, or `cnf`, which are not disclosable (RFC 9901 §9.7), or that reveals a signal the type metadata marks `sd: never`.
+5. If disclosures are present, confirm `_sd_alg` is `sha-256` before use (RFC 9901 §7.1), verify each disclosure against its digest in `signals`, and reconstruct. Count the signals that remain withheld and surface the count; fail closed if it exceeds the Service Provider's policy threshold. Reject any presentation that discloses `iss`, `exp`, or `cnf`, which are not disclosable (RFC 9901 §9.7), or that reveals a signal the effective `tsai_signal_metadata` marks `sd: never`. Validate the processed payload against the complete schema chain, so every disclosed registered or custom signal is checked at field level; each schema-required signal has an effective `sd: never` rule and therefore remains available for this validation.
 6. Confirm the identity floor is present: `org`, `jur`, `kyc`, and at least one `dct` (Section 2.5.3).
 7. Read the key-binding JWT header, confirm `typ` is `kb+jwt` and `alg` is `ES256`, confirm the `cnf` JWK is an EC/P-256 public key, and verify the signature against it.
 8. Confirm `aud` is this Service Provider, `nonce` is present (and, when the Service Provider issued one, that it matches and has not been used), and `sd_hash` matches the presented issuer-signed JWT and forwarded disclosures per RFC 9901 §4.3.1.
 9. Apply the freshness rule of Section 3.4; for a state-changing or split-topology action, confirm both a Service-Provider-issued single-use `nonce` and `req` (Section 3.4).
 10. Where the Service Provider's policy calls for it, check status (Section 3.5).
 
-If any step fails, reject. Ignore signal types that are not recognised (Section 2.5.7).
+If any step fails, reject. After successful derived-schema validation, a Service Provider MAY ignore declared extension signals it does not use in policy (Section 2.5.7).
 
 ---
 
@@ -80,7 +80,7 @@ When it fetches, a Service Provider MUST confirm the status-list token uses `ES2
 
 ## 3.6 Fetch Hardening
 
-A Service Provider fetches URLs it did not choose: the issuer metadata at `iss`, and, where used, the status list and a `prv` `did:web`. Each is a server-side request-forgery vector (SD-JWT VC §6.1). For each, a Service Provider MUST validate the URL, MUST refuse a private, loopback, or link-local address after DNS resolution, and MUST bound the response size and the timeout. A Service Provider SHOULD use DNSSEC-validated resolution, and MUST do so where it resolves a `prv` `did:web` on which it relies for a material decision.
+A Service Provider fetches URLs it did not choose: the issuer metadata at `iss`, Type Metadata and schema documents out of band, and, where used, the status list and a `prv` `did:web`. Each is a server-side request-forgery vector (SD-JWT VC §6.1). For each, a Service Provider MUST validate the URL, MUST refuse a private, loopback, or link-local address after DNS resolution, and MUST bound the response size and the timeout. A Service Provider SHOULD use DNSSEC-validated resolution, and MUST do so where it resolves a `prv` `did:web` on which it relies for a material decision.
 
 ---
 
@@ -88,7 +88,7 @@ A Service Provider fetches URLs it did not choose: the issuer metadata at `iss`,
 
 ### 3.7.1 Verification failure
 
-This section governs the verification outcome; the access decision on a failed verification is the Service Provider's (Section 4.4.1). The following MUST result in a verification failure, and a failed verification MUST NOT be reported as verified: an invalid or unsupported issuer or key-binding signature, an untrusted `iss`, an `x5c` header, an `alg` other than `ES256`, an unrecognised `vct`, a `vct#integrity` mismatch, a missing identity floor, an expired credential, a key-binding JWT that is stale, missing, or whose `aud`, `nonce`, `sd_hash`, or required `req` does not match, a set status entry, and a malformed presentation.
+This section governs the verification outcome; the access decision on a failed verification is the Service Provider's (Section 4.4.1). The following MUST result in a verification failure, and a failed verification MUST NOT be reported as verified: an invalid or unsupported issuer or key-binding signature, an untrusted `iss`, an `x5c` header, an `alg` other than `ES256`, an unrecognised `vct`, a Type Metadata, schema, `vct#integrity`, `extends#integrity`, or `tsai_schema_uri#integrity` failure, a missing identity floor, an expired credential, a key-binding JWT that is stale, missing, or whose `aud`, `nonce`, `sd_hash`, or required `req` does not match, a set status entry, and a malformed presentation.
 
 The default access posture on a failure is to reject. A Service Provider MAY instead log or annotate (Section 4.4.1); what it MUST NOT do is treat a failed verification as verified.
 
@@ -121,7 +121,7 @@ A Service Provider MAY cache a verification result. A cached result MUST NOT be 
 
 **Service Providers MUST:**
 - Obtain the Trust Authority EC/P-256 key from `iss` and `/.well-known/jwt-vc-issuer`, confirm `issuer` equals `iss`, reject `x5c`, require `alg` `ES256`, and verify the issuer signature.
-- Confirm `alg` is `ES256`, `vct` is recognised, and the identity floor is present.
+- Confirm `alg` is `ES256`, validate the complete `vct` metadata and schema chain, and confirm the identity floor is present.
 - Verify the key-binding JWT against `cnf`; confirm `aud`, `nonce`, `sd_hash`, the freshness window (reject if `iat > now + 30` or `iat < now − 90`), and `req` where the action requires it.
 - Reject a set status entry with `BLOCKED`, verify the status-list token and pin its URI to the `iss` origin, and harden every fetch (Section 3.6).
 - Treat any of the above as a verification failure, never report a failed verification as verified, bound degraded-mode duration and cache lifetimes, and not leak issuer or algorithm detail in errors.

@@ -51,7 +51,8 @@ where the disclosures are present only under selective disclosure (Section 2.6);
 |---|---|---|
 | `iss` | REQUIRED | The Trust Authority's HTTPS issuer identifier; keys discovered at `/.well-known/jwt-vc-issuer` (Section 2.8). |
 | `vct` | REQUIRED | The verifiable credential type, a URL identifying the type and version, resolvable to a type-metadata document (Section 2.9). |
-| `vct#integrity` | REQUIRED | Integrity metadata for the `vct` type-metadata document, per SD-JWT VC §5; lets a verifier cache the document indefinitely and detect substitution (Section 2.9). |
+| `vct#integrity` | REQUIRED | Integrity metadata for the `vct` Type Metadata document, per SD-JWT VC §5; selects the exact metadata that governs the credential (Section 2.9). |
+| `aka_vcts` | CONDITIONAL | Additional credential types. REQUIRED on a derived TSAI type and MUST include the canonical TSAI `vct`; MUST NOT contain the credential's primary `vct` (Sections 2.5.7 and 2.9). |
 | `iat` | REQUIRED | Issuance time, seconds since the Unix epoch. |
 | `exp` | REQUIRED | Expiry time, 30 minutes after `iat` (Section 2.7). |
 | `sub` | OPTIONAL | A stable HTTPS identifier for the agent, operator-controlled; used for continuity across key rotation. |
@@ -158,7 +159,7 @@ Attributes the Trust Authority verified; the provider is the Trust Authority, so
 - `dct` — a domain the operator controls, verified by DNS challenge or email. `val` is the domain.
 - `dag` — the age of that domain. `val` is an ISO 8601 duration; `asof` fixes the measurement time.
 
-**The identity floor (ADR 019).** A Trust Authority MUST NOT issue a credential unless `signals` contains, as identity signals, the operator's legal name (`org`), jurisdiction (`jur`), verification depth (`kyc`), and at least one verified controlled domain (`dct`). These four are `mandatory` in the type metadata (Section 2.9), and the schema enforces their presence. The floor is not a tier and defines no ordering.
+**The identity floor (ADR 019).** A Trust Authority MUST NOT issue a credential unless `signals` contains, as identity signals, the operator's legal name (`org`), jurisdiction (`jur`), verification depth (`kyc`), and at least one verified controlled domain (`dct`). The schema enforces their presence, and `tsai_signal_metadata` marks them `sd: never` (Section 2.9). The floor is not a tier and defines no ordering.
 
 ### 2.5.4 Reputation (`rep`)
 
@@ -170,11 +171,11 @@ The agent's behavioural record, observed by the Trust Authority; `prv` is omitte
 - `wdw` — the observation window, an ISO 8601 duration; with `asof` (the window end) it is computable. REQUIRED whenever `band` or `scr` is present.
 - `scp` — the scope of the record, `agent` (the default) or `operator`. An `operator` record aggregates across the operator's agents; a Service Provider evaluating a thin agent-level record reads the operator-level one (Section 5.11, ADR 021).
 
-`typ` names the domain of the record, for example `ecommerce`. Reputation signals at both scopes are `sd: never` in the type metadata (Section 2.9), so an agent cannot withhold a record it holds, including the operator-level one a washed agent would most want to hide.
+`typ` names the registered domain of the record. The TSAI v1 registry contains `ecommerce`; another domain is added through the registry or a derived `vct`. Reputation signals at both scopes are `sd: never` in the type metadata (Section 2.9), so an agent cannot withhold a record it holds, including the operator-level one a washed agent would most want to hide.
 
 ### 2.5.5 Compliance (`cmp`)
 
-A third-party certification the operator holds. `prv` is the certifier's `did:web`. Types are certification names, for example `iso27001`, `soc2`, `pci-dss`. A `vld` field MAY carry the certification's own validity end (renamed from the earlier `exp` to avoid collision with the credential's `exp`); `asof` carries when the Trust Authority confirmed it.
+A third-party certification the operator holds. `prv` is the certifier's `did:web`. The TSAI v1 registered types are `iso27001`, `soc2`, and `pci-dss`; another certification type is added through the registry or a derived `vct`. A `vld` field MAY carry the certification's own validity end (renamed from the earlier `exp` to avoid collision with the credential's `exp`); `asof` carries when the Trust Authority confirmed it.
 
 A `prv` is attribution, not proof: it names the third party the Trust Authority asserts stands behind the claim, without a signature from that party (Section 5.11). A Service Provider relying on a compliance signal for a material decision verifies it out of band.
 
@@ -189,15 +190,19 @@ As with compliance, `prv` is attribution and not proof; a Service Provider relyi
 
 ### 2.5.7 Extension
 
-A Trust Authority MAY define types beyond the registered set. A custom type is a short code scoped to the credential's `iss` and MUST NOT embed a domain name; the issuer disambiguates it. A Service Provider MAY act on a custom type from an issuer it recognises and MUST ignore a type it does not recognise; a custom type MUST NOT duplicate or contradict a registered type.
+The canonical TSAI `vct` permits only the registered TSAI signal vocabulary. A Trust Authority that adds a signal type MUST issue a derived credential type rather than place an arbitrary type under the canonical `vct`.
+
+The derived type has its own collision-resistant `vct`. Its Type Metadata MUST `extend` an existing TSAI type, MUST integrity-pin the parent metadata, and MUST reference an integrity-protected JSON Schema that composes the parent's immutable schema, transitively preserving the canonical TSAI constraints. A derived credential MUST carry the canonical TSAI `vct` in `aka_vcts`. A verifier accepts it as TSAI only after confirming the metadata inheritance and validating the credential against both schemas (Section 2.9).
+
+Within a derived `vct`, custom signal types are short codes. They need neither an FQDN nor an `x-` prefix because `(vct, cat, typ)` is the semantic identifier. Every custom signal selector and its disclosure/display controls MUST be declared in `tsai_signal_metadata`, and its fields MUST be declared by the derived schema. Several Trust Authorities that share an extension use one community-owned derived `vct`; equal type strings under unrelated `vct` values have no implied equivalence.
 
 ---
 
 ## 2.6 Selective Disclosure
 
-Selective disclosure is optional and off by default. When used, the issuer replaces a signal in `signals` with a digest object `{"...": "<digest>"}`, emits the disclosure alongside the credential, and sets `_sd_alg` to `sha-256`; a TSAI verifier MUST reject any other disclosure digest algorithm. A signal marked `sd: never` in the type metadata (Section 2.9), reputation among them, MUST NOT be made disclosable by the issuer. A withheld signal remains visible to the verifier as a digest object until reconstruction, so the verifier can count how many were withheld; the verifier surfaces that count and MAY fail closed above a policy threshold (Section 3, ADR 022).
+Selective disclosure is optional and off by default. When used, the issuer replaces a signal in `signals` with a digest object `{"...": "<digest>"}`, emits the disclosure alongside the credential, and sets `_sd_alg` to `sha-256`; a TSAI verifier MUST reject any other disclosure digest algorithm. A signal marked `sd: never` in `tsai_signal_metadata` (Section 2.9), reputation among them, MUST NOT be made disclosable by the issuer. A withheld signal remains visible to the verifier as a digest object until reconstruction, so the verifier can count how many were withheld; the verifier surfaces that count and MAY fail closed above a policy threshold (Section 3, ADR 022).
 
-The `sd` control is a TSAI extension to type metadata (Section 2.9), so a generic SD-JWT VC consumer does not enforce it; a TSAI verifier enforces `sd: never` explicitly (Section 3.3). This is a known property of the design, not an omission.
+`tsai_signal_metadata` is a TSAI Type Metadata extension because standard SD-JWT VC paths cannot select array elements by their `cat` and `typ` values. A generic consumer ignores this top-level extension; a TSAI verifier processes it and enforces its `sd` controls (Section 3.3).
 
 ---
 
@@ -231,24 +236,47 @@ Identity and key discovery follow ADR 017.
 
 ## 2.9 Type Metadata
 
-Each `vct` resolves to a type-metadata document (ADR 022) that carries display rules and per-claim controls. Two controls are load-bearing:
+Each `vct` resolves to a Type Metadata document (ADR 022). SD-JWT VC Type Metadata carries display and per-claim controls, but it has carried no JSON Schema since draft `-12`; `extends` therefore inherits metadata, not field-level validation.
 
-- `mandatory` — the claim MUST be present. The identity-floor signals (`org`, `jur`, `kyc`, `dct`) are `mandatory`.
-- `sd` — whether the claim may be selectively disclosed. Reputation is `sd: never`.
+**Schema.** TSAI adds two required top-level properties: `tsai_schema_uri`, which identifies the JSON Schema for the complete credential payload, and `tsai_schema_uri#integrity`, which pins the exact schema bytes. The schema is authoritative for the permitted claims and signals, their field shapes, and required presence. A TSAI verifier processes these properties even though a generic SD-JWT VC consumer ignores them.
 
-**Deviation from SD-JWT VC claim addressing.** SD-JWT VC §4.6 addresses a claim by `path`, an ordered array that selects by position. TSAI signals are array elements distinguished by content rather than position, so the document addresses each control by a `signal` selector `{cat, typ}` rather than by `path`. This is a deliberate TSAI extension. Its consequence is that a generic SD-JWT VC consumer, which per SD-JWT VC §4.2 ignores properties it does not understand, ignores every `signal` entry and with it every `mandatory` and `sd` control; the controls are therefore enforced by TSAI-specific processing (Sections 2.6 and 3.3), not by a generic consumer. The document otherwise follows SD-JWT VC §4, including `locale` for display objects.
+**Standard claim metadata.** The standard `claims` array remains conformant to SD-JWT VC §4.6: every entry is addressed by a `path`. Its `mandatory` and `sd` controls apply to ordinary JSON claims such as `aka_vcts`; standard inheritance rules apply when a type extends another type.
 
-**Integrity and caching.** The credential carries a `vct#integrity` claim (Section 2.3.2) using SHA-256 integrity metadata for this document, per SD-JWT VC §5. A Service Provider MUST obtain the type-metadata document out of band or from cache and MUST NOT fetch it on the verification path. The cache is content-addressed: a Service Provider keys each type-metadata document by its `vct#integrity` value, and a credential's `vct#integrity` selects the document that applies to it. Documents from before and after an in-place change (Section 2.10) therefore coexist in the cache, and a credential keeps matching the document it was issued against, which is why the document may be cached indefinitely (SD-JWT VC §4.3.4 and §6.4). If a Service Provider does not hold the document a credential's `vct#integrity` names, it MUST fail the current presentation (Section 3.7.1) and SHOULD refresh the document out of band, after which later presentations that reference it verify. Substitution is caught the same way: an integrity value that no authentic published document matches never verifies, which is why the check is on the base verification path (Section 3.3).
+**Signal metadata.** Standard claim paths cannot select array elements by their `cat` and `typ` values, so TSAI adds the top-level `tsai_signal_metadata` property. Each entry selects every signal in a category, or one exact category/type pair, and carries `sd` plus optional display metadata. It does not define presence: the JSON Schema does that. A parent category selector governs every signal in that category unless the child defines a more specific selector. A child may narrow `sd: allowed` to `always` or `never`, but MUST NOT change an inherited `always` or `never` value. A schema-required signal MUST have an effective `tsai_signal_metadata` rule of `sd: never`, so it remains available for payload validation after disclosure processing.
 
-The schema for the type-metadata document is [`schemas/tsai-type-metadata.schema.json`](schemas/tsai-type-metadata.schema.json).
+A derived TSAI type uses the standard `extends` and `extends#integrity` properties to inherit its parent metadata. Its schema MUST use JSON Schema `allOf` with a `$ref` to the parent's immutable schema, thereby composing the canonical TSAI base transitively. The child adds standard path metadata for `aka_vcts` and `tsai_signal_metadata` entries for its custom signals.
+
+```json
+{
+  "vct": "https://ta.example/credential/tsai/1",
+  "extends": "https://tsaiprotocol.org/credential/tsai/1",
+  "extends#integrity": "sha256-b4+5S0V4qNmxKIYGb2lXcf+QaNgSq1lDhZFDAfmT4yc=",
+  "tsai_schema_uri": "https://ta.example/schemas/credential/tsai/1.json",
+  "tsai_schema_uri#integrity": "sha256-H5gGR/iMLT9a4ajpGQBRXOEwR4E1fUMqZl1gtCuhvtQ=",
+  "claims": [
+    { "path": ["aka_vcts"], "mandatory": true, "sd": "never" }
+  ],
+  "tsai_signal_metadata": [
+    { "signal": { "cat": "rep", "typ": "risk" }, "sd": "never" }
+  ]
+}
+```
+
+This separation keeps the standard `claims` array processable by generic SD-JWT VC consumers. A generic consumer ignores the unknown top-level `tsai_schema_uri` and `tsai_signal_metadata` properties; a TSAI-aware consumer processes them in addition to the standard metadata.
+
+**Integrity and caching.** The credential carries a `vct#integrity` claim (Section 2.3.2) using SHA-256 integrity metadata for its Type Metadata document, per SD-JWT VC §5. Derived metadata additionally carries `extends#integrity`; every TSAI metadata document carries `tsai_schema_uri#integrity`. A Service Provider MUST obtain the complete metadata and schema chain out of band or from cache and MUST NOT fetch it on the verification path.
+
+Both caches are content-addressed. A credential's `vct#integrity` selects its metadata; each metadata document's schema integrity selects its schema; and `extends#integrity` selects the parent metadata. Documents for different immutable `vct` versions coexist under their integrity values. If any required document is absent, mismatched, circular, or not rooted in the canonical TSAI type, the Service Provider MUST fail the current presentation and SHOULD refresh the chain out of band. The fetch hardening in Section 3.6 applies to metadata and schema retrieval.
+
+The schema for the type-metadata document is [`schemas/tsai-type-metadata.schema.json`](schemas/tsai-type-metadata.schema.json). The canonical payload schema is [`schemas/tsai-credential.schema.json`](schemas/tsai-credential.schema.json).
 
 ---
 
 ## 2.10 Versioning
 
-`vct` identifies the type and its version. A type evolves in place while it stays backward compatible, and a new `vct` is minted only for an incompatible change (SD-JWT VC §2.2.2.1). A Service Provider MUST reject a credential whose `vct` it does not recognise.
+`vct` identifies one immutable credential-type definition. The Type Metadata and JSON Schema associated with a TSAI `vct` MUST NOT change in place. Any change to the registered vocabulary, field constraints, display metadata, mandatory controls, or selective-disclosure controls mints a new `vct`, even when the change would otherwise be backward compatible.
 
-An in-place change alters the type-metadata document, so its `vct#integrity` changes: credentials issued before and after the change reference different documents under the same `vct`. This is not a flag day, because a Service Provider caches type-metadata documents by their integrity value (Section 2.9) and keeps the earlier one for credentials still in flight; the only cost is a one-time out-of-band refresh, per Service Provider, to obtain the new document. A change a Service Provider could not apply without breaking credentials already in flight is by definition incompatible and takes a new `vct` instead.
+Versioned metadata and schema URIs remain available for as long as credentials or derived types reference them. Existing derived types continue to extend their immutable parent version; adopting a newer TSAI base requires a new derived `vct`. A Service Provider MUST reject a credential whose metadata and schema chain it does not recognise or cannot validate.
 
 ---
 
@@ -260,7 +288,7 @@ An issued credential, flat, before presentation:
 {
   "iss": "https://trust-authority.example",
   "vct": "https://tsaiprotocol.org/credential/tsai/1",
-  "vct#integrity": "sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=",
+  "vct#integrity": "sha256-b4+5S0V4qNmxKIYGb2lXcf+QaNgSq1lDhZFDAfmT4yc=",
   "iat": 1781863200,
   "exp": 1781865000,
   "sub": "https://acme-corp.example/agents/shopper-v3",
@@ -293,15 +321,16 @@ Authorization and mandate — value limits, permitted operations, rate limits, a
 
 **Trust Authorities MUST:**
 - Issue SD-JWT VC credentials with `typ` `dc+sd-jwt`, `alg` `ES256`, and `exp` 30 minutes after `iat`.
-- Carry a SHA-256 `vct#integrity` claim binding the credential to its type-metadata document (Section 2.9).
+- Carry a SHA-256 `vct#integrity` claim binding the credential to its Type Metadata document, and publish an integrity-protected schema for that type (Section 2.9).
 - Include the identity floor (`org`, `jur`, `kyc`, `dct`) in every credential (ADR 019).
 - Include `cnt` and the observation window whenever a reputation signal carries `band` or `scr` (ADR 021).
 - Not make an `sd: never` signal, reputation among them, selectively disclosable.
-- Publish signing keys at `/.well-known/jwt-vc-issuer`, a type-metadata document per `vct`, and an agent-and-operator status list.
+- Publish signing keys at `/.well-known/jwt-vc-issuer` and an agent-and-operator status list. The publisher that defines each `vct` publishes its immutable Type Metadata and JSON Schema; TSAI publishes the canonical artefacts, while a TA or community publishes the derived artefacts it defines.
+- Advertise every `vct` the Trust Authority issues. For a derived TSAI type, extend and integrity-pin the parent metadata and schema, include the canonical base type in `aka_vcts`, and declare every custom signal.
 
 **Agents MUST:**
 - Present a credential that has not expired, with an ES256 key-binding JWT carrying `iat`, `aud`, `nonce`, and `sd_hash`, and `req` where the action and topology require it.
 
 **Service Providers MUST:**
-- Verify per Section 3, reject any `alg` other than `ES256`, reject an unrecognised `vct` or an `x5c` header, and ignore unrecognised signal types.
-- Obtain type metadata out of band or from cache, never on the verification path, and check `vct#integrity` (Section 2.9).
+- Verify per Section 3, reject any `alg` other than `ES256`, reject an unrecognised `vct` or an `x5c` header, and, after successful derived-schema validation, MAY ignore declared extension signals not used in policy.
+- Obtain the complete Type Metadata and schema chain out of band or from cache, never on the verification path, and verify every integrity value and inheritance rule (Section 2.9).

@@ -211,7 +211,7 @@ paths:
   /metadata:
     get:
       summary: Get Trust Authority metadata
-      description: Returns the issuer identifier, key discovery location, and endpoints.
+      description: Returns the issuer identifier, key discovery location, supported credential types, and endpoints.
       operationId: getMetadata
       tags: [metadata]
       responses:
@@ -342,7 +342,7 @@ components:
 
     TAMetadata:
       type: object
-      required: [tsaiVersion, issuer, name, jwksUri, endpoints]
+      required: [tsaiVersion, issuer, name, jwksUri, credentialTypes, endpoints]
       properties:
         tsaiVersion:
           type: string
@@ -363,6 +363,19 @@ components:
           format: uri
           description: Issuer key discovery
           example: 'https://trust-authority.example/.well-known/jwt-vc-issuer'
+        credentialTypes:
+          type: array
+          minItems: 1
+          description: >-
+            Credential type identifiers this Trust Authority issues. The Type
+            Metadata at each vct identifies and integrity-pins its JSON Schema;
+            this list does not duplicate schema locations.
+          items:
+            type: string
+            format: uri
+          example:
+            - 'https://tsaiprotocol.org/credential/tsai/1'
+            - 'https://trust-authority.example/credential/tsai/1'
         endpoints:
           type: object
           required: [issue, refresh, challenges]
