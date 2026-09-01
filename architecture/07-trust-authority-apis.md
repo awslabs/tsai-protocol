@@ -69,7 +69,7 @@ A Trust Authority runs critical infrastructure, targets high availability, and c
 
 ## 7.9 Normative Requirements
 
-A Trust Authority MUST implement the OpenAPI specification, authenticate the operator at issuance, confirm ES256 proof of control of the P-256 binding key, and use HTTPS with TLS 1.3 and HSM-held EC/P-256 signing keys. It MUST issue only contents it has established (Section 7.4), include the identity floor in every credential, and support key repudiation (Section 7.6). It MUST publish signing-key metadata at the URL produced by the `jwt-vc-issuer` well-known insertion rule, an agent-and-operator status list, and a signed operational report (Section 7.10), and MUST advertise every `vct` it issues through its metadata endpoint. A Trust Authority that defines a derived `vct` MUST publish and retain its immutable Type Metadata and integrity-protected JSON Schema; a Trust Authority using a type defined by TSAI or a community references that publisher's artefacts rather than republishing them. It MUST publish its evaluation criteria and disclose its data-collection, retention, and sharing practices (Section 7.10), and SHOULD minimise data collection to operational necessity.
+A Trust Authority MUST implement the OpenAPI specification, authenticate the operator at issuance, confirm ES256 proof of control of the P-256 binding key, and use HTTPS with TLS 1.3 and HSM-held EC/P-256 signing keys. It MUST issue only contents it has established (Section 7.4), include the identity floor in every credential, and support key repudiation (Section 7.6). It MUST publish signing-key metadata at the URL produced by the `jwt-vc-issuer` well-known insertion rule, an agent-and-operator status list, and the compact-JWS operational report and HSM attestation (Sections 7.10 and 7.11), and MUST advertise every `vct` it issues through its metadata endpoint. A Trust Authority that defines a derived `vct` MUST publish and retain its immutable Type Metadata and integrity-protected JSON Schema; a Trust Authority using a type defined by TSAI or a community references that publisher's artefacts rather than republishing them. It MUST publish its evaluation criteria and disclose its data-collection, retention, and sharing practices (Section 7.10), and SHOULD minimise data collection to operational necessity.
 
 ---
 
@@ -81,46 +81,66 @@ A Trust Authority MUST publish its evaluation criteria, including how it maps it
 
 ### 7.10.2 Status report
 
-A Trust Authority MUST serve a signed JSON document at `/.well-known/tsai-ta-status` over HTTPS, giving aggregate metrics without exposing individual credentials.
+A Trust Authority MUST serve a compact JWS at `/.well-known/tsai-ta-status` over HTTPS with content type `application/jwt`, giving aggregate metrics without exposing individual credentials. The protected header is:
+
+```json
+{ "alg": "ES256", "typ": "tsai-ta-status+jwt", "kid": "key-1" }
+```
+
+The decoded payload conforms to [`schemas/tsai-ta-status.schema.json`](schemas/tsai-ta-status.schema.json):
 
 ```json
 {
+  "iss": "https://ta.example.com",
+  "iat": 1773748800,
+  "exp": 1773835200,
   "version": "1.0",
-  "taIdentifier": "https://ta.example.com",
-  "reportTimestamp": "2026-03-17T12:00:00Z",
   "reportingPeriod": "PT24H",
   "activeCredentials": 24,
   "issuedInPeriod": 1035,
   "blockedInPeriod": 15,
-  "lastKeyRotation": "2026-02-15T00:00:00Z",
-  "proof": { "alg": "ES256", "kid": "key-1" }
+  "lastKeyRotation": "2026-02-15T00:00:00Z"
 }
 ```
 
-The report MUST be updated at least every 24 hours, MUST be signed by the current signing key, and MUST exclude any individual credential, agent, or operator identifier. Counts SHOULD be accurate within a stated tolerance. A Service Provider SHOULD fetch reports periodically and alert on anomalies (issuance spikes, no blocks over a long period, a stale key rotation or report), MAY use the data in its trust decisions, and the protocol mandates no threshold. Self-reported data can be falsified by a compromised authority, so the report detects systemic anomalies rather than individual fraud (ADR 011).
+The HSM attestation in Section 7.11 uses the same envelope with its own `typ` and payload schema. For both documents, the signer serialises the protected header and payload as UTF-8 JSON, base64url-encodes each without padding, and signs the RFC 7515 JWS Signing Input `BASE64URL(header) || "." || BASE64URL(payload)` with ES256. The compact signature is the base64url encoding of the 64-octet `R || S` value required by JWA. No JSON canonicalisation is required because the signature covers the exact encoded payload bytes.
+
+A verifier MUST require three compact-JWS segments, `alg` `ES256`, the expected `typ`, and a `kid` selecting the current TA signing key from `jwt-vc-issuer`. It MUST validate the decoded payload against the applicable schema, confirm `iss` is the trusted TA issuer, verify the signature, reject `iat` in the future beyond allowed clock skew, and reject at or after `exp`. TSAI encodes `iat` and `exp` as whole-second integer NumericDates.
+
+The report MUST be reissued at least every 24 hours and `exp` MUST be no more than 24 hours after `iat`. It MUST exclude any individual credential, agent, or operator identifier. Counts SHOULD be accurate within a stated tolerance. A Service Provider SHOULD fetch reports periodically and alert on anomalies (issuance spikes, no blocks over a long period, or stale key rotation), MAY use the data in its trust decisions, and the protocol mandates no threshold. Self-reported data can be falsified by a compromised authority, so the report detects systemic anomalies rather than individual fraud (ADR 011).
 
 ---
 
 ## 7.11 HSM Attestation
 
-HSM key storage is required but the protocol cannot check it, so a Trust Authority publishes evidence at `/.well-known/tsai-ta-hsm-attestation` over HTTPS. This is an assurance a Service Provider MAY weigh; it is not gated to a tier.
+HSM key storage is required but the protocol cannot check it directly, so a Trust Authority MUST publish evidence at `/.well-known/tsai-ta-hsm-attestation` over HTTPS as compact JWS with content type `application/jwt`. This is an assurance a Service Provider MAY weigh; it is not gated to a tier.
+
+The protected header is:
+
+```json
+{ "alg": "ES256", "typ": "tsai-ta-hsm-attestation+jwt", "kid": "key-1" }
+```
+
+The decoded payload conforms to [`schemas/tsai-ta-hsm-attestation.schema.json`](schemas/tsai-ta-hsm-attestation.schema.json):
 
 ```json
 {
+  "iss": "https://ta.example.com",
+  "iat": 1768521600,
+  "exp": 1799971200,
   "version": "1.0",
-  "taIdentifier": "https://ta.example.com",
   "attestationType": "independent-audit",
   "auditor": "Example Audit Corp",
   "auditDate": "2026-01-15",
   "auditStandard": "SOC2-Type2",
-  "scope": "Signing key generation, storage, and use for TSAI credential issuance",
-  "reportUrl": "https://ta.example.com/audits/2026-hsm-attestation.pdf",
-  "nextAuditDate": "2027-01-15",
-  "proof": { "alg": "ES256", "kid": "key-1" }
+  "scope": "Signing-key generation, storage, and use for TSAI credential issuance",
+  "reportDigest": "sha256-6BG0+X8GnSqJhkbv7RqHqu6yAUsbF4XALeXBLh2IAWk="
 }
 ```
 
-Assurance levels: `independent-audit` (a third party verified HSM use, the strongest), `vendor-attestation` (the HSM vendor confirms residency), and `self-attestation` (the weakest, transitional only). The attestation MUST be signed by the current key and kept current within 18 months. A Service Provider MAY check and weigh it, and the protocol mandates no vendor or certification level. Attestation proves HSM use at audit time, not continuously; the short lifetime and the operational report are complementary detections.
+`exp` is the sole acceptance deadline and MUST NOT exceed the validity period of the supporting evidence. For `self-attestation`, which has no external evidence period, `exp` MUST NOT exceed `iat` plus 30 days. `nextAuditDate` is not carried. For `independent-audit`, `reportDigest` binds the attestation to the exact audit-report bytes; public report access is not required.
+
+Assurance levels are `independent-audit` (a third party verified HSM use, the strongest), `vendor-attestation` (the HSM vendor confirms residency), and `self-attestation` (the weakest, transitional only). The JWS MUST use the normal current TA credential-signing key. A Service Provider verifies it under the common procedure in Section 7.10.2 and MAY check the supporting report obtained through a separate channel. The attestation proves HSM use at audit time, not continuously; the short credential lifetime and operational report provide complementary operational signals.
 
 ---
 
@@ -130,3 +150,4 @@ Assurance levels: `independent-audit` (a third party verified HSM use, the stron
 - TSAI Credential Format (Section 2), TSAI Verification (Section 3)
 - ADR 011 (transparency), ADR 015 (holder-directed issuance and Type Metadata), ADR 016 (identity floor and reputation)
 - draft-ietf-oauth-sd-jwt-vc, draft-ietf-oauth-status-list
+- RFC 7515 (JWS), RFC 7518 (ES256), RFC 7519 (JWT)

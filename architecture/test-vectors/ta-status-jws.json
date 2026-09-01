@@ -1,0 +1,32 @@
+{
+  "$comment": "Copyright Amazon.com Inc. or its affiliates. SPDX-License-Identifier: Apache-2.0",
+  "description": "Valid compact ES256 JWS operational status report.",
+  "now": 1773748810,
+  "publicJwk": {
+    "kty": "EC",
+    "crv": "P-256",
+    "x": "axfR8uEsQkf4vOblY6RA8ncDfYEt6zOg9KE5RdiYwpY",
+    "y": "T-NC4v4af5uO5-tKfA-eFivOM1drMV7Oy7ZAaDe_UfU",
+    "kid": "key-1",
+    "alg": "ES256",
+    "use": "sig"
+  },
+  "compactJws": "eyJhbGciOiJFUzI1NiIsImtpZCI6ImtleS0xIiwidHlwIjoidHNhaS10YS1zdGF0dXMrand0In0.eyJhY3RpdmVDcmVkZW50aWFscyI6MjQsImJsb2NrZWRJblBlcmlvZCI6MTUsImV4cCI6MTc3MzgzNTIwMCwiaWF0IjoxNzczNzQ4ODAwLCJpc3MiOiJodHRwczovL3RhLmV4YW1wbGUuY29tIiwiaXNzdWVkSW5QZXJpb2QiOjEwMzUsImxhc3RLZXlSb3RhdGlvbiI6IjIwMjYtMDItMTVUMDA6MDA6MDBaIiwicmVwb3J0aW5nUGVyaW9kIjoiUFQyNEgiLCJ2ZXJzaW9uIjoiMS4wIn0.hTASZWIbwy1VzW42K25xVuqybg0QvtLw3praPrITHVnLIqk2iKSumYaMUWpEe3SrCm83e7UrJC7KXQodh6l0bQ",
+  "protectedHeader": {
+    "alg": "ES256",
+    "typ": "tsai-ta-status+jwt",
+    "kid": "key-1"
+  },
+  "payload": {
+    "iss": "https://ta.example.com",
+    "iat": 1773748800,
+    "exp": 1773835200,
+    "version": "1.0",
+    "reportingPeriod": "PT24H",
+    "activeCredentials": 24,
+    "issuedInPeriod": 1035,
+    "blockedInPeriod": 15,
+    "lastKeyRotation": "2026-02-15T00:00:00Z"
+  },
+  "trustedIssuer": "https://ta.example.com"
+}

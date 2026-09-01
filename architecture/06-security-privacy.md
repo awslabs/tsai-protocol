@@ -104,7 +104,7 @@ A presentation is bound to one Service Provider by `aud`, carries a fresh key-bi
 
 ## 5.8 Trust Authority Security
 
-Signing keys are held in an HSM with multi-person authorisation, restricted and audited access, and periodic rotation with old keys retained for verification. A verifier, not the Trust Authority, resolves `jwt-vc-issuer` to obtain the signing key, under the fetch hardening of Section 3.6; a Trust Authority resolves a `prv` when it verifies a certifier, over HTTPS and with DNSSEC-validated resolution where it relies on the result, since a hijacked DNS record could redirect that lookup. It publishes signed operational reports (§7.10) and, where it offers assurance about key handling, an HSM attestation (§7.11). On key compromise it rotates the key through the out-of-band path (§3.7.2), notifies Service Providers and the governance body, and re-issues; Service Providers can drop it from their trusted set. A Trust Authority is a legal entity accountable for what it issues.
+Signing keys are held in an HSM with multi-person authorisation, restricted and audited access, and periodic rotation with old keys retained for verification. A verifier, not the Trust Authority, resolves `jwt-vc-issuer` to obtain the signing key, under the fetch hardening of Section 3.6; a Trust Authority resolves a `prv` when it verifies a certifier, over HTTPS and with DNSSEC-validated resolution where it relies on the result, since a hijacked DNS record could redirect that lookup. It publishes a compact-JWS operational report (§7.10) and HSM attestation (§7.11), both signed by the normal current TA signing key. On key compromise it rotates the key through the out-of-band path (§3.7.2), notifies Service Providers and the governance body, and re-issues; Service Providers can drop it from their trusted set. A Trust Authority is a legal entity accountable for what it issues.
 
 ---
 
@@ -137,7 +137,7 @@ TSAI does not protect against LLM-specific attacks, poor output quality, an agen
 
 ## 5.12 Normative Requirements Summary
 
-**Trust Authorities MUST** hold EC/P-256 signing keys in an HSM, use `ES256` for every TSAI signature, verify an agent and match contents to the evaluation before issuing (§7.4), keep the block current and publish the status list, support key repudiation (§7.6), and publish signed operational reports and their evaluation criteria (§7.10).
+**Trust Authorities MUST** hold EC/P-256 signing keys in an HSM, use `ES256` for every TSAI signature, verify an agent and match contents to the evaluation before issuing (§7.4), keep the block current and publish the status list, support key repudiation (§7.6), and publish compact-JWS operational reports, HSM attestations, and evaluation criteria (§7.10–§7.11).
 
 **Agents MUST** protect the `cnf` private key, present only over HTTPS, and present an unexpired credential.
 

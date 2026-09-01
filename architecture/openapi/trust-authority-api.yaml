@@ -20,7 +20,7 @@ servers:
     description: >-
       The Trust Authority origin. The API endpoints (challenges, credentials,
       status, metadata) MAY instead be mounted under a path prefix. The status
-      report remains origin-rooted. Issuer metadata starts at the origin-rooted
+      report and HSM attestation remain origin-rooted. Issuer metadata starts at the origin-rooted
       /.well-known/jwt-vc-issuer suffix and appends any issuer path, per the
       SD-JWT VC insertion rule (Section 2.8, Section 3.2.1).
 
@@ -180,15 +180,37 @@ paths:
     get:
       summary: Signed operational status report (Section 7.10)
       description: >-
-        Origin-rooted: served at the origin root regardless of any API base path.
+        Origin-rooted compact ES256 JWS with typ tsai-ta-status+jwt,
+        served regardless of any API base path.
       operationId: getStatusReport
       tags: [metadata]
       responses:
         '200':
-          description: Signed status report
+          description: Compact-JWS operational status report
           content:
-            application/json:
-              schema: { type: object }
+            application/jwt:
+              schema:
+                type: string
+                pattern: '^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /.well-known/tsai-ta-hsm-attestation:
+    get:
+      summary: Signed HSM attestation (Section 7.11)
+      description: >-
+        Origin-rooted compact ES256 JWS with typ
+        tsai-ta-hsm-attestation+jwt, served regardless of any API base path.
+      operationId: getHsmAttestation
+      tags: [metadata]
+      responses:
+        '200':
+          description: Compact-JWS HSM attestation
+          content:
+            application/jwt:
+              schema:
+                type: string
+                pattern: '^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$'
         '500':
           $ref: '#/components/responses/ServerError'
 

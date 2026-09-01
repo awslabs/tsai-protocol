@@ -1,0 +1,33 @@
+{
+  "$comment": "Copyright Amazon.com Inc. or its affiliates. SPDX-License-Identifier: Apache-2.0",
+  "description": "Valid compact ES256 JWS HSM attestation.",
+  "now": 1768521610,
+  "publicJwk": {
+    "kty": "EC",
+    "crv": "P-256",
+    "x": "axfR8uEsQkf4vOblY6RA8ncDfYEt6zOg9KE5RdiYwpY",
+    "y": "T-NC4v4af5uO5-tKfA-eFivOM1drMV7Oy7ZAaDe_UfU",
+    "kid": "key-1",
+    "alg": "ES256",
+    "use": "sig"
+  },
+  "compactJws": "eyJhbGciOiJFUzI1NiIsImtpZCI6ImtleS0xIiwidHlwIjoidHNhaS10YS1oc20tYXR0ZXN0YXRpb24rand0In0.eyJhdHRlc3RhdGlvblR5cGUiOiJpbmRlcGVuZGVudC1hdWRpdCIsImF1ZGl0RGF0ZSI6IjIwMjYtMDEtMTUiLCJhdWRpdFN0YW5kYXJkIjoiU09DMi1UeXBlMiIsImF1ZGl0b3IiOiJFeGFtcGxlIEF1ZGl0IENvcnAiLCJleHAiOjE3OTk5NzEyMDAsImlhdCI6MTc2ODUyMTYwMCwiaXNzIjoiaHR0cHM6Ly90YS5leGFtcGxlLmNvbSIsInJlcG9ydERpZ2VzdCI6InNoYTI1Ni02QkcwK1g4R25TcUpoa2J2N1JxSHF1NnlBVXNiRjRYQUxlWEJMaDJJQVdrPSIsInNjb3BlIjoiU2lnbmluZy1rZXkgZ2VuZXJhdGlvbiwgc3RvcmFnZSwgYW5kIHVzZSBmb3IgVFNBSSBjcmVkZW50aWFsIGlzc3VhbmNlIiwidmVyc2lvbiI6IjEuMCJ9.v54-F0XIIiHfrXUzcjf0kVOS3hwagiAQqDv0vUZWTmqE7tqMnCTzWZ0scsJq2MpNxefZ7FqEJylnhSjVRgWNrg",
+  "protectedHeader": {
+    "alg": "ES256",
+    "typ": "tsai-ta-hsm-attestation+jwt",
+    "kid": "key-1"
+  },
+  "payload": {
+    "iss": "https://ta.example.com",
+    "iat": 1768521600,
+    "exp": 1799971200,
+    "version": "1.0",
+    "attestationType": "independent-audit",
+    "auditor": "Example Audit Corp",
+    "auditDate": "2026-01-15",
+    "auditStandard": "SOC2-Type2",
+    "scope": "Signing-key generation, storage, and use for TSAI credential issuance",
+    "reportDigest": "sha256-6BG0+X8GnSqJhkbv7RqHqu6yAUsbF4XALeXBLh2IAWk="
+  },
+  "trustedIssuer": "https://ta.example.com"
+}

@@ -18,7 +18,7 @@ Mechanises the artefact-agreement checks from the review process feedback:
 Run from anywhere: it locates the repository root relative to this file.
 Exit status is non-zero if any check other than the cross-reference warning fails.
 
-Requires: jsonschema, pyyaml.
+Requires: jsonschema, pyyaml, cryptography.
 """
 import base64
 import copy
@@ -30,6 +30,10 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 import yaml
+from cryptography.exceptions import InvalidSignature
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.hazmat.primitives.asymmetric.utils import encode_dss_signature
 from jsonschema import Draft202012Validator, FormatChecker
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -163,7 +167,7 @@ def classify_and_validate(obj, label):
         return
     if "attestationType" in obj:
         validate(obj, HSM, label + " (hsm-attestation)")
-    elif "reportTimestamp" in obj or "activeCredentials" in obj:
+    elif "activeCredentials" in obj:
         validate(obj, TA_STATUS, label + " (ta-status)")
     elif "sd_hash" in obj:
         validate(obj, KB, label + " (kb-jwt)")
@@ -543,7 +547,99 @@ else:
     fail("[derived-vector] derived-vct-credential.json is missing")
 
 
-# ---- 4. key-binding-JWT test vectors: schema + freshness rule -------------
+# ---- 4. compact-JWS TA publication vectors -------------------------------
+def b64url_decode(value):
+    return base64.urlsafe_b64decode(value + "=" * (-len(value) % 4))
+
+
+def hsm_lifetime_valid(payload):
+    return (
+        payload.get("attestationType") != "self-attestation"
+        or payload.get("exp", 0) - payload.get("iat", 0) <= 30 * 24 * 60 * 60
+    )
+
+
+def verify_ta_jws_vector(filename, expected_typ, payload_schema, max_lifetime=None):
+    path = ARCH / "test-vectors" / filename
+    if not path.exists():
+        fail(f"[ta-jws] missing {filename}")
+        return
+    vector = load_json(path)
+    parts = vector.get("compactJws", "").split(".")
+    if len(parts) != 3:
+        fail(f"[ta-jws] {filename}: compact JWS must have three segments")
+        return
+    try:
+        header = json.loads(b64url_decode(parts[0]))
+        payload = json.loads(b64url_decode(parts[1]))
+        signature = b64url_decode(parts[2])
+    except (ValueError, json.JSONDecodeError) as error:
+        fail(f"[ta-jws] {filename}: cannot decode compact JWS: {error}")
+        return
+    if header != vector.get("protectedHeader"):
+        fail(f"[ta-jws] {filename}: protected header does not match vector")
+    if payload != vector.get("payload"):
+        fail(f"[ta-jws] {filename}: payload does not match vector")
+    if payload.get("iss") != vector.get("trustedIssuer"):
+        fail(f"[ta-jws] {filename}: payload issuer does not equal trusted issuer")
+    if header.get("alg") != "ES256" or header.get("typ") != expected_typ or not header.get("kid"):
+        fail(f"[ta-jws] {filename}: incorrect protected header")
+    validate(payload, payload_schema, f"test-vectors/{filename} (payload)")
+    now = vector.get("now")
+    if not isinstance(now, int) or not (payload.get("iat", now + 1) <= now < payload.get("exp", now)):
+        fail(f"[ta-jws] {filename}: vector time is outside iat/exp")
+    if payload.get("exp", 0) <= payload.get("iat", 0):
+        fail(f"[ta-jws] {filename}: exp must be after iat")
+    if max_lifetime is not None and payload.get("exp", 0) - payload.get("iat", 0) > max_lifetime:
+        fail(f"[ta-jws] {filename}: lifetime exceeds {max_lifetime} seconds")
+    if expected_typ == "tsai-ta-hsm-attestation+jwt" and not hsm_lifetime_valid(payload):
+        fail(f"[ta-jws] {filename}: self-attestation lifetime exceeds 30 days")
+    jwk = vector.get("publicJwk", {})
+    if jwk.get("kid") != header.get("kid") or jwk.get("kty") != "EC" or jwk.get("crv") != "P-256":
+        fail(f"[ta-jws] {filename}: key does not match protected header")
+        return
+    try:
+        x = int.from_bytes(b64url_decode(jwk["x"]), "big")
+        y = int.from_bytes(b64url_decode(jwk["y"]), "big")
+        public_key = ec.EllipticCurvePublicNumbers(x, y, ec.SECP256R1()).public_key()
+        if len(signature) != 64:
+            raise ValueError("ES256 signature is not 64 octets")
+        r = int.from_bytes(signature[:32], "big")
+        s = int.from_bytes(signature[32:], "big")
+        public_key.verify(
+            encode_dss_signature(r, s),
+            f"{parts[0]}.{parts[1]}".encode(),
+            ec.ECDSA(hashes.SHA256()),
+        )
+    except (KeyError, ValueError, InvalidSignature) as error:
+        fail(f"[ta-jws] {filename}: signature verification failed: {error}")
+        return
+    tampered_signature = bytearray(signature)
+    tampered_signature[-1] ^= 1
+    try:
+        public_key.verify(
+            encode_dss_signature(
+                int.from_bytes(tampered_signature[:32], "big"),
+                int.from_bytes(tampered_signature[32:], "big"),
+            ),
+            f"{parts[0]}.{parts[1]}".encode(),
+            ec.ECDSA(hashes.SHA256()),
+        )
+        fail(f"[ta-jws] {filename}: tampered signature was accepted")
+    except InvalidSignature:
+        pass
+
+
+if not hsm_lifetime_valid({"attestationType": "self-attestation", "iat": 0, "exp": 30 * 24 * 60 * 60}):
+    fail("[ta-jws] 30-day self-attestation lifetime was rejected")
+if hsm_lifetime_valid({"attestationType": "self-attestation", "iat": 0, "exp": 30 * 24 * 60 * 60 + 1}):
+    fail("[ta-jws] overlong self-attestation lifetime was accepted")
+
+verify_ta_jws_vector("ta-status-jws.json", "tsai-ta-status+jwt", TA_STATUS, 86400)
+verify_ta_jws_vector("ta-hsm-attestation-jws.json", "tsai-ta-hsm-attestation+jwt", HSM)
+
+
+# ---- 5. key-binding-JWT test vectors: schema + freshness rule -------------
 def freshness_verdict(iat, now):
     # Section 3.4: reject if iat > now + 30 or iat < now - 90
     if iat > now + 30 or iat < now - 90:
@@ -586,6 +682,17 @@ for oa in sorted((ARCH / "openapi").glob("*.yaml")):
         fail(f"[openapi] {oa.name} TAMetadata must require credentialTypes")
     if "schemaUri" in properties or "schema_uri" in properties:
         fail(f"[openapi] {oa.name} TAMetadata duplicates schema location from Type Metadata")
+    for path_name in ("/.well-known/tsai-ta-status", "/.well-known/tsai-ta-hsm-attestation"):
+        media = (
+            doc.get("paths", {})
+            .get(path_name, {})
+            .get("get", {})
+            .get("responses", {})
+            .get("200", {})
+            .get("content", {})
+        )
+        if "application/jwt" not in media:
+            fail(f"[openapi] {oa.name} {path_name} must return application/jwt")
 
 
 # ---- 7. cross-reference resolution (warning only) -------------------------
