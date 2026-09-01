@@ -49,7 +49,7 @@ where the disclosures are present only under selective disclosure (Section 2.6);
 
 | Claim | Requirement | Meaning |
 |---|---|---|
-| `iss` | REQUIRED | The Trust Authority's HTTPS issuer identifier; keys discovered at `/.well-known/jwt-vc-issuer` (Section 2.8). |
+| `iss` | REQUIRED | The Trust Authority's HTTPS issuer identifier; it may include a path but no query or fragment. Keys are discovered using the SD-JWT VC well-known insertion rule (Section 2.8). |
 | `vct` | REQUIRED | The verifiable credential type, a URL identifying the type and version, resolvable to a type-metadata document (Section 2.9). |
 | `vct#integrity` | REQUIRED | Integrity metadata for the `vct` Type Metadata document, per SD-JWT VC §5; selects the exact metadata that governs the credential (Section 2.9). |
 | `aka_vcts` | CONDITIONAL | Additional credential types. REQUIRED on a derived TSAI type and MUST include the canonical TSAI `vct`; MUST NOT contain the credential's primary `vct` (Sections 2.5.7 and 2.9). |
@@ -228,7 +228,7 @@ A credential MAY omit `status` only where the agent requires unlinkability acros
 
 Identity and key discovery follow ADR 017.
 
-- **Trust Authority.** Identified by the HTTPS `iss`, an origin with no path, query, fragment, or trailing slash, with EC/P-256 signing keys at `/.well-known/jwt-vc-issuer`; `kid` selects one. The absence of a path is deliberate: SD-JWT VC §3 forms the metadata location by inserting the well-known segment between the host and the path of `iss`, so forbidding a path makes that location coincide with the simple join. This is the only key-discovery mechanism: a credential carrying an `x5c` header MUST be rejected, and the verifier MUST confirm that the metadata's `issuer` equals `iss` (Section 3).
+- **Trust Authority.** Identified by the HTTPS `iss`, which contains a host and may contain a port and path but no query or fragment. Signing keys are discovered by inserting `/.well-known/jwt-vc-issuer` between the origin and the issuer path, after removing a terminating slash from that path; for example, `https://ta.example/tenant/acme` resolves metadata at `https://ta.example/.well-known/jwt-vc-issuer/tenant/acme`. `kid` selects an EC/P-256 key. This is the only key-discovery mechanism: a credential carrying an `x5c` header MUST be rejected, and the verifier MUST confirm that the metadata's `issuer` exactly equals the original `iss` (Section 3).
 - **Agent.** Identified by the `cnf` key; an optional `sub` gives a stable HTTPS name, not a DID.
 - **Referenced third parties.** A certifier (`cmp`) or a backer (`asr`) is identified by its own `did:web` in `prv`; an assurance party MAY additionally carry an `lei`.
 
@@ -250,7 +250,7 @@ A derived TSAI type uses the standard `extends` and `extends#integrity` properti
 {
   "vct": "https://ta.example/credential/tsai/1",
   "extends": "https://tsaiprotocol.org/credential/tsai/1",
-  "extends#integrity": "sha256-b4+5S0V4qNmxKIYGb2lXcf+QaNgSq1lDhZFDAfmT4yc=",
+  "extends#integrity": "sha256-J5H2Rv96WiADH2tL42drjG2OAza7jcFJAYdA+JIy/OM=",
   "tsai_schema_uri": "https://ta.example/schemas/credential/tsai/1.json",
   "tsai_schema_uri#integrity": "sha256-H5gGR/iMLT9a4ajpGQBRXOEwR4E1fUMqZl1gtCuhvtQ=",
   "claims": [
@@ -288,7 +288,7 @@ An issued credential, flat, before presentation:
 {
   "iss": "https://trust-authority.example",
   "vct": "https://tsaiprotocol.org/credential/tsai/1",
-  "vct#integrity": "sha256-b4+5S0V4qNmxKIYGb2lXcf+QaNgSq1lDhZFDAfmT4yc=",
+  "vct#integrity": "sha256-J5H2Rv96WiADH2tL42drjG2OAza7jcFJAYdA+JIy/OM=",
   "iat": 1781863200,
   "exp": 1781865000,
   "sub": "https://acme-corp.example/agents/shopper-v3",
@@ -325,7 +325,7 @@ Authorization and mandate — value limits, permitted operations, rate limits, a
 - Include the identity floor (`org`, `jur`, `kyc`, `dct`) in every credential (ADR 016).
 - Include `cnt` and the observation window whenever a reputation signal carries `band` or `scr` (ADR 016).
 - Not make an `sd: never` signal, reputation among them, selectively disclosable.
-- Publish signing keys at `/.well-known/jwt-vc-issuer` and an agent-and-operator status list. The publisher that defines each `vct` publishes its immutable Type Metadata and JSON Schema; TSAI publishes the canonical artefacts, while a TA or community publishes the derived artefacts it defines.
+- Publish signing-key metadata at the URL produced by the `jwt-vc-issuer` well-known insertion rule and publish an agent-and-operator status list. The publisher that defines each `vct` publishes its immutable Type Metadata and JSON Schema; TSAI publishes the canonical artefacts, while a TA or community publishes the derived artefacts it defines.
 - Advertise every `vct` the Trust Authority issues. For a derived TSAI type, extend and integrity-pin the parent metadata and schema, include the canonical base type in `aka_vcts`, and declare every custom signal.
 
 **Agents MUST:**

@@ -27,13 +27,15 @@ import json
 import re
 import sys
 from pathlib import Path
+from urllib.parse import urlsplit
 
 import yaml
-from jsonschema import Draft202012Validator
+from jsonschema import Draft202012Validator, FormatChecker
 
 ROOT = Path(__file__).resolve().parent.parent
 ARCH = ROOT / "architecture"
 SCHEMAS = ARCH / "schemas"
+FORMAT_CHECKER = FormatChecker()
 
 failures = []
 warnings = []
@@ -87,11 +89,57 @@ if CRED:
     }
 
 
+def issuer_metadata_url(issuer):
+    if any(character.isspace() for character in issuer):
+        raise ValueError("issuer must not contain whitespace")
+    parsed = urlsplit(issuer)
+    if parsed.scheme != "https" or not parsed.netloc or parsed.hostname is None or parsed.query or parsed.fragment:
+        raise ValueError("issuer must be an HTTPS URL without query or fragment")
+    if parsed.username is not None or parsed.password is not None:
+        raise ValueError("issuer authority must not contain user information")
+    try:
+        parsed.port
+    except ValueError as error:
+        raise ValueError("issuer contains an invalid port") from error
+    path = parsed.path.rstrip("/")
+    return f"https://{parsed.netloc}/.well-known/jwt-vc-issuer{path}"
+
+
+_issuer_cases = {
+    "https://ta.example": "https://ta.example/.well-known/jwt-vc-issuer",
+    "https://ta.example/": "https://ta.example/.well-known/jwt-vc-issuer",
+    "https://ta.example/tenant/acme": "https://ta.example/.well-known/jwt-vc-issuer/tenant/acme",
+    "https://ta.example/tenant/acme/": "https://ta.example/.well-known/jwt-vc-issuer/tenant/acme",
+}
+for issuer, expected in _issuer_cases.items():
+    if issuer_metadata_url(issuer) != expected:
+        fail(f"[issuer] metadata URL mismatch for {issuer}")
+    if CRED and list(Draft202012Validator(CRED["properties"]["iss"], format_checker=FORMAT_CHECKER).iter_errors(issuer)):
+        fail(f"[issuer] credential schema rejects valid issuer {issuer}")
+for issuer in (
+    "http://ta.example",
+    "https://user@ta.example/path",
+    "https://ta.example:invalid/path",
+    "https://ta.example:99999/path",
+    "https://ta.example/path with-space",
+    "https:///missing-host",
+    "https://ta.example/path?x=1",
+    "https://ta.example/path#fragment",
+):
+    try:
+        issuer_metadata_url(issuer)
+        fail(f"[issuer] invalid issuer accepted by URL construction: {issuer}")
+    except ValueError:
+        pass
+    if CRED and not list(Draft202012Validator(CRED["properties"]["iss"], format_checker=FORMAT_CHECKER).iter_errors(issuer)):
+        fail(f"[issuer] credential schema accepts invalid issuer {issuer}")
+
+
 def validate(instance, schema, label):
     if schema is None:
         warn(f"[example] {label}: no schema loaded to validate against")
         return
-    errs = sorted(Draft202012Validator(schema).iter_errors(instance), key=str)
+    errs = sorted(Draft202012Validator(schema, format_checker=FORMAT_CHECKER).iter_errors(instance), key=str)
     for e in errs:
         loc = "/".join(str(p) for p in e.absolute_path) or "(root)"
         fail(f"[example] {label}: {loc}: {e.message}")
@@ -435,7 +483,7 @@ if derived_vector_path.exists():
                 fail(f"[derived-vector] schema reference resolution failed: {error}")
                 resolved_derived_schema = {"not": {}}
             errs = sorted(
-                Draft202012Validator(resolved_derived_schema).iter_errors(derived_vector),
+                Draft202012Validator(resolved_derived_schema, format_checker=FORMAT_CHECKER).iter_errors(derived_vector),
                 key=str,
             )
             for error in errs:
@@ -464,7 +512,7 @@ if derived_vector_path.exists():
             if not list(validator.iter_errors(instance)):
                 fail(f"[derived-vector] negative case was accepted: {label}")
 
-        derived_validator = Draft202012Validator(resolved_derived_schema)
+        derived_validator = Draft202012Validator(resolved_derived_schema, format_checker=FORMAT_CHECKER)
         bad = copy.deepcopy(derived_vector)
         bad["signals"][-1]["level"] = "unknown"
         must_reject(bad, derived_validator, "custom enum")
@@ -488,7 +536,7 @@ if derived_vector_path.exists():
         bad.pop("aka_vcts", None)
         must_reject(
             bad,
-            Draft202012Validator(schemas_by_id[BASE_SCHEMA_ID]),
+            Draft202012Validator(schemas_by_id[BASE_SCHEMA_ID], format_checker=FORMAT_CHECKER),
             "custom signal under canonical vct",
         )
 else:

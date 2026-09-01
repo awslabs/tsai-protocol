@@ -57,7 +57,7 @@ TA, agent, and referenced parties are all `did:web`.
 
 ### Option 2: Key-holders by their key, referenced parties by `did:web` (decided)
 
-- **Trust Authority:** an HTTPS `iss` with keys at `/.well-known/jwt-vc-issuer`. Key rotation is publishing a new key there.
+- **Trust Authority:** an HTTPS `iss`; key metadata is found by inserting `/.well-known/jwt-vc-issuer` between the origin and any issuer path. Key rotation publishes a new key there.
 - **Agent:** the EC/P-256 `cnf` JWK is the identity. A stable name in `sub` is optional and, if present, is an HTTPS identifier the operator controls.
 - **Referenced third parties:** their own `did:web`, one canonical DID per party.
 
@@ -92,7 +92,7 @@ Key-holders as in Option 2, but referenced parties identified by a registry iden
 
 Adopt **Option 2**.
 
-The Trust Authority is identified by an HTTPS `iss`, with its signing keys at `/.well-known/jwt-vc-issuer`. The agent is identified by its `cnf` key, with an optional `sub` that, if used, is an HTTPS identifier the operator controls. Referenced third parties are identified by their own `did:web`, and each publishes one canonical DID. `did:wba` is dropped.
+The Trust Authority is identified by an HTTPS `iss`. Its signing-key metadata is located by inserting `/.well-known/jwt-vc-issuer` between the origin and any issuer path, per SD-JWT VC §3. The agent is identified by its `cnf` key, with an optional `sub` that, if used, is an HTTPS identifier the operator controls. Referenced third parties are identified by their own `did:web`, and each publishes one canonical DID. `did:wba` is dropped.
 
 The split follows a single rule: a party that holds a key in the credential is identified by that key or its discovery, the TA by `jwt-vc-issuer` and the agent by `cnf`; a party that is only referenced holds no key here and is identified by a resolvable identifier it controls, `did:web`. That gives references an authority outside any single TA and one resolution mechanism, without adding DID resolution to the parties the credential already identifies by key.
 
@@ -105,7 +105,7 @@ The Service Provider, the audience of a presentation, is named by its HTTPS orig
 ## Consequences
 
 - Supersedes ADR 006. ADR 006 takes a forward pointer to this ADR; its body is unchanged except for the later TAP-to-TSAI naming rename, which was a naming purge rather than a decision change.
-- The Trust Authority publishes its signing keys at `/.well-known/jwt-vc-issuer` and identifies itself by an HTTPS `iss`. A `did:web` for the TA is not used.
+- The Trust Authority identifies itself by HTTPS `iss` and publishes signing-key metadata at the path produced by the SD-JWT VC well-known insertion rule. A `did:web` for the TA is not used.
 - The agent is identified by its EC/P-256 `cnf` JWK; `sub`, if present, is an HTTPS identifier for continuity, not a DID.
 - Referenced third parties publish one canonical `did:web` each and are referenced by it.
 - Platforms no longer resolve multiple DID methods for core verification, which removes the platform-complexity cost ADR 006 accepted.

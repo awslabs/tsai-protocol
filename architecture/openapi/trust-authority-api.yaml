@@ -19,10 +19,10 @@ servers:
   - url: https://trust-authority.example
     description: >-
       The Trust Authority origin. The API endpoints (challenges, credentials,
-      status, metadata) MAY instead be mounted under a path prefix; the two
-      /.well-known endpoints MUST be served at the origin root as shown, since
-      a verifier discovers the signing keys and the status report there
-      (Section 2.8, Section 3.2.1).
+      status, metadata) MAY instead be mounted under a path prefix. The status
+      report remains origin-rooted. Issuer metadata starts at the origin-rooted
+      /.well-known/jwt-vc-issuer suffix and appends any issuer path, per the
+      SD-JWT VC insertion rule (Section 2.8, Section 3.2.1).
 
 tags:
   - name: credentials
@@ -160,8 +160,11 @@ paths:
     get:
       summary: SD-JWT VC issuer metadata (signing keys)
       description: >-
-        Returns the issuer metadata document containing jwks or jwks_uri.
-        Origin-rooted: served at the origin root regardless of any API base path.
+        Returns the issuer metadata document containing jwks or jwks_uri. This
+        literal path is for an issuer without a path component. For an issuer
+        such as https://ta.example/tenant/acme, the same operation is served at
+        /.well-known/jwt-vc-issuer/tenant/acme under the SD-JWT VC insertion
+        rule, regardless of any API base path.
       operationId: getIssuerMetadata
       tags: [metadata]
       responses:

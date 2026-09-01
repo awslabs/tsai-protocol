@@ -41,7 +41,7 @@ This specification uses RFC 2119 terminology: MUST, MUST NOT, SHOULD, SHOULD NOT
 
 **Credential** — an SD-JWT VC issued by a Trust Authority, carrying trust signals about an agent.
 
-**Trust Authority (TA)** — a professional entity that evaluates agents and issues signed credentials. Identified by an HTTPS issuer, with keys at `/.well-known/jwt-vc-issuer`.
+**Trust Authority (TA)** — a professional entity that evaluates agents and issues signed credentials. Identified by an HTTPS issuer, with signing-key metadata found through the `jwt-vc-issuer` well-known insertion rule.
 
 **Service Provider** — the party that receives a credential, verifies it, and decides on access. It may be a merchant system, an API, an MCP server, an A2A service agent, edge infrastructure, or another agent in a service role. In W3C Verifiable Credentials terms it is the Verifier. An earlier draft used the term Platform (ADR 012).
 
