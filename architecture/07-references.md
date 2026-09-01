@@ -173,8 +173,8 @@ ADR 013: VP-JWT Claim Structure (superseded by ADR 015)
 TSAI Working Group, June 2026  
 `decisions/013-vp-jwt-claim-structure.md`
 
-**[TSAI-ADR-014..022]**  
-Follow-on ADRs: Holder Binding (ADR 014), Credential Serialisation Format (ADR 015, supersedes 003), Trust Signal Structure (ADR 016, supersedes 004), Party Identity (ADR 017, supersedes 006), Verification Strength and Replay (ADR 018, amends 007 and 009), Mandatory Identity Floor (ADR 019), Request Binding (ADR 020, amends 014), Reputation (ADR 021, amends 016), Holder-Directed Issuance and Type Metadata (ADR 022, amends 015)  
+**[TSAI-ADR-014..018]**  
+Follow-on ADRs: Holder Binding and Request Binding (ADR 014), Credential Serialisation, Holder-Directed Issuance, and Type Metadata (ADR 015, supersedes 003), Trust Signal Structure, Identity Floor, and Reputation (ADR 016, supersedes 004), Party Identity (ADR 017, supersedes 006), Verification Strength and Replay (ADR 018, amends 007 and 009).  
 TSAI Working Group  
 `decisions/`
 

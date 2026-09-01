@@ -23,7 +23,7 @@ A credential is an SD-JWT VC. It carries a flat list of trust signals in four ca
 
 ### Operator
 
-The operator is the legal entity, a company, organisation, or individual, that runs agents. The operator sets each agent's purpose and constraints, undergoes identity verification with a Trust Authority, and is legally accountable for the agents it runs. Each of its agents builds its own reputation, and a Trust Authority may also issue an operator-level aggregate across them (ADR 021). For example, Acme Corporation GmbH might run several agents, each with its own track record, all sharing the operator's legal identity and accountability.
+The operator is the legal entity, a company, organisation, or individual, that runs agents. The operator sets each agent's purpose and constraints, undergoes identity verification with a Trust Authority, and is legally accountable for the agents it runs. Each of its agents builds its own reputation, and a Trust Authority may also issue an operator-level aggregate across them (ADR 016). For example, Acme Corporation GmbH might run several agents, each with its own track record, all sharing the operator's legal identity and accountability.
 
 ### Agent
 
@@ -56,7 +56,7 @@ The four categories answer four questions a Service Provider asks.
 
 One operator can run several agents. Each agent builds its own reputation, while all share the operator's identity, compliance, and assurance signals.
 
-**The identity floor.** Every credential carries a minimum identity set: the operator's legal name, jurisdiction, depth of identity verification, and at least one controlled domain. This is not a tier; it is the floor below which no credential is issued. The credential schema requires it and the signal metadata prevents its disclosure, so a verified credential always names an accountable operator (ADR 019).
+**The identity floor.** Every credential carries a minimum identity set: the operator's legal name, jurisdiction, depth of identity verification, and at least one controlled domain. This is not a tier; it is the floor below which no credential is issued. The credential schema requires it and the signal metadata prevents its disclosure, so a verified credential always names an accountable operator (ADR 016).
 
 Authorization, the constraints on what an agent may do, is not a trust signal. It is a matter of delegation and is handled separately (ADR 001), not as a signal category.
 
@@ -90,7 +90,7 @@ This replaces the earlier tiered model, where the credential carried a tier and 
 
 **Binding prevents theft.** The credential is bound to the agent's key. The agent proves possession with the key-binding JWT, so a stolen credential is useless without the private key.
 
-**Replay is prevented per presentation.** Each presentation carries a fresh key-binding JWT addressed to one Service Provider, on a clock independent of the credential lifetime. A captured presentation is not usable elsewhere. For a state-changing action the presentation is also bound to the request and carries a single-use challenge the Service Provider issues, so it cannot be replayed or attached to a different action (ADR 020).
+**Replay is prevented per presentation.** Each presentation carries a fresh key-binding JWT addressed to one Service Provider, on a clock independent of the credential lifetime. A captured presentation is not usable elsewhere. For a state-changing action the presentation is also bound to the request and carries a single-use challenge the Service Provider issues, so it cannot be replayed or attached to a different action (ADR 014).
 
 **Short lifetime bounds exposure.** A credential lives thirty minutes, so a compromised agent loses access quickly, and a Trust Authority stops re-issuing to a misbehaving agent. Where the in-window risk justifies it, a Trust Authority publishes a block against the agent or operator, keyed to its identity, which a Service Provider checks online when its policy calls for it. An operator can repudiate an agent's binding key at the Trust Authority, which then refuses further issuance against it and blocks the affected agent.
 

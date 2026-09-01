@@ -9,7 +9,6 @@ SPDX-License-Identifier: Apache-2.0
 **Date:** 2026-07-02  
 **Deciders:** TSAI Working Group  
 **Relationship to ADR 004:** supersedes [ADR 004 — Tiered Trust Model (T0-T3)](./004-tiered-trust-model.md)  
-**Amended by:** [ADR 021 — Reputation Comparability, Support, and Attribution](./021-reputation.md)
 
 
 ---
@@ -24,7 +23,7 @@ First, the assurances are not cumulative. An operator can carry insured recourse
 
 Second, the tier label is coarse relative to the decision a Service Provider makes. "Require T3" does not say how much insurance coverage or which certification, and that decision is a predicate over specific signals. The credential also carries redundant tier markers, a `type` entry, a `tsaiTier` field, and an in-block level, that duplicate the structure and can become inconsistent with it.
 
-This ADR decides only the structure of the signals: how they are shaped and discriminated. It deliberately does not define the set of categories or the per-type fields, which are left to a later decision, either a separate ADR or the implementation JSON schema. It is orthogonal to the credential format (ADR 015) and the holder-binding decision (ADR 014), each decided in its own ADR in this branch.
+This ADR decides the signal structure and the baseline semantics that make a TSAI credential useful: the four categories and their typed fields, the mandatory operator-identity floor, and the portable and TA-specific parts of reputation. It remains orthogonal to the credential format (ADR 015) and holder binding (ADR 014).
 
 ---
 
@@ -38,6 +37,8 @@ This ADR decides only the structure of the signals: how they are shaped and disc
 6. **Implementer simplicity.** The structure minimises ambiguity, redundancy, and implementation effort.
 7. **Portability across Trust Authorities.** A Service Provider can consume and compare credentials from different authorities without per-authority logic.
 8. **Adoption and communicability.** How much effort a newcomer needs to integrate, and how readily policy-setters and badge-readers understand what an agent has.
+9. **Accountability by default.** Every conforming credential identifies the accountable operator without requiring verifier configuration.
+10. **Reputation evidence and attribution.** Reputation carries enough support and scope to be interpreted without hiding a thin history or making reputation washing invisible.
 
 ---
 
@@ -94,7 +95,17 @@ The value of the category discriminator, independent of what the categories turn
 ]
 ```
 
-**Mapping from the current tiers.** The substance of the T0-T3 signals is preserved as signals in this structure; T3's constraints and real-time verification are authorisation and verification concerns rather than trust signals and stay where the architecture places them. How the remaining tiers map onto specific categories and types is part of defining the category vocabulary, which is out of scope here.
+**Mapping from the current tiers.** The substance of the T0-T3 signals is preserved as signals in this structure; T3's constraints and real-time verification are authorisation and verification concerns rather than trust signals and stay where the architecture places them.
+
+### Identity-floor alternatives
+
+Three placements were considered. No floor maximises flexibility but permits a credential that identifies nobody. A verifier-side base profile keeps all policy in one place but makes the v1 identity guarantee depend on each Service Provider configuring that profile. An issuer obligation is chosen: every credential carries the operator's legal name, jurisdiction, verification depth, and a verified controlled domain. This applies before verifier policy and reintroduces no tier or ordering.
+
+### Reputation alternatives
+
+A TA-specific score alone preserves each authority's methodology but forces a Service Provider to model every private scale. A portable ordinal alone is easier to consume but hides useful resolution and can overstate comparability. TSAI therefore carries a coarse shared `band` alongside the optional TA-specific `scr`, with mandatory interaction count, observation window, and `asof` whenever either value is present. The band has a common ordering and vocabulary; each TA publishes its criteria, so it is policy-portable but not evidence-equivalent across authorities.
+
+Agent-level attribution is the default because behaviour belongs to the specific agent. An optional operator-level aggregate lets a Service Provider evaluate a new agent against the operator's broader record and makes reputation washing visible, although it does not eliminate it. End-user-level Sybil resistance remains out of scope (ADR 008).
 
 ---
 
@@ -121,9 +132,13 @@ The options differ on three dimensions: faithfulness to independent assurances, 
 
 Adopt **Variant 3b**: a flat list of signals in which each signal is an object carrying a `category`, a `type`, and type-specific fields.
 
-This ADR fixes only that structure. It does not define the categories, the types, or the per-type fields. Those are a separate decision, taken later either as its own ADR or as the implementation JSON schema. What is decided here is that signals are a flat, independently-present list rather than tiers, and that each signal is discriminated by a `category` above its `type`.
+The four registered categories are identity (`idn`), reputation (`rep`), compliance (`cmp`), and assurance (`asr`). Each signal has `cat`, `typ`, and type-specific fields; the schema and registry define the vocabulary.
 
-The flat list is chosen over tiers because the assurances are not cumulative, so any ordered scale (Options 1 and 2) implies an order that does not hold and is too coarse for the predicate a Service Provider actually evaluates. Within the flat list, the category discriminator (3b) is chosen over a bare typed list (3a) because it lets a verifier treat a signal by its category before it knows the specific type, which is what gives cross-authority portability, category-level policy that survives new types, and clean validation. The cost accepted is that a category set must be agreed eventually; deferring it keeps this decision to the structural question and lets the vocabulary be settled with implementation experience rather than up front.
+**Identity floor.** A Trust Authority MUST NOT issue a TSAI credential unless it contains the operator's legal name (`idn/org`), jurisdiction (`idn/jur`), verification depth (`idn/kyc`: `basic`, `enhanced`, or `institutional`), and at least one verified controlled domain (`idn/dct`). The schema enforces presence and the signal metadata makes these signals non-disclosable. The floor is an issuer obligation, not a tier or verifier-configured profile.
+
+**Reputation.** A reputation signal carries a coarse `band` (`insufficient-history`, `established`, or `strong`) and may carry a TA-specific `scr`. The band has a common order and vocabulary for shared policy, while the authority's published criteria determine the evidence behind it; `scr` is not comparable across authorities. Whenever `band` or `scr` is present, `cnt`, `wdw`, and `asof` are required. Reputation is agent-scoped by default (`scp: agent`); an authority may additionally issue an operator aggregate (`scp: operator`). A Trust Authority asserts reputation only where it has a basis to observe it and publishes its criteria.
+
+The flat list is chosen over tiers because assurances are not cumulative, so an ordered scale implies an order that does not hold and is too coarse for the predicate a Service Provider evaluates. The category discriminator is chosen over a bare typed list because it lets a verifier classify a signal before it knows the specific type. The accepted costs are a governed category/type vocabulary and the loss of a single human-facing tier label.
 
 ---
 
@@ -131,10 +146,11 @@ The flat list is chosen over tiers because the assurances are not cumulative, so
 
 - Supersedes ADR 004. The tiered model and its redundant markers are replaced by the flat signal list.
 - A signal is an object with a `category`, a `type`, and type-specific fields. A Service Provider's admission policy is a predicate over these signals.
-- The category vocabulary, the set of types, and the fields each type carries are not decided here. They are deferred to a separate ADR or to the implementation JSON schema, and that later decision also settles how the current tier substance maps onto categories and types.
-- Verification strength keyed to tiers must be re-expressed. ADR 004 and ADR 009 key verification rigour to tiers, an offline timestamp check for T0/T1 and stronger mechanisms for T2/T3. With no tiers, verification strength has to be expressed as a predicate over signals or categories, for example a signal carrying a status or verification reference that the Service Provider checks. Occasional checks against static or cached resources are inexpensive, so the offline-only constraint that motivated the low tiers is no longer decisive. This implies amending ADR 009 and is noted as a dependency, not settled here.
+- The registered category/type vocabulary and field constraints live in the canonical schema and registry; extensions use derived credential types under ADR 015.
+- Every credential identifies an accountable operator through the identity floor, without requiring Service-Provider policy. The floor does not define levels or ordering.
+- Verification strength is no longer keyed to tiers; ADR 018 expresses it as a fixed baseline plus Service-Provider policy over the signals and action.
 - Revocation stays atomic. A single credential carrying all signals is revoked as a whole, which fits the short-expiry-and-refresh model; per-signal revocation is not proposed.
-- Reputation attribution, whether reputation accrues to the agent or the operator, is a separate open question and is not settled here.
+- Reputation uses a common band for shared policy and an optional TA-specific score; support evidence travels with either. Agent-level reputation is primary, and an optional operator aggregate makes washing more visible but does not eliminate it.
 - Serialisation follows ADR 015, which selects SD-JWT VC, so the signals are carried as claims in the credential.
 
 ---
@@ -144,7 +160,9 @@ The flat list is chosen over tiers because the assurances are not cumulative, so
 - [ADR 003 — W3C Verifiable Credentials as Credential Format](./003-w3c-verifiable-credentials.md)
 - [ADR 004 — Tiered Trust Model (T0-T3)](./004-tiered-trust-model.md)
 - [ADR 009 — Timestamp-Based Replay Prevention](./009-timestamp-based-replay-prevention.md)
+- [ADR 008 — User Privacy and Sybil Prevention](./008-user-privacy-and-sybil-prevention.md)
 - ADR 014 — Holder Binding and Web Bot Auth Integration
 - ADR 015 — Credential Serialisation Format
+- ADR 018 — Verification Strength, Replay, and Lifetime without Tiers
 - [W3C Verifiable Credentials Data Model 2.0](https://www.w3.org/TR/vc-data-model-2.0/)
 - [draft-ietf-oauth-sd-jwt-vc](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-sd-jwt-vc)

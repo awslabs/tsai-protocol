@@ -35,9 +35,9 @@ Before binding a credential to a key, the Trust Authority confirms the operator'
 
 ## 7.4 Holder-Directed Issuance and Honesty
 
-**Holder-directed issuance.** An agent MAY include a `signals` filter in the issuance request, asking for a subset of the signals above the identity floor, such as identity plus compliance only, without naming the Service Provider it will present to (ADR 022). The Trust Authority returns the requested subset and stays blind to the destination; it learns the agent's pattern of requests, which is far weaker than learning its destinations. The filter narrows only the signals above the floor: a Trust Authority MUST include the identity floor (ADR 019) regardless of the filter, and, more generally, a filter can never remove a signal the applicable credential schema requires.
+**Holder-directed issuance.** An agent MAY include a `signals` filter in the issuance request, asking for a subset of the signals above the identity floor, such as identity plus compliance only, without naming the Service Provider it will present to (ADR 015). The Trust Authority returns the requested subset and stays blind to the destination; it learns the agent's pattern of requests, which is far weaker than learning its destinations. The filter narrows only the signals above the floor: a Trust Authority MUST include the identity floor (ADR 016) regardless of the filter, and, more generally, a filter can never remove a signal the applicable credential schema requires.
 
-**Honesty.** The contents of a credential MUST match what the Trust Authority actually established. Specifically, a Trust Authority MUST verify the operator's identity before issuing, MUST perform the verification each signal claims — KYC for identity, DNS challenge or email for domain control, certificate validation or registry lookup for a certification, membership confirmation for an affiliation, and the basis it states for reputation — and MUST NOT populate a signal it has no basis to assert. A Trust Authority issuing custom signals MUST use a derived `vct`, publish metadata and a schema rooted in the canonical TSAI type, declare each custom signal's disclosure/display rule in `tsai_signal_metadata`, and define its fields in the schema. Every credential carries the identity floor (ADR 019), and reputation is `sd: never` (ADR 022).
+**Honesty.** The contents of a credential MUST match what the Trust Authority actually established. Specifically, a Trust Authority MUST verify the operator's identity before issuing, MUST perform the verification each signal claims — KYC for identity, DNS challenge or email for domain control, certificate validation or registry lookup for a certification, membership confirmation for an affiliation, and the basis it states for reputation — and MUST NOT populate a signal it has no basis to assert. A Trust Authority issuing custom signals MUST use a derived `vct`, publish metadata and a schema rooted in the canonical TSAI type, declare each custom signal's disclosure/display rule in `tsai_signal_metadata`, and define its fields in the schema. Every credential carries the identity floor (ADR 016), and reputation is `sd: never` (ADR 015).
 
 ---
 
@@ -77,7 +77,7 @@ A Trust Authority MUST implement the OpenAPI specification, authenticate the ope
 
 ### 7.10.1 Published criteria and data practices
 
-A Trust Authority MUST publish its evaluation criteria, including how it maps its own reputation scale to the portable `band` (ADR 021), so a Service Provider can interpret a score and an operator can tell what standing it needs. It MUST disclose its data-collection, retention, and sharing practices.
+A Trust Authority MUST publish its evaluation criteria, including how it maps its own reputation scale to the portable `band` (ADR 016), so a Service Provider can interpret a score and an operator can tell what standing it needs. It MUST disclose its data-collection, retention, and sharing practices.
 
 ### 7.10.2 Status report
 
@@ -128,5 +128,5 @@ Assurance levels: `independent-audit` (a third party verified HSM use, the stron
 
 - OpenAPI Specification: [`openapi/trust-authority-api.yaml`](openapi/trust-authority-api.yaml)
 - TSAI Credential Format (Section 2), TSAI Verification (Section 3)
-- ADR 011 (transparency), ADR 019 (identity floor), ADR 021 (reputation), ADR 022 (holder-directed issuance)
+- ADR 011 (transparency), ADR 015 (holder-directed issuance and Type Metadata), ADR 016 (identity floor and reputation)
 - draft-ietf-oauth-sd-jwt-vc, draft-ietf-oauth-status-list

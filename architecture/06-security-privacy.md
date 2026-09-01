@@ -49,7 +49,7 @@ Normative at the protocol level: the SD-JWT VC format (Section 2), the verificat
 |---|---|
 | Steal a credential from storage or the wire | Useless without the `cnf` private key; short lifetime bounds exposure |
 | Replay a captured presentation to another Service Provider | `aud` binds it to one |
-| Substitute the request on a captured presentation at this Service Provider | `req` binds the request for state-changing actions (§3.4, ADR 020) |
+| Substitute the request on a captured presentation at this Service Provider | `req` binds the request for state-changing actions (§3.4, ADR 014) |
 | Forge a credential | Issuer signature verified against the key from `jwt-vc-issuer`, with `x5c` rejected and `issuer` pinned to `iss` |
 | Suppress a block by serving a stale or forged status list | Status-list token signature verified, issuer matched, URI pinned to the `iss` origin (§3.5) |
 | Server-side request forgery via a fetched URL | URL validation, private-address refusal, bounded size and timeout (§3.6) |
@@ -88,7 +88,7 @@ A network attacker cannot break HTTPS or forge a signature. A compromised agent 
 
 ## 5.6 Replay and Substitution
 
-A presentation is bound to one Service Provider by `aud`, carries a fresh key-binding JWT with a bounded `iat` and a `nonce`, and, for a state-changing action, a `req` digest that binds the request (§3.4, ADR 020). A captured credential is unusable without the `cnf` key; a captured presentation is not usable against another Service Provider, and, where `req` is present, not against another action at this one. The freshness window, nonce policy, and request-binding rule are in Section 3.4. All parties keep time with NTP; a Service Provider monitors clock drift and returns its time on a stale rejection.
+A presentation is bound to one Service Provider by `aud`, carries a fresh key-binding JWT with a bounded `iat` and a `nonce`, and, for a state-changing action, a `req` digest that binds the request (§3.4, ADR 014). A captured credential is unusable without the `cnf` key; a captured presentation is not usable against another Service Provider, and, where `req` is present, not against another action at this one. The freshness window, nonce policy, and request-binding rule are in Section 3.4. All parties keep time with NTP; a Service Provider monitors clock drift and returns its time on a stale rejection.
 
 ---
 
@@ -96,7 +96,7 @@ A presentation is bound to one Service Provider by `aud`, carries a fresh key-bi
 
 **Agent correlation.** An agent is identified by its `cnf` key and, optionally, a stable `sub`. Reusing either across Service Providers makes the agent correlatable; a fresh key per Service Provider avoids it, at the cost of more issuance load (which counts against §7.7's limits — an agent talking to twenty Service Providers on a cold start exceeds ten issuances per minute). A credential's `status` claim is itself a correlator: two Service Providers that fetch status see the same `uri` and `idx`, a stable cross-Service-Provider identifier that survives key rotation. So an agent that requires unlinkability must obtain credentials without `status` and accept that no block can reach it within the lifetime, and must not carry a stable `sub`. This trade-off between a reachable block and unlinkability has no clean resolution inside a per-agent index, and it is stated rather than solved.
 
-**What each party learns.** A Service Provider learns the operator's identity, the signals, and the issuing Trust Authority, not the agent's activity elsewhere, since a credential does not call back to the Trust Authority on use. A Trust Authority learns which agents it issues to and, under holder-directed issuance (ADR 022), their pattern of requests, but not which Service Provider an agent visits on the offline path. A status fetch reveals to the Trust Authority only that someone read a list, not which credential or Service Provider.
+**What each party learns.** A Service Provider learns the operator's identity, the signals, and the issuing Trust Authority, not the agent's activity elsewhere, since a credential does not call back to the Trust Authority on use. A Trust Authority learns which agents it issues to and, under holder-directed issuance (ADR 015), their pattern of requests, but not which Service Provider an agent visits on the offline path. A status fetch reveals to the Trust Authority only that someone read a list, not which credential or Service Provider.
 
 **Users** are out of scope; a credential carries no user identity, and a Service Provider MUST NOT conflate agent trust with user trust.
 
@@ -127,7 +127,7 @@ TSAI does not protect against LLM-specific attacks, poor output quality, an agen
 - **`prv` is attribution, not proof.** A compliance or assurance `prv` names the third party the Trust Authority asserts stands behind a claim, without a signature from that party. A Service Provider relying on such a signal for a material decision verifies it out of band.
 - **Signal currency.** The 30-minute lifetime bounds the binding and the presentation, not the assertions; a signal's currency is carried by `asof` (§2.5.1), and a Service Provider should read it rather than assume a freshly minted credential carries fresh facts.
 - **Derived-type trust.** A derived `vct`, `aka_vcts`, or `extends` assertion does not authorise its issuer (SD-JWT VC §6.6). A Service Provider accepts a derived TSAI type only from an issuer it trusts and only after validating the integrity-pinned metadata and schema chain to the canonical TSAI type.
-- **Reputation washing.** Agent-level reputation lets an operator register a new agent to shed a poor record; an operator-level reputation signal (`rep` with `scp: operator`, ADR 021) and the identity floor bound this, but do not close it. End-user-level Sybil resistance is deferred (ADR 008).
+- **Reputation washing.** Agent-level reputation lets an operator register a new agent to shed a poor record; an operator-level reputation signal (`rep` with `scp: operator`, ADR 016) and the identity floor bound this, but do not close it. End-user-level Sybil resistance is deferred (ADR 008).
 - **Agent key compromise.** A stolen binding key lets an attacker present existing credentials until they expire and, absent the controls of §7.2 and §7.6, obtain new ones. The mitigation is operator authentication at issuance and key repudiation (§7.6); the status list is keyed to the agent or operator, so repudiating a compromised key blocks the agent.
 - **Request substitution without `req`.** Where a presentation does not carry `req`, TSAI binds the presenter to the credential and the audience, not to the action; a Service Provider whose verifying and acting components differ must require `req` (§3.4).
 - **Correlation versus a reachable block.** A credential carrying `status` is correlatable across Service Providers that read the list; unlinkability requires forgoing `status` (§5.7).
@@ -151,4 +151,4 @@ TSAI does not protect against LLM-specific attacks, poor output quality, an agen
 
 - draft-ietf-oauth-sd-jwt-vc; RFC 9901 (§10.1 correlation, §10.2 key storage); draft-ietf-oauth-status-list
 - RFC 7519, RFC 7518, RFC 7515, RFC 7638, RFC 8725, RFC 6979, RFC 9530; NIST SP 800-57
-- ADR 007, ADR 014, ADR 017, ADR 018, ADR 019, ADR 020, ADR 021
+- ADR 007, ADR 014, ADR 016, ADR 017, ADR 018

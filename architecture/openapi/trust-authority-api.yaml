@@ -294,11 +294,11 @@ components:
         signals:
           type: array
           description: >-
-            Optional holder-directed filter (ADR 022): request a subset of
+            Optional holder-directed filter (ADR 015): request a subset of
             categories or types above the identity floor, without naming the
             Service Provider. The identity floor is always included regardless
-            of the filter, and the filter can never remove a claim the type
-            metadata marks mandatory. The Trust Authority stays blind to the
+            of the filter, and the filter can never remove a signal the
+            applicable credential schema requires. The Trust Authority stays blind to the
             destination.
           items:
             type: object

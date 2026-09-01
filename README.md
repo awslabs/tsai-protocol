@@ -76,15 +76,11 @@ Documented design decisions with rationale and alternatives considered:
 - **[011-ta-operational-transparency.md](./decisions/011-ta-operational-transparency.md)** - TA-published operational status reports
 - **[012-service-provider-terminology.md](./decisions/012-service-provider-terminology.md)** - "Service Provider" terminology and conventions
 - **[013-vp-jwt-claim-structure.md](./decisions/013-vp-jwt-claim-structure.md)** - VP-JWT claim structure (superseded by ADR 015)
-- **[014-holder-binding-and-web-bot-auth-integration.md](./decisions/014-holder-binding-and-web-bot-auth-integration.md)** - Holder binding via a key-binding JWT; Web Bot Auth kept orthogonal
-- **[015-credential-serialisation-format.md](./decisions/015-credential-serialisation-format.md)** - SD-JWT VC as the credential format (supersedes ADR 003)
-- **[016-trust-signal-structure.md](./decisions/016-trust-signal-structure.md)** - Flat trust-signal list in four categories (supersedes ADR 004)
+- **[014-holder-binding-and-web-bot-auth-integration.md](./decisions/014-holder-binding-and-web-bot-auth-integration.md)** - Self-contained key binding and request binding; Web Bot Auth kept orthogonal
+- **[015-credential-serialisation-format.md](./decisions/015-credential-serialisation-format.md)** - SD-JWT VC format, holder-directed issuance, and Type Metadata (supersedes ADR 003)
+- **[016-trust-signal-structure.md](./decisions/016-trust-signal-structure.md)** - Flat four-category signal model, identity floor, and reputation semantics (supersedes ADR 004)
 - **[017-party-identity-and-key-discovery.md](./decisions/017-party-identity-and-key-discovery.md)** - HTTPS issuer, `cnf`-key agent, `did:web` third parties (supersedes ADR 006)
 - **[018-verification-strength-and-replay.md](./decisions/018-verification-strength-and-replay.md)** - Verification strength, replay, and the 30-minute lifetime without tiers (amends ADR 007 and ADR 009)
-- **[019-mandatory-identity-floor.md](./decisions/019-mandatory-identity-floor.md)** - Every credential MUST identify its operator (restores an invariant ADR 016 did not intend to remove)
-- **[020-request-binding.md](./decisions/020-request-binding.md)** - Optional `req` digest binding a presentation to its request (amends ADR 014)
-- **[021-reputation.md](./decisions/021-reputation.md)** - Portable reputation band, mandatory support, and attribution (amends ADR 016)
-- **[022-holder-directed-issuance-and-type-metadata.md](./decisions/022-holder-directed-issuance-and-type-metadata.md)** - Holder-directed issuance and type metadata with `sd: never` (amends ADR 015)
 
 ---
 

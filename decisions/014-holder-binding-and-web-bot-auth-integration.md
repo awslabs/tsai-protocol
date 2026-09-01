@@ -10,7 +10,6 @@ SPDX-License-Identifier: Apache-2.0
 **Deciders:** TSAI Working Group  
 **Relationship to ADR 013:** reaffirms the self-contained binding approach of [ADR 013 — VP-JWT Claim Structure](./013-vp-jwt-claim-structure.md), and amends it: since ADR 015 selects SD-JWT VC, the binding is a key-binding JWT in place of ADR 013's VP-JWT claim structure  
 **Depends on:** the credential serialisation format, decided separately in ADR 015  
-**Amended by:** [ADR 020 — Request Binding](./020-request-binding.md)
 
 
 ---
@@ -65,7 +64,7 @@ TSAI operates over HTTP, whether direct, over MCP, or over A2A. Transport is not
 
 ## Decision Criteria
 
-1. **Binding strength.** How firmly the mechanism ties audience, freshness, and the credential to the key the agent controls.
+1. **Binding strength.** How firmly the mechanism ties the credential, audience, freshness, and, where required, the specific request to the key the agent controls.
 2. **Robustness against the underlying protocol.** Whether TSAI's guarantees depend on optional or version-dependent behaviour of a protocol TSAI does not control.
 3. **Ecosystem reuse.** Whether the mechanism reuses the RFC 9421 signature that the WBA ecosystem already produces, rather than requiring a separate one.
 4. **Independence from WBA availability.** Whether the mechanism works for a Service Provider that does not run WBA.
@@ -76,7 +75,7 @@ TSAI operates over HTTP, whether direct, over MCP, or over A2A. Transport is not
 
 ## The binding requirement
 
-Whatever the mechanism, holder binding has to establish the same things: that the party presenting the credential controls the key named as the credential's confirmation key (the `cnf` key in SD-JWT, the holder key in a W3C VC), that the presentation is bound to the audience it is sent to, that it is fresh within a short window, and that it covers the specific credential presented. The options below are the distinct ways to meet this requirement, with a null baseline that does not meet it included first to show why the requirement exists.
+Whatever the mechanism, holder binding has to establish the same things: that the party presenting the credential controls the key named as the credential's confirmation key (the `cnf` key in SD-JWT, the holder key in a W3C VC), that the presentation is bound to the audience it is sent to, that it is fresh within a short window, and that it covers the specific credential presented. For a state-changing action, and where verification and action happen in different components, it must also bind the method, target URI, and request body so an observed presentation cannot be attached to a different action. The options below are the distinct ways to meet the core holder-binding requirement, with a null baseline that does not meet it included first to show why the requirement exists.
 
 ---
 
@@ -164,11 +163,21 @@ Option 2 is not adopted, for the same reason more strongly. Resting binding enti
 
 Variant 1a keeps binding in an artifact TSAI defines and verifies deterministically, so none of that external enforcement is load-bearing. It also works where WBA is absent, which is a consequence of the choice rather than its motivation.
 
+### Request binding within the self-contained path
+
+The key-binding JWT binds the presentation to the credential (`sd_hash`), audience (`aud`), time (`iat`), and nonce. It does not by itself bind the HTTP or RPC request. Within the freshness window, a party inside the audience boundary could attach an observed presentation to a different request. The risk is material where an edge verifier forwards to an origin and on JSON-RPC transports where method and URI do not distinguish individual calls.
+
+TSAI therefore adds an OPTIONAL `req` claim to the key-binding JWT. It carries the request method and target URI and, where a body is present, its SHA-256 Content-Digest per RFC 9530. A Service Provider MUST require and verify `req` for state-changing actions and where the verifying and acting components differ. A state-changing action also uses a Service-Provider-issued single-use nonce: `req` prevents substitution, while the nonce prevents the same bound request being replayed.
+
+This is a deliberate extension of the RFC 9901 key-binding JWT claim set. The alternative was to adopt the RFC 9421 acceptance path rejected above. Keeping the digest inside TSAI's single self-contained artifact preserves Variant 1a's one-path design while closing the request-substitution property on which a profiled HTTP Message Signature would otherwise be stronger.
+
 ---
 
 ## Consequences
 
 - Holder binding is the agent's self-contained signature over the presentation, and it is the only binding path a verifier implements. There is no RFC 9421 acceptance path and no equivalence between mechanisms to define.
+- The key-binding JWT carries the TSAI `req` extension. It is required for state-changing and split-topology actions, with SHA-256 fixed for the body digest; reads retain the bounded-replay baseline.
+- Variant 1a's strength is qualified accordingly: its standard claims do not bind the request, and `req` supplies that property without a second signature-verification path.
 - The credential-format decision (ADR 015) selects SD-JWT VC, so the self-contained binding is the key-binding JWT: a holder-signed JWT carrying `aud`, `nonce`, `iat`, and `sd_hash`, appended to the credential as `‹credential›~‹KB-JWT›`. This ADR fixed the binding approach independent of format; the format decision makes it concrete.
 - Relationship to ADR 013: the self-contained binding approach is reaffirmed, and ADR 013 is amended rather than retired. Because ADR 015 selects SD-JWT VC, the binding is a key-binding JWT, which replaces ADR 013's VP-JWT claim structure while the rest of that decision stands.
 - Where an agent also runs WBA, it produces two signatures: the WBA request signature for the Service Provider's own bot management, and the TSAI binding signature. This duplicated signing is accepted; it is sub-millisecond and does not affect verification.
@@ -193,6 +202,7 @@ The binding requirement here was written to hold across credential formats, so i
 - [RFC 9421 — HTTP Message Signatures](https://www.rfc-editor.org/rfc/rfc9421)
 - [RFC 7638 — JSON Web Key (JWK) Thumbprint](https://www.rfc-editor.org/rfc/rfc7638)
 - [RFC 9530 — Digest Fields](https://www.rfc-editor.org/rfc/rfc9530)
+- [RFC 9901 — Selective Disclosure for JWTs](https://www.rfc-editor.org/rfc/rfc9901)
 - [draft-meunier-web-bot-auth-architecture](https://datatracker.ietf.org/doc/html/draft-meunier-web-bot-auth-architecture)
 - [draft-meunier-http-message-signatures-directory](https://datatracker.ietf.org/doc/html/draft-meunier-http-message-signatures-directory)
 - [draft-rescorla-anonymous-webbotauth](https://datatracker.ietf.org/doc/html/draft-rescorla-anonymous-webbotauth)

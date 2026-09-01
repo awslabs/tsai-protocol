@@ -23,7 +23,7 @@ The legal entity, a company, organisation, or individual, that runs agents and i
 
 ## Agent
 
-The program that makes requests on behalf of an operator. It is identified by the key its credential is bound to, the `cnf` key, and it may carry a stable HTTPS name for continuity (ADR 017). It carries its own reputation; the operator may also carry a reputation aggregated across its agents (ADR 021).
+The program that makes requests on behalf of an operator. It is identified by the key its credential is bound to, the `cnf` key, and it may carry a stable HTTPS name for continuity (ADR 017). It carries its own reputation; the operator may also carry a reputation aggregated across its agents (ADR 016).
 
 ## The operatedBy relationship
 
@@ -35,7 +35,7 @@ Each agent has exactly one operator. One operator can run several agents, each b
 
 Each signal in the flat list is about either the operator or the agent.
 
-- **Operator-level**, shared across the operator's agents: identity (legal name, jurisdiction, verification depth, controlled domain and its age), compliance (certifications), and assurance (economic backing). Reputation may also be carried here, aggregated across the operator's agents and marked `scp: operator` (ADR 021).
+- **Operator-level**, shared across the operator's agents: identity (legal name, jurisdiction, verification depth, controlled domain and its age), compliance (certifications), and assurance (economic backing). Reputation may also be carried here, aggregated across the operator's agents and marked `scp: operator` (ADR 016).
 - **Agent-level**, specific to the one agent: reputation (its behavioural record), which is the default scope for a `rep` signal.
 
 Authorization, the constraints on what an agent may do, is delegation rather than a signal, and is out of scope here (ADR 001).
@@ -58,7 +58,7 @@ A flat signal list carrying operator-level and agent-level signals:
 ]
 ```
 
-The four identity signals and the compliance signal describe the operator. The two reputation signals differ in scope: the `agent` record is this agent's own history, and the `operator` record aggregates across the operator's agents (ADR 021). The credential binds them to the agent's `cnf` key and to the operator's identity.
+The four identity signals and the compliance signal describe the operator. The two reputation signals differ in scope: the `agent` record is this agent's own history, and the `operator` record aggregates across the operator's agents (ADR 016). The credential binds them to the agent's `cnf` key and to the operator's identity.
 
 ---
 

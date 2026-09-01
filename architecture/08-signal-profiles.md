@@ -27,7 +27,7 @@ A profile has a stable identifier, a version, and a predicate: a set of conditio
 - A Trust Authority advertises which profiles it can satisfy, so an operator knows where to enrol.
 - An agent determines admissibility before it connects, by comparing the profiles a Service Provider accepts against what its credential carries.
 
-A profile is applied by the verifier at admission; it is not an issuer obligation and not a claim in the credential. This is the distinction from the identity floor (ADR 019), which is an issuer obligation on every credential.
+A profile is applied by the verifier at admission; it is not an issuer obligation and not a claim in the credential. This is the distinction from the identity floor (ADR 016), which is an issuer obligation on every credential.
 
 ---
 
@@ -47,11 +47,11 @@ The governance body maintains the profile registry: the identifier, version, and
 
 - A Service Provider that uses profiles MUST evaluate a credential against the profile's predicate over the verified signals, and MUST NOT treat a profile as a grade carried in the credential.
 - A Trust Authority MAY advertise the profiles it can satisfy; it MUST NOT assert a profile in a credential, since a profile is verifier-side.
-- The base profile is the identity floor (ADR 019), which every credential satisfies.
+- The base profile is the identity floor (ADR 016), which every credential satisfies.
 
 ---
 
 ## References
 
-- ADR 016 (trust signal structure), ADR 019 (identity floor), ADR 001 (delegation)
+- ADR 016 (trust signal structure and identity floor), ADR 001 (delegation)
 - TSAI Protocol Integration (Section 4), TSAI Credential Format (Section 2)

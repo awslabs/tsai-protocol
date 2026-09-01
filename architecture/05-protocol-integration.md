@@ -89,7 +89,7 @@ Over HTTP+JSON the presentation travels in the `TSAI-Credential` header; over gR
 
 ### 4.3.4 Webhooks and direction
 
-When a server delivers a webhook and presents its own TSAI credential so the client can confirm the sender, the `aud` of that presentation is the HTTPS origin of the client's webhook endpoint, since `aud` always names the party that verifies. The receiving client is not in a position to issue a challenge in advance, so the presentation carries an agent-generated `nonce` and, for a state-changing notification, a `req` digest over the notification payload (ADR 020).
+When a server delivers a webhook and presents its own TSAI credential so the client can confirm the sender, the `aud` of that presentation is the HTTPS origin of the client's webhook endpoint, since `aud` always names the party that verifies. The receiving client is not in a position to issue a challenge in advance, so the presentation carries an agent-generated `nonce` and, for a state-changing notification, a `req` digest over the notification payload (ADR 014).
 
 ---
 
@@ -119,7 +119,7 @@ This lets a Service Provider run TSAI in observation before enforcing.
 
 **Exposure.** Presentations travel over HTTPS; a server SHOULD NOT log the `TSAI-Credential` value, and proxies SHOULD NOT cache requests carrying it.
 
-**Replay and substitution.** A presentation is bound to one Service Provider by `aud` and carries a fresh key-binding JWT. Within the freshness window, a component that observes a presentation inside the audience's own boundary could attach it to a different action unless the presentation binds the request; for state-changing actions a Service Provider requires `req` (Section 3.4, ADR 020). A captured credential is unusable without the holder's `cnf` private key.
+**Replay and substitution.** A presentation is bound to one Service Provider by `aud` and carries a fresh key-binding JWT. Within the freshness window, a component that observes a presentation inside the audience's own boundary could attach it to a different action unless the presentation binds the request; for state-changing actions a Service Provider requires `req` (Section 3.4, ADR 014). A captured credential is unusable without the holder's `cnf` private key.
 
 **Payments boundary.** Assurance says what backing stands behind an agent; it does not say the agent is authorised to spend a given amount. A mandate and its value limits ride on the payment protocol (AP2 or equivalent); TSAI carries identity, standing, and recourse. A payment request therefore carries both: the TSAI presentation for who the agent is and what backs it, and the payment protocol's mandate for what it may spend.
 

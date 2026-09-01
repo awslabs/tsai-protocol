@@ -85,9 +85,9 @@ The `cnf` JWK MUST have `kty` `EC` and `crv` `P-256`, MUST contain the public `x
 | `aud` | REQUIRED | The Service Provider the presentation is addressed to: the HTTPS origin of the service (Section 2.8). On a transport with no HTTP origin, such as MCP over stdio, it is the stable audience identifier the server declares in its capability exchange (Section 4.2). The Service Provider MAY publish the expected value in its discovery documents. |
 | `nonce` | REQUIRED | A value binding the presentation to a transaction. The agent generates it from a cryptographically secure source, at least 128 bits, fresh per presentation; where the risk of the action warrants, the Service Provider issues it as a challenge instead (Section 3). |
 | `sd_hash` | REQUIRED | The SHA-256 digest over the issuer-signed JWT and any forwarded disclosures, computed per RFC 9901 §4.3.1. |
-| `req` | OPTIONAL | A request binding (ADR 020): the request method and target URI, and, when the request has a body, a SHA-256 content digest of the body per RFC 9530. REQUIRED for a state-changing action and where the verifying and acting components differ (Section 3). |
+| `req` | OPTIONAL | A request binding (ADR 014): the request method and target URI, and, when the request has a body, a SHA-256 content digest of the body per RFC 9530. REQUIRED for a state-changing action and where the verifying and acting components differ (Section 3). |
 
-`nonce` is REQUIRED in every key-binding JWT, per RFC 9901 §4.3; the escalation decision concerns who supplies it, not whether it is present. `req` is an added claim, adopted deliberately per ADR 020.
+`nonce` is REQUIRED in every key-binding JWT, per RFC 9901 §4.3; the escalation decision concerns who supplies it, not whether it is present. `req` is an added claim, adopted deliberately per ADR 014.
 
 **Worked example.** The header is `{ "alg": "ES256", "typ": "kb+jwt" }`. The baseline claims set for a read, with an agent-generated `nonce`:
 
@@ -159,17 +159,17 @@ Attributes the Trust Authority verified; the provider is the Trust Authority, so
 - `dct` — a domain the operator controls, verified by DNS challenge or email. `val` is the domain.
 - `dag` — the age of that domain. `val` is an ISO 8601 duration; `asof` fixes the measurement time.
 
-**The identity floor (ADR 019).** A Trust Authority MUST NOT issue a credential unless `signals` contains, as identity signals, the operator's legal name (`org`), jurisdiction (`jur`), verification depth (`kyc`), and at least one verified controlled domain (`dct`). The schema enforces their presence, and `tsai_signal_metadata` marks them `sd: never` (Section 2.9). The floor is not a tier and defines no ordering.
+**The identity floor (ADR 016).** A Trust Authority MUST NOT issue a credential unless `signals` contains, as identity signals, the operator's legal name (`org`), jurisdiction (`jur`), verification depth (`kyc`), and at least one verified controlled domain (`dct`). The schema enforces their presence, and `tsai_signal_metadata` marks them `sd: never` (Section 2.9). The floor is not a tier and defines no ordering.
 
 ### 2.5.4 Reputation (`rep`)
 
-The agent's behavioural record, observed by the Trust Authority; `prv` is omitted, since the Trust Authority is the source (ADR 021). Fields:
+The agent's behavioural record, observed by the Trust Authority; `prv` is omitted, since the Trust Authority is the source (ADR 016). Fields:
 
 - `band` — a portable ordinal, one of `insufficient-history`, `established`, or `strong`. Comparable across Trust Authorities; each authority publishes how it maps its own scale (Section 2.9, Section 7.10).
 - `scr` — a TA-specific score, not comparable across authorities.
 - `cnt` — the number of interactions behind the record. REQUIRED whenever `band` or `scr` is present.
 - `wdw` — the observation window, an ISO 8601 duration; with `asof` (the window end) it is computable. REQUIRED whenever `band` or `scr` is present.
-- `scp` — the scope of the record, `agent` (the default) or `operator`. An `operator` record aggregates across the operator's agents; a Service Provider evaluating a thin agent-level record reads the operator-level one (Section 5.11, ADR 021).
+- `scp` — the scope of the record, `agent` (the default) or `operator`. An `operator` record aggregates across the operator's agents; a Service Provider evaluating a thin agent-level record reads the operator-level one (Section 5.11, ADR 016).
 
 `typ` names the registered domain of the record. The TSAI v1 registry contains `ecommerce`; another domain is added through the registry or a derived `vct`. Reputation signals at both scopes are `sd: never` in the type metadata (Section 2.9), so an agent cannot withhold a record it holds, including the operator-level one a washed agent would most want to hide.
 
@@ -200,7 +200,7 @@ Within a derived `vct`, custom signal types are short codes. They need neither a
 
 ## 2.6 Selective Disclosure
 
-Selective disclosure is optional and off by default. When used, the issuer replaces a signal in `signals` with a digest object `{"...": "<digest>"}`, emits the disclosure alongside the credential, and sets `_sd_alg` to `sha-256`; a TSAI verifier MUST reject any other disclosure digest algorithm. A signal marked `sd: never` in `tsai_signal_metadata` (Section 2.9), reputation among them, MUST NOT be made disclosable by the issuer. A withheld signal remains visible to the verifier as a digest object until reconstruction, so the verifier can count how many were withheld; the verifier surfaces that count and MAY fail closed above a policy threshold (Section 3, ADR 022).
+Selective disclosure is optional and off by default. When used, the issuer replaces a signal in `signals` with a digest object `{"...": "<digest>"}`, emits the disclosure alongside the credential, and sets `_sd_alg` to `sha-256`; a TSAI verifier MUST reject any other disclosure digest algorithm. A signal marked `sd: never` in `tsai_signal_metadata` (Section 2.9), reputation among them, MUST NOT be made disclosable by the issuer. A withheld signal remains visible to the verifier as a digest object until reconstruction, so the verifier can count how many were withheld; the verifier surfaces that count and MAY fail closed above a policy threshold (Section 3, ADR 015).
 
 `tsai_signal_metadata` is a TSAI Type Metadata extension because standard SD-JWT VC paths cannot select array elements by their `cat` and `typ` values. A generic consumer ignores this top-level extension; a TSAI verifier processes it and enforces its `sd` controls (Section 3.3).
 
@@ -236,7 +236,7 @@ Identity and key discovery follow ADR 017.
 
 ## 2.9 Type Metadata
 
-Each `vct` resolves to a Type Metadata document (ADR 022). SD-JWT VC Type Metadata carries display and per-claim controls, but it has carried no JSON Schema since draft `-12`; `extends` therefore inherits metadata, not field-level validation.
+Each `vct` resolves to a Type Metadata document (ADR 015). SD-JWT VC Type Metadata carries display and per-claim controls, but it has carried no JSON Schema since draft `-12`; `extends` therefore inherits metadata, not field-level validation.
 
 **Schema.** TSAI adds two required top-level properties: `tsai_schema_uri`, which identifies the JSON Schema for the complete credential payload, and `tsai_schema_uri#integrity`, which pins the exact schema bytes. The schema is authoritative for the permitted claims and signals, their field shapes, and required presence. A TSAI verifier processes these properties even though a generic SD-JWT VC consumer ignores them.
 
@@ -322,8 +322,8 @@ Authorization and mandate — value limits, permitted operations, rate limits, a
 **Trust Authorities MUST:**
 - Issue SD-JWT VC credentials with `typ` `dc+sd-jwt`, `alg` `ES256`, and `exp` 30 minutes after `iat`.
 - Carry a SHA-256 `vct#integrity` claim binding the credential to its Type Metadata document, and publish an integrity-protected schema for that type (Section 2.9).
-- Include the identity floor (`org`, `jur`, `kyc`, `dct`) in every credential (ADR 019).
-- Include `cnt` and the observation window whenever a reputation signal carries `band` or `scr` (ADR 021).
+- Include the identity floor (`org`, `jur`, `kyc`, `dct`) in every credential (ADR 016).
+- Include `cnt` and the observation window whenever a reputation signal carries `band` or `scr` (ADR 016).
 - Not make an `sd: never` signal, reputation among them, selectively disclosable.
 - Publish signing keys at `/.well-known/jwt-vc-issuer` and an agent-and-operator status list. The publisher that defines each `vct` publishes its immutable Type Metadata and JSON Schema; TSAI publishes the canonical artefacts, while a TA or community publishes the derived artefacts it defines.
 - Advertise every `vct` the Trust Authority issues. For a derived TSAI type, extend and integrity-pin the parent metadata and schema, include the canonical base type in `aka_vcts`, and declare every custom signal.

@@ -58,7 +58,7 @@ If any step fails, reject. After successful derived-schema validation, a Service
 
 ## 3.4 Freshness, Replay, Nonce, and Request Binding
 
-The mechanisms are settled by ADR 018 and ADR 020; this section is normative and cites them for rationale.
+The mechanisms are settled by ADR 018 and ADR 014; this section is normative and cites them for rationale.
 
 **Freshness.** A Service Provider MUST reject a key-binding JWT whose `iat` is outside the window: reject if `iat > now + 30` seconds or `iat < now − 90` seconds. The maximum accepted age is therefore 90 seconds, with 30 seconds of skew. Correct time is a dependency; a Service Provider SHOULD monitor clock drift and, on a stale rejection, SHOULD return its own current time so the agent can correct.
 
@@ -66,7 +66,7 @@ The mechanisms are settled by ADR 018 and ADR 020; this section is normative and
 
 **Reuse.** A key-binding JWT is created for a single presentation. On the offline baseline the Service Provider holds no per-request state, so it cannot detect reuse, and a key-binding JWT may be replayed within the freshness window. `req` does not close this on its own: it binds the presentation to one request, so a substituted request is rejected, but an identical resubmission of the same request inside the window still matches every claim. Closing replay needs a Service-Provider-issued single-use `nonce`, which `req` does not replace and which does not replace `req`.
 
-**Request binding.** For a state-changing action, and for any action where the verifying component and the acting component differ, a Service Provider MUST require `req` (Section 2.4, ADR 020) and MUST confirm that `req` matches the request it will act on: the method, the target URI, and, where the request has a body, the body digest. Because `req` binds the action but not its uniqueness, a state-changing action MUST also carry a Service-Provider-issued single-use `nonce`; the two are complementary, `req` closing substitution and the single-use nonce closing replay. A read needs neither: the 90-second window binds the presenter to the credential and to this Service Provider, which is enough when the action has no side effect (Section 5.11).
+**Request binding.** For a state-changing action, and for any action where the verifying component and the acting component differ, a Service Provider MUST require `req` (Section 2.4, ADR 014) and MUST confirm that `req` matches the request it will act on: the method, the target URI, and, where the request has a body, the body digest. Because `req` binds the action but not its uniqueness, a state-changing action MUST also carry a Service-Provider-issued single-use `nonce`; the two are complementary, `req` closing substitution and the single-use nonce closing replay. A read needs neither: the 90-second window binds the presenter to the credential and to this Service Provider, which is enough when the action has no side effect (Section 5.11).
 
 ---
 
@@ -140,4 +140,4 @@ A Service Provider MAY cache a verification result. A cached result MUST NOT be 
 - RFC 9901 — SD-JWT (§4.3, §4.3.1, §7.1, §7.3, §9.7)
 - draft-ietf-oauth-status-list — Token Status List
 - RFC 9530 — Digest Fields; RFC 7519 — JWT; RFC 7515 — JWS; RFC 7638 — JWK Thumbprint
-- ADR 018 (verification strength), ADR 019 (identity floor), ADR 020 (request binding)
+- ADR 018 (verification strength), ADR 016 (identity floor), ADR 014 (request binding)
