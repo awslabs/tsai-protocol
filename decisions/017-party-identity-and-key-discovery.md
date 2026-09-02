@@ -6,119 +6,110 @@ SPDX-License-Identifier: Apache-2.0
 # ADR 017: Party Identity and Key Discovery
 
 **Status:** Accepted  
-**Date:** 2026-07-16  
+**Date:** 2026-09-02  
 **Deciders:** TSAI Working Group  
 **Relationship to ADR 006:** supersedes [ADR 006 — DID Methods for TAs and Agents](./006-did-methods.md)  
 **Depends on:** ADR 014 (holder binding) and ADR 015 (credential serialisation format)
-
 
 ---
 
 ## Context
 
-ADR 006 identified every party by a DID: the Trust Authority by `did:web`, the agent by `did:key`, `did:web`, or `did:wba`. Three later decisions change that.
+ADR 006 identified the Trust Authority, agent, and other parties by DIDs. ADR 014 and ADR 015 replace the verification functions of those DIDs: the issuer key is discovered from HTTPS `iss`, and holder binding verifies the inline `cnf` JWK.
 
-- ADR 014 makes holder binding a key-binding JWT signed by the credential's EC/P-256 `cnf` key using ES256, so the agent's binding identity is a JWK, not a DID.
-- ADR 015 adopts SD-JWT VC, which discovers the issuer's key through an HTTPS `iss` and the `jwt-vc-issuer` endpoint, and carries revocation as a `status` claim inside the credential.
-- The protocols TSAI sits beside, Web Bot Auth and OpenID4VC, identify keys by JWK and RFC 7638 thumbprint.
+The remaining agent-identity requirement is continuity. A key alone is not a durable identity because keys rotate and an agent may use several context-specific keys. An SP also needs a stable per-agent identifier for local allow/deny decisions without blocking every agent of the operator. The earlier optional, caller-supplied `sub` did not meet that requirement: it could be omitted, changed during issuance, or asserted outside the operator's verified namespace.
 
-Two functions ADR 006 assigned to DIDs are now handled without them. To verify a credential, the verifier obtains the issuer's key from the `jwt-vc-issuer` endpoint and the revocation status from the credential's own `status` claim, so it does not resolve the issuer to find either.
+TSAI already verifies the accountable operator and its controlled domains. Agent identity can therefore be registered under the authenticated operator account and anchored to a verified domain, while holder binding remains key-centric.
 
-### The identifier problem for referenced parties
-
-Some identifiers in a credential are not the issuer or the holder but parties the TA refers to: the certifier behind an attestation, the backer behind an assurance, the agency behind a reputation score. Two requirements apply to those identifiers. First, if two Trust Authorities reference the same party, they must use the same identifier, so its authority has to sit outside any single TA; a TA-minted identifier fails this. Second, a verifier must be able to resolve it by one defined mechanism, or it cannot act on the identifier consistently.
-
-### Scope
-
-This decides identity and key discovery for three roles: the issuer (Trust Authority), the holder (agent), and referenced third parties. It also names the Service Provider, the audience a presentation is addressed to. Agent-to-agent discovery and service-endpoint publication are agent-ecosystem concerns and out of scope.
+Referenced third parties have a different role. A certifier or assurance provider does not hold a key in the credential, but several TAs may need to name the same party. Its identifier must therefore be controlled outside any single TA and resolve through one defined mechanism.
 
 ---
 
 ## Decision Criteria
 
-1. **External authority.** An identifier referenced by more than one TA is decided by the entity itself or by a neutral registry, not by any single TA.
-2. **Uniform resolution.** The identifier resolves by one defined mechanism.
-3. **Idiom coherence.** Consistency with the JWK idiom of the binding, the format, and the surrounding protocols.
-4. **Minimal infrastructure.** A party runs no identity infrastructure it does not otherwise need.
-5. **Rotation and durable identity.** Keys can rotate without losing the identity that reputation and records attach to.
-6. **Discoverability the verifier needs.** The issuer key and the revocation status are obtainable without extra resolution steps.
+1. **Accountability.** Every agent identity is linked to an enrolled, legally accountable operator.
+2. **Durability.** The agent identifier survives key rotation and supports reputation, status, and local SP policy.
+3. **No caller-controlled identity at issuance.** Issuance cannot create or replace the agent identifier.
+4. **Key control.** Every `cnf` key is registered and proven before use.
+5. **Domain control.** The agent identifier remains within a domain the TA currently verifies for the operator.
+6. **Offline SP verification.** The SP resolves no agent DID, JWKS, or other holder-key reference.
+7. **Minimal core infrastructure.** TSAI does not require a public key directory where authenticated registration and proof of control suffice.
+8. **Privacy cost stated.** A stable global agent identifier enables cross-SP correlation and that consequence is explicit.
 
 ---
 
 ## Options Considered
 
-### Option 1: `did:web` for every party
+### Option 1: `did:web` for the agent
 
-TA, agent, and referenced parties are all `did:web`.
+The operator publishes a DID document containing the agent's keys; the DID is the stable agent identifier.
 
-**Pros.** One uniform scheme, with external authority and uniform resolution for all roles, and key rotation through the DID document.
+**Pros.** Standard identifier and rotation document, with a direct domain-to-key relationship.
 
-**Cons.** Key-holders do not need it. The credential already discovers the issuer key through `jwt-vc-issuer` and binds the holder through `cnf`, so a `did:web` for the TA and agent is a second idiom and a resolution step that buys nothing (criteria 3, 4). It also retains `did:wba`.
+**Cons.** Adds DID syntax and resolution to a JWT/JWK protocol. The SP does not need the document because the TA-signed credential already carries `sub` and `cnf`; the legal operator relationship still depends on TA verification. Domain transfer still requires periodic TA revalidation.
 
-### Option 2: Key-holders by their key, referenced parties by `did:web` (decided)
+### Option 2: Key identity with optional `sub`
 
-- **Trust Authority:** an HTTPS `iss`; key metadata is found by inserting `/.well-known/jwt-vc-issuer` between the origin and any issuer path. Key rotation publishes a new key there.
-- **Agent:** the EC/P-256 `cnf` JWK is the identity. A stable name in `sub` is optional and, if present, is an HTTPS identifier the operator controls.
-- **Referenced third parties:** their own `did:web`, one canonical DID per party.
+The `cnf` JWK identifies the agent and an optional HTTPS `sub` provides continuity.
 
-**Pros.** Key-holders use their native key discovery, which is idiom-coherent and needs no extra infrastructure (criteria 3, 4). Referenced parties get an entity-controlled, uniformly resolvable identifier (criteria 1, 2). The verifier obtains the issuer key and the status without resolving the issuer (criterion 6). Rotation is handled by `jwt-vc-issuer` for the TA and by re-issuance against the durable identity for the agent (criterion 5).
+**Pros.** Minimal issuance state and no holder-key resolution.
 
-**Cons.** Two identifier kinds in play, keys and HTTPS for the first parties and `did:web` for referenced parties. Referenced parties must publish a `did:web`. `did:web` inherits DNS, so a referenced DID can change hands over the life of a long-lived reference.
+**Cons.** Optional identity does not support reliable agent-level blocking. A caller-supplied `sub` can be changed or spoofed, and key rotation changes the primary identity.
 
-### Option 3: Referenced parties by a registry identifier
+### Option 3: Registered HTTPS `sub` with registered binding keys (decided)
 
-Key-holders as in Option 2, but referenced parties identified by a registry identifier such as an LEI.
+The operator registers a stable HTTPS `sub` under an authenticated TA account. The `sub` hostname exactly matches a current verified `dct`. The TA associates one or more registered JWKs with that agent; issuance references a registered key by RFC 7638 thumbprint and proves control. The credential carries the stored `sub` and the selected full JWK in `cnf`.
 
-**Pros.** A neutral registry supplies the external authority (criterion 1).
+**Pros.** Meets accountability, continuity, blocking, and offline-verification requirements without DID resolution or a mandatory public JWKS. Rotation changes the key while retaining the agent identity. The TA can accept raw JWK, JWKS, JWKS URL, or WBA directory input through its authenticated management process and normalise each accepted key to the same internal form.
 
-**Cons.** No uniform resolution: registries are heterogeneous, with no single mechanism a verifier can apply (criterion 2). Coverage is narrow, since an LEI identifies legal entities only, not individuals or unregistered parties.
-
----
-
-## Comparison
-
-| Criterion | 1 `did:web` all | 2 key + `did:web` refs | 3 registry refs |
-|---|---|---|---|
-| 1 External authority | met | met | met |
-| 2 Uniform resolution | met | met | fails (many registries) |
-| 3 Idiom coherence | second idiom for first parties | one idiom per role | one idiom per role |
-| 4 Minimal infrastructure | DID for key-holders too | least | least |
-| 5 Rotation / durable identity | via `did:web` | via `jwt-vc-issuer` and re-issuance | as Option 2 |
-| 6 Discoverability the verifier needs | resolves DIDs | native | native |
+**Cons.** The TA maintains agent and key registration state. Required `sub` creates a stable cross-SP correlation identifier. Domain verification must be repeated to detect loss or transfer of control.
 
 ---
 
 ## Decision
 
-Adopt **Option 2**.
+Adopt **Option 3**.
 
-The Trust Authority is identified by an HTTPS `iss`. Its signing-key metadata is located by inserting `/.well-known/jwt-vc-issuer` between the origin and any issuer path, per SD-JWT VC §3. The agent is identified by its `cnf` key, with an optional `sub` that, if used, is an HTTPS identifier the operator controls. Referenced third parties are identified by their own `did:web`, and each publishes one canonical DID. `did:wba` is dropped.
+### Agent identity
 
-The split follows a single rule: a party that holds a key in the credential is identified by that key or its discovery, the TA by `jwt-vc-issuer` and the agent by `cnf`; a party that is only referenced holds no key here and is identified by a resolvable identifier it controls, `did:web`. That gives references an authority outside any single TA and one resolution mechanism, without adding DID resolution to the parties the credential already identifies by key.
+`sub` is REQUIRED in every TSAI credential and is the persistent agent identifier. It is an HTTPS URL with no user information, port, query, or fragment. Its hostname MUST exactly equal one current `dct` of the enrolled operator; a subdomain is valid only when that hostname is independently verified as `dct`. The URL path distinguishes agents within the domain.
 
-Any further identifier that a specific signal type needs, for example a legal-entity identifier for a liability-bearing party, is a schema field defined with the schema, not fixed here.
+The operator registers the agent before issuance through an authenticated TA management process. The TA stores the operator-to-agent association and MUST NOT accept `sub` from `IssueRequest`. A stable `sub` may be registered with several TAs, but TSAI cannot enforce cross-TA uniqueness.
 
-The Service Provider, the audience of a presentation, is named by its HTTPS origin in `aud`. On a transport with no HTTP origin, such as MCP over stdio, the server declares a stable audience identifier in its unauthenticated capability exchange, and the agent uses that value as `aud` (Sections 2.4 and 4.2). The identifier is stable across the server's sessions, so a presentation is bound to one audience and cannot be redirected. This extends the party-identity model to the verifier without giving it a key in the credential.
+### Binding keys
+
+A registered binding key is an EC P-256 public signing JWK identified by its RFC 7638 thumbprint as `kid`. Within one operator account, a registered key maps to one agent; several keys may map to the same agent. Key material may arrive through raw JWK, a JWKS document, a JWKS URL, or a WBA key directory, but DID input and resolution are not part of TSAI.
+
+`IssueRequest` supplies `kid` and proof of control, not `sub` or raw JWK material. The TA resolves the registered key, verifies the proof, copies the stored `sub` into the credential, and places the registered public JWK in `cnf`. An unknown, inactive, repudiated, cross-operator, or ambiguous `kid` is rejected.
+
+Key rotation registers and proves a new key against the existing agent before issuance uses it. Rotation preserves `sub`, status, and reputation and changes `cnf`.
+
+### Domain-control freshness
+
+The TA supports automated DNS and HTTPS challenges. HTTPS validation follows a fixed well-known path and does not follow redirects. `dct.asof` records the last successful domain-control check and is REQUIRED.
+
+The TA MUST NOT issue outside the domain-freshness window defined in Section 2.5.3. It SHOULD use a shorter window for recently enrolled operators or agents and where evidence is limited, and MUST publish its cadence policy. Any failed revalidation stops new issuance. Confirmed loss of control blocks every affected agent immediately; an inconclusive network failure suspends issuance while the TA retries.
+
+### Other parties
+
+The Trust Authority is identified by HTTPS `iss`; signing-key metadata uses the SD-JWT VC `jwt-vc-issuer` well-known insertion rule. Referenced certifiers and assurance providers use their own canonical `did:web`, since they are named rather than key-bound in the credential. The Service Provider is named by HTTPS origin in `aud`, or by the stable audience value declared for a transport without an origin.
 
 ---
 
 ## Consequences
 
-- Supersedes ADR 006. ADR 006 takes a forward pointer to this ADR; its body is unchanged except for the later TAP-to-TSAI naming rename, which was a naming purge rather than a decision change.
-- The Trust Authority identifies itself by HTTPS `iss` and publishes signing-key metadata at the path produced by the SD-JWT VC well-known insertion rule. A `did:web` for the TA is not used.
-- The agent is identified by its EC/P-256 `cnf` JWK; `sub`, if present, is an HTTPS identifier for continuity, not a DID.
-- Referenced third parties publish one canonical `did:web` each and are referenced by it.
-- Platforms no longer resolve multiple DID methods for core verification, which removes the platform-complexity cost ADR 006 accepted.
-- Revocation status is read from the credential's `status` claim; issuance discovery is agent-facing and out of scope.
-- `did:wba` is dropped.
-- Additional per-type identifiers (such as a legal-entity identifier on an assurance signal) are optional schema fields, decided with the schema.
-- The Service Provider is named by its HTTPS origin in `aud`; on a transport without an origin (MCP over stdio) the server declares a stable audience identifier in its capability exchange, which the agent uses as `aud` (Sections 2.4 and 4.2).
+- The SP treats `sub` as the persistent agent identity and `cnf` as its current proof-of-possession key.
+- Agent-level status and SP allow/deny decisions key on `sub`; rotation does not evade them.
+- The credential and Type Metadata make `sub` mandatory and non-disclosable.
+- Required global `sub` enables cross-SP correlation. TSAI v1 chooses agent-level blockability over pairwise agent unlinkability; the already mandatory operator identity remains globally visible.
+- Issuance and refresh depend on authenticated operator and key registration, but SP verification remains offline.
+- Public JWKS and WBA are optional registration inputs, not core dependencies.
+- DID-based agent identity, `did:key`, and `did:wba` are not part of TSAI.
 
 ---
 
 ## References
 
-- [ADR 003 — W3C Verifiable Credentials as Credential Format](./003-w3c-verifiable-credentials.md)
 - [ADR 006 — DID Methods for TAs and Agents](./006-did-methods.md)
 - ADR 014 — Holder Binding and Web Bot Auth Integration
 - ADR 015 — Credential Serialisation Format

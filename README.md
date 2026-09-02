@@ -79,7 +79,7 @@ Documented design decisions with rationale and alternatives considered:
 - **[014-holder-binding-and-web-bot-auth-integration.md](./decisions/014-holder-binding-and-web-bot-auth-integration.md)** - Self-contained key binding and request binding; Web Bot Auth kept orthogonal
 - **[015-credential-serialisation-format.md](./decisions/015-credential-serialisation-format.md)** - SD-JWT VC format, holder-directed issuance, and Type Metadata (supersedes ADR 003)
 - **[016-trust-signal-structure.md](./decisions/016-trust-signal-structure.md)** - Flat four-category signal model, identity floor, and reputation semantics (supersedes ADR 004)
-- **[017-party-identity-and-key-discovery.md](./decisions/017-party-identity-and-key-discovery.md)** - HTTPS issuer, `cnf`-key agent, `did:web` third parties (supersedes ADR 006)
+- **[017-party-identity-and-key-discovery.md](./decisions/017-party-identity-and-key-discovery.md)** - HTTPS issuer, registered HTTPS agent `sub`, rotating `cnf`, and `did:web` third parties (supersedes ADR 006)
 - **[018-verification-strength-and-replay.md](./decisions/018-verification-strength-and-replay.md)** - Verification strength, replay, and the 30-minute lifetime without tiers (amends ADR 007 and ADR 009)
 
 ---

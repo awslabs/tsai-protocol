@@ -55,7 +55,7 @@ where the disclosures are present only under selective disclosure (Section 2.6);
 | `aka_vcts` | CONDITIONAL | Additional credential types. REQUIRED on a derived TSAI type and MUST include the canonical TSAI `vct`; MUST NOT contain the credential's primary `vct` (Sections 2.5.7 and 2.9). |
 | `iat` | REQUIRED | Issuance time, seconds since the Unix epoch. |
 | `exp` | REQUIRED | Expiry time, 30 minutes after `iat` (Section 2.7). |
-| `sub` | OPTIONAL | A stable HTTPS identifier for the agent, operator-controlled; used for continuity across key rotation. |
+| `sub` | REQUIRED | The registered, persistent HTTPS identifier for the agent. It has no port because its hostname is compared to port-less `dct`. The TA copies it from the authenticated agent record; it survives binding-key rotation and is not accepted from `IssueRequest`. |
 | `cnf` | REQUIRED | The holder binding key, a JWK (Section 2.4). |
 | `status` | OPTIONAL | A reference into a status list keyed to the agent or operator identity (Section 2.7). |
 | `signals` | REQUIRED | The flat list of trust signals, carrying at least the identity floor (Sections 2.5, 2.5.3). |
@@ -133,7 +133,7 @@ Absence of a signal is not a negative assertion. It may mean the Trust Authority
 | `cat` | REQUIRED | The category code (Sections 2.5.3–2.5.6). |
 | `typ` | REQUIRED | The type code within the category. |
 | `prv` | CONDITIONAL | The provider of a third-party signal, a `did:web` (Section 2.8); present on compliance and assurance, omitted where the Trust Authority is the source. |
-| `asof` | CONDITIONAL | The time the Trust Authority established or last confirmed the fact, seconds since the epoch. REQUIRED for reputation, compliance, and assurance; RECOMMENDED for identity. It carries signal currency, which the 30-minute lifetime does not (Section 5.11). |
+| `asof` | CONDITIONAL | The time the Trust Authority established or last confirmed the fact, seconds since the epoch. REQUIRED for reputation, compliance, assurance, and `idn/dct`; RECOMMENDED for other identity signals. It carries signal currency, which the 30-minute lifetime does not (Section 5.11). |
 
 The schema is authoritative for each type's field list.
 
@@ -156,10 +156,12 @@ Attributes the Trust Authority verified; the provider is the Trust Authority, so
   - `basic` — legal name, address, and business registration verified;
   - `enhanced` — basic, plus beneficial ownership and financial checks;
   - `institutional` — enhanced, plus regulatory-compliance checks and audits.
-- `dct` — a domain the operator controls, verified by DNS challenge or email. `val` is the domain.
+- `dct` — a hostname the operator controls, verified by DNS or HTTPS challenge. `val` is the hostname and `asof` is REQUIRED; freshness follows the domain-freshness window below.
 - `dag` — the age of that domain. `val` is an ISO 8601 duration; `asof` fixes the measurement time.
 
 **The identity floor (ADR 016).** A Trust Authority MUST NOT issue a credential unless `signals` contains, as identity signals, the operator's legal name (`org`), jurisdiction (`jur`), verification depth (`kyc`), and at least one verified controlled domain (`dct`). The schema enforces their presence, and `tsai_signal_metadata` marks them `sd: never` (Section 2.9). The floor is not a tier and defines no ordering.
+
+**Domain-freshness window.** The `dct` used to anchor `sub` MUST have been verified no more than 12 hours before credential issuance. A verifier allows `dct.asof` to be up to 30 seconds later than credential `iat` for clock skew between TA components (Section 3.4).
 
 ### 2.5.4 Reputation (`rep`)
 
@@ -214,13 +216,13 @@ Selective disclosure is optional and off by default. When used, the issuer repla
 
 ### 2.7.2 Status
 
-An individual short-lived credential is not revoked; the control is a block on the agent or operator (ADR 018). A Trust Authority MUST publish an agent-and-operator status list, so a Service Provider can depend on the mechanism existing. A credential normally carries a `status` claim referencing it, keyed to the agent or operator identity, so that blocking one identity invalidates all of its credentials. The Status List Token MUST be signed with ES256:
+An individual short-lived credential is not revoked; the control is a block on the agent `sub` or operator (ADR 018). A Trust Authority MUST publish an agent-and-operator status list, so a Service Provider can depend on the mechanism existing. A credential normally carries a `status` claim referencing it, keyed to the persistent agent `sub` or operator identity, so that blocking one identity invalidates all of its credentials across key rotation. The Status List Token MUST be signed with ES256:
 
 ```json
 "status": { "status_list": { "idx": 94567, "uri": "https://trust-authority.example/tsai/status/agents/1" } }
 ```
 
-A credential MAY omit `status` only where the agent requires unlinkability across Service Providers, accepting that no block can reach it within the lifetime (Section 5.7). When a Service Provider fetches and how it verifies the status list are specified in Section 3.
+A credential MAY omit `status` to avoid the additional status-index correlator, accepting that a TA block cannot reach it within the lifetime. The required `sub` remains a stable cross-Service-Provider identifier, so omitting `status` does not provide agent unlinkability; an SP can still apply its local block by `sub` (Section 5.7). When a Service Provider fetches and how it verifies the status list are specified in Section 3.
 
 ---
 
@@ -229,7 +231,7 @@ A credential MAY omit `status` only where the agent requires unlinkability acros
 Identity and key discovery follow ADR 017.
 
 - **Trust Authority.** Identified by the HTTPS `iss`, which contains a host and may contain a port and path but no query or fragment. Signing keys are discovered by inserting `/.well-known/jwt-vc-issuer` between the origin and the issuer path, after removing a terminating slash from that path; for example, `https://ta.example/tenant/acme` resolves metadata at `https://ta.example/.well-known/jwt-vc-issuer/tenant/acme`. `kid` selects an EC/P-256 key. This is the only key-discovery mechanism: a credential carrying an `x5c` header MUST be rejected, and the verifier MUST confirm that the metadata's `issuer` exactly equals the original `iss` (Section 3).
-- **Agent.** Identified by the `cnf` key; an optional `sub` gives a stable HTTPS name, not a DID.
+- **Agent.** Identified persistently by required HTTPS `sub`, registered under an authenticated operator account and anchored to a current `dct`. `sub` has no port because `dct` is a hostname. The `cnf` JWK is the current holder-binding key; it may rotate without changing `sub`.
 - **Referenced third parties.** A certifier (`cmp`) or a backer (`asr`) is identified by its own `did:web` in `prv`; an assurance party MAY additionally carry an `lei`.
 
 ---
@@ -250,7 +252,7 @@ A derived TSAI type uses the standard `extends` and `extends#integrity` properti
 {
   "vct": "https://ta.example/credential/tsai/1",
   "extends": "https://tsaiprotocol.org/credential/tsai/1",
-  "extends#integrity": "sha256-J5H2Rv96WiADH2tL42drjG2OAza7jcFJAYdA+JIy/OM=",
+  "extends#integrity": "sha256-2YKb4NkMmDePUe8A3Ldp2PJfU5OpVMjLYVInDbMRHUM=",
   "tsai_schema_uri": "https://ta.example/schemas/credential/tsai/1.json",
   "tsai_schema_uri#integrity": "sha256-H5gGR/iMLT9a4ajpGQBRXOEwR4E1fUMqZl1gtCuhvtQ=",
   "claims": [
@@ -288,7 +290,7 @@ An issued credential, flat, before presentation:
 {
   "iss": "https://trust-authority.example",
   "vct": "https://tsaiprotocol.org/credential/tsai/1",
-  "vct#integrity": "sha256-J5H2Rv96WiADH2tL42drjG2OAza7jcFJAYdA+JIy/OM=",
+  "vct#integrity": "sha256-2YKb4NkMmDePUe8A3Ldp2PJfU5OpVMjLYVInDbMRHUM=",
   "iat": 1781863200,
   "exp": 1781865000,
   "sub": "https://acme-corp.example/agents/shopper-v3",
@@ -298,7 +300,7 @@ An issued credential, flat, before presentation:
     { "cat": "idn", "typ": "org", "val": "Acme Corporation GmbH" },
     { "cat": "idn", "typ": "jur", "val": "DE" },
     { "cat": "idn", "typ": "kyc", "val": "enhanced" },
-    { "cat": "idn", "typ": "dct", "val": "acme-corp.example" },
+    { "cat": "idn", "typ": "dct", "val": "acme-corp.example", "asof": 1781860000 },
     { "cat": "idn", "typ": "dag", "val": "P850D", "asof": 1781000000 },
     { "cat": "rep", "typ": "ecommerce", "band": "established", "scr": 0.94, "cnt": 3518, "wdw": "P90D", "asof": 1781800000 },
     { "cat": "cmp", "typ": "iso27001", "prv": "did:web:cert-corp.example", "vld": 1981863200, "asof": 1780000000 },
@@ -323,6 +325,7 @@ Authorization and mandate — value limits, permitted operations, rate limits, a
 - Issue SD-JWT VC credentials with `typ` `dc+sd-jwt`, `alg` `ES256`, and `exp` 30 minutes after `iat`.
 - Carry a SHA-256 `vct#integrity` claim binding the credential to its Type Metadata document, and publish an integrity-protected schema for that type (Section 2.9).
 - Include the identity floor (`org`, `jur`, `kyc`, `dct`) in every credential (ADR 016).
+- Include the registered agent `sub`, copy it from the authenticated agent record, and ensure its hostname exactly matches a `dct` within the domain-freshness window (Section 2.5.3, ADR 017).
 - Include `cnt` and the observation window whenever a reputation signal carries `band` or `scr` (ADR 016).
 - Not make an `sd: never` signal, reputation among them, selectively disclosable.
 - Publish signing-key metadata at the URL produced by the `jwt-vc-issuer` well-known insertion rule and publish an agent-and-operator status list. The publisher that defines each `vct` publishes its immutable Type Metadata and JSON Schema; TSAI publishes the canonical artefacts, while a TA or community publishes the derived artefacts it defines.
@@ -332,5 +335,5 @@ Authorization and mandate — value limits, permitted operations, rate limits, a
 - Present a credential that has not expired, with an ES256 key-binding JWT carrying `iat`, `aud`, `nonce`, and `sd_hash`, and `req` where the action and topology require it.
 
 **Service Providers MUST:**
-- Verify per Section 3, reject any `alg` other than `ES256`, reject an unrecognised `vct` or an `x5c` header, and, after successful derived-schema validation, MAY ignore declared extension signals not used in policy.
+- Verify per Section 3, reject any `alg` other than `ES256`, reject an unrecognised `vct` or an `x5c` header, confirm `sub` matches a fresh `dct`, and, after successful derived-schema validation, MAY ignore declared extension signals not used in policy.
 - Obtain the complete Type Metadata and schema chain out of band or from cache, never on the verification path, and verify every integrity value and inheritance rule (Section 2.9).

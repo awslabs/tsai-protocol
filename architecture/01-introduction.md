@@ -35,7 +35,7 @@ This specification uses RFC 2119 terminology: MUST, MUST NOT, SHOULD, SHOULD NOT
 
 ## 1.3 Terminology
 
-**Agent** — a software entity that acts on behalf of a user or organisation. Identified by the key its credential is bound to (`cnf`).
+**Agent** — a software entity that acts on behalf of a user or organisation and presents TSAI credentials when interacting with a Service Provider.
 
 **Operator** — the legal entity that runs agents and is accountable for them.
 

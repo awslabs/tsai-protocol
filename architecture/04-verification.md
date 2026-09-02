@@ -29,7 +29,7 @@ The metadata URL is fetched under the hardening of Section 3.6.
 
 ### 3.2.2 Agent key
 
-The agent is not resolved. Its key is the `cnf` JWK inside the credential, and the key-binding JWT is verified against it directly.
+The verifier treats the signed `sub` as the persistent agent identity and does not resolve it. The current holder-binding key is the inline `cnf` JWK, and the key-binding JWT is verified against it directly.
 
 ### 3.2.3 Third-party identifiers
 
@@ -45,8 +45,8 @@ Given a presentation `<issuer-signed JWT>~<disclosure 1>~...~<disclosure N>~<key
 2. Read the issuer-signed JWT header: confirm `typ` is `dc+sd-jwt` and `alg` is `ES256`, reject every other algorithm and reject `x5c`. Read `iss`, confirm it is trusted, obtain its key (Section 3.2.1), and verify the issuer signature.
 3. Resolve the credential type from cache, never by fetching on this path (Section 2.9). Verify `vct#integrity` and load the integrity-pinned JSON Schema. If `aka_vcts` is present, reject it if it contains the primary `vct`. For a derived type, require `aka_vcts` to contain the canonical TSAI `vct`; follow and integrity-check the `extends` chain to that canonical type; reject circular or unrelated chains; confirm the derived schema composes the immutable base schema; process inherited standard `claims` metadata and TSAI `tsai_signal_metadata`; and confirm that every custom signal is declared by the derived metadata and schema. If any document is absent or invalid, fail the presentation and refresh the chain out of band. Field-level schema validation occurs after disclosure processing in step 5.
 4. Check the lifetime: reject if `exp` has passed or if `iat` is in the future beyond the skew of Section 3.4.
-5. If disclosures are present, confirm `_sd_alg` is `sha-256` before use (RFC 9901 §7.1), verify each disclosure against its digest in `signals`, and reconstruct. Count the signals that remain withheld and surface the count; fail closed if it exceeds the Service Provider's policy threshold. Reject any presentation that discloses `iss`, `exp`, or `cnf`, which are not disclosable (RFC 9901 §9.7), or that reveals a signal the effective `tsai_signal_metadata` marks `sd: never`. Validate the processed payload against the complete schema chain, so every disclosed registered or custom signal is checked at field level; each schema-required signal has an effective `sd: never` rule and therefore remains available for this validation.
-6. Confirm the identity floor is present: `org`, `jur`, `kyc`, and at least one `dct` (Section 2.5.3).
+5. If disclosures are present, confirm `_sd_alg` is `sha-256` before use (RFC 9901 §7.1), verify each disclosure against its digest in `signals`, and reconstruct. Count the signals that remain withheld and surface the count; fail closed if it exceeds the Service Provider's policy threshold. Reject any presentation that discloses `iss`, `exp`, or `cnf`, which are not disclosable under RFC 9901 §9.7, or that discloses `sub`, which TSAI marks `sd: never`, or that reveals a signal the effective `tsai_signal_metadata` marks `sd: never`. Validate the processed payload against the complete schema chain, so every disclosed registered or custom signal is checked at field level; each schema-required signal has an effective `sd: never` rule and therefore remains available for this validation.
+6. Confirm the identity floor and persistent agent identity: `org`, `jur`, `kyc`, required `sub`, and at least one `dct` whose hostname equals the normalised `sub` hostname. The matching `dct` MUST carry `asof`, MUST be within the domain-freshness window of Section 2.5.3 relative to credential `iat`, and MAY be up to 30 seconds later than `iat` under the clock-skew allowance of Section 3.4.
 7. Read the key-binding JWT header, confirm `typ` is `kb+jwt` and `alg` is `ES256`, confirm the `cnf` JWK is an EC/P-256 public key, and verify the signature against it.
 8. Confirm `aud` is this Service Provider, `nonce` is present (and, when the Service Provider issued one, that it matches and has not been used), and `sd_hash` matches the presented issuer-signed JWT and forwarded disclosures per RFC 9901 §4.3.1.
 9. Apply the freshness rule of Section 3.4; for a state-changing or split-topology action, confirm both a Service-Provider-issued single-use `nonce` and `req` (Section 3.4).
@@ -88,7 +88,7 @@ A Service Provider fetches URLs it did not choose: the issuer metadata at `iss`,
 
 ### 3.7.1 Verification failure
 
-This section governs the verification outcome; the access decision on a failed verification is the Service Provider's (Section 4.4.1). The following MUST result in a verification failure, and a failed verification MUST NOT be reported as verified: an invalid or unsupported issuer or key-binding signature, an untrusted `iss`, an `x5c` header, an `alg` other than `ES256`, an unrecognised `vct`, a Type Metadata, schema, `vct#integrity`, `extends#integrity`, or `tsai_schema_uri#integrity` failure, a missing identity floor, an expired credential, a key-binding JWT that is stale, missing, or whose `aud`, `nonce`, `sd_hash`, or required `req` does not match, a set status entry, and a malformed presentation.
+This section governs the verification outcome; the access decision on a failed verification is the Service Provider's (Section 4.4.1). The following MUST result in a verification failure, and a failed verification MUST NOT be reported as verified: an invalid or unsupported issuer or key-binding signature, an untrusted `iss`, an `x5c` header, an `alg` other than `ES256`, an unrecognised `vct`, a Type Metadata, schema, `vct#integrity`, `extends#integrity`, or `tsai_schema_uri#integrity` failure, a missing identity floor, missing or invalid `sub`, a `sub`/`dct` mismatch, stale `dct`, an expired credential, a key-binding JWT that is stale, missing, or whose `aud`, `nonce`, `sd_hash`, or required `req` does not match, a set status entry, and a malformed presentation.
 
 The default access posture on a failure is to reject. A Service Provider MAY instead log or annotate (Section 4.4.1); what it MUST NOT do is treat a failed verification as verified.
 
@@ -98,7 +98,8 @@ Standard error codes:
 - `EXPIRED` — the credential lifetime has passed.
 - `STALE_PRESENTATION` — the key-binding JWT is well-formed and correctly signed but outside the freshness window; distinct from `BINDING_INVALID`, because clock drift presents this way.
 - `BINDING_INVALID` — the key-binding signature, `aud`, `nonce`, `sd_hash`, or `req` failed.
-- `MISSING_IDENTITY` — the identity floor is absent.
+- `MISSING_IDENTITY` — the identity floor or persistent `sub` is absent.
+- `IDENTITY_MISMATCH` — `sub` is not anchored to a matching, fresh `dct`.
 - `BLOCKED` — the agent or operator is blocked.
 
 A Service Provider SHOULD return a structured error and MUST NOT include issuer identifiers, algorithm details, or key-discovery information in the response; it SHOULD log the detail server-side.
@@ -121,7 +122,7 @@ A Service Provider MAY cache a verification result. A cached result MUST NOT be 
 
 **Service Providers MUST:**
 - Obtain the Trust Authority EC/P-256 key from `iss` and `/.well-known/jwt-vc-issuer`, confirm `issuer` equals `iss`, reject `x5c`, require `alg` `ES256`, and verify the issuer signature.
-- Confirm `alg` is `ES256`, validate the complete `vct` metadata and schema chain, and confirm the identity floor is present.
+- Confirm `alg` is `ES256`, validate the complete `vct` metadata and schema chain, confirm the identity floor and required `sub`, and verify that `sub` matches a `dct` within the domain-freshness window.
 - Verify the key-binding JWT against `cnf`; confirm `aud`, `nonce`, `sd_hash`, the freshness window (reject if `iat > now + 30` or `iat < now − 90`), and `req` where the action requires it.
 - Reject a set status entry with `BLOCKED`, verify the status-list token and pin its URI to the `iss` origin, and harden every fetch (Section 3.6).
 - Treat any of the above as a verification failure, never report a failed verification as verified, bound degraded-mode duration and cache lifetimes, and not leak issuer or algorithm detail in errors.

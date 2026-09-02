@@ -40,6 +40,8 @@ ROOT = Path(__file__).resolve().parent.parent
 ARCH = ROOT / "architecture"
 SCHEMAS = ARCH / "schemas"
 FORMAT_CHECKER = FormatChecker()
+CLOCK_SKEW_SECONDS = 30
+DOMAIN_FRESHNESS_SECONDS = 12 * 60 * 60
 
 failures = []
 warnings = []
@@ -139,6 +141,45 @@ for issuer in (
         fail(f"[issuer] credential schema accepts invalid issuer {issuer}")
 
 
+def normalized_hostname(value):
+    try:
+        hostname = urlsplit(value).hostname if "://" in value else value
+        if not hostname:
+            return None
+        return hostname.rstrip(".").encode("idna").decode("ascii").lower()
+    except (UnicodeError, ValueError):
+        return None
+
+
+def credential_identity_errors(instance):
+    errors = []
+    sub = instance.get("sub")
+    sub_host = normalized_hostname(sub) if isinstance(sub, str) else None
+    if sub_host is None:
+        return ["sub is missing or has no valid hostname"]
+    iat = instance.get("iat")
+    matching = [
+        signal
+        for signal in instance.get("signals", [])
+        if isinstance(signal, dict)
+        and signal.get("cat") == "idn"
+        and signal.get("typ") == "dct"
+        and normalized_hostname(signal.get("val")) == sub_host
+    ]
+    if not matching:
+        return ["sub hostname does not match any dct"]
+    if not isinstance(iat, int):
+        return ["credential iat is not an integer"]
+    if not any(
+        isinstance(signal.get("asof"), int)
+        and signal["asof"] <= iat + CLOCK_SKEW_SECONDS
+        and iat - signal["asof"] <= DOMAIN_FRESHNESS_SECONDS
+        for signal in matching
+    ):
+        errors.append("matching dct is outside the domain-freshness window")
+    return errors
+
+
 def validate(instance, schema, label):
     if schema is None:
         warn(f"[example] {label}: no schema loaded to validate against")
@@ -177,6 +218,8 @@ def classify_and_validate(obj, label):
         validate(obj, TM, label + " (type-metadata)")
     elif "iss" in obj and "vct" in obj and "signals" in obj:
         validate(obj, CRED, label + " (credential)")
+        for error in credential_identity_errors(obj):
+            fail(f"[example] {label} (credential identity): {error}")
     elif "signals" in obj and isinstance(obj["signals"], list):
         validate(obj, SIGNALS_SUB, label + " (signals-fragment)")
     elif "trustedAuthorities" in obj:
@@ -469,6 +512,8 @@ if not signal_sd_errors(_parent_sd, _child_sd):
 derived_vector_path = ARCH / "test-vectors" / "derived-vct-credential.json"
 if derived_vector_path.exists():
     derived_vector = load_json(derived_vector_path)
+    for error in credential_identity_errors(derived_vector):
+        fail(f"[derived-vector] identity: {error}")
     derived_vct = derived_vector.get("vct")
     derived_tm = metadata_by_vct.get(derived_vct)
     if derived_tm is None:
@@ -517,6 +562,20 @@ if derived_vector_path.exists():
                 fail(f"[derived-vector] negative case was accepted: {label}")
 
         derived_validator = Draft202012Validator(resolved_derived_schema, format_checker=FORMAT_CHECKER)
+
+        rotated = copy.deepcopy(derived_vector)
+        rotated_key = ec.derive_private_key(2, ec.SECP256R1()).public_key().public_numbers()
+        rotated["cnf"]["jwk"]["x"] = base64.urlsafe_b64encode(
+            rotated_key.x.to_bytes(32, "big")
+        ).rstrip(b"=").decode()
+        rotated["cnf"]["jwk"]["y"] = base64.urlsafe_b64encode(
+            rotated_key.y.to_bytes(32, "big")
+        ).rstrip(b"=").decode()
+        if list(derived_validator.iter_errors(rotated)) or credential_identity_errors(rotated):
+            fail("[derived-vector] valid key rotation with stable sub was rejected")
+        if rotated["sub"] != derived_vector["sub"] or rotated["cnf"] == derived_vector["cnf"]:
+            fail("[derived-vector] rotation did not preserve sub and change cnf")
+
         bad = copy.deepcopy(derived_vector)
         bad["signals"][-1]["level"] = "unknown"
         must_reject(bad, derived_validator, "custom enum")
@@ -524,6 +583,36 @@ if derived_vector_path.exists():
         bad = copy.deepcopy(derived_vector)
         bad.pop("aka_vcts", None)
         must_reject(bad, derived_validator, "missing aka_vcts")
+
+        bad = copy.deepcopy(derived_vector)
+        bad.pop("sub", None)
+        must_reject(bad, derived_validator, "missing sub")
+
+        bad = copy.deepcopy(derived_vector)
+        bad["sub"] = "https://other.example/agents/shopper-v3"
+        if not credential_identity_errors(bad):
+            fail("[derived-vector] sub/dct mismatch was accepted")
+
+        bad = copy.deepcopy(derived_vector)
+        for signal in bad["signals"]:
+            if signal.get("cat") == "idn" and signal.get("typ") == "dct":
+                signal["asof"] = bad["iat"] - DOMAIN_FRESHNESS_SECONDS - 1
+        if not credential_identity_errors(bad):
+            fail("[derived-vector] stale dct was accepted")
+
+        skewed = copy.deepcopy(derived_vector)
+        for signal in skewed["signals"]:
+            if signal.get("cat") == "idn" and signal.get("typ") == "dct":
+                signal["asof"] = skewed["iat"] + CLOCK_SKEW_SECONDS
+        if credential_identity_errors(skewed):
+            fail("[derived-vector] allowed dct clock skew was rejected")
+
+        bad = copy.deepcopy(derived_vector)
+        for signal in bad["signals"]:
+            if signal.get("cat") == "idn" and signal.get("typ") == "dct":
+                signal["asof"] = bad["iat"] + CLOCK_SKEW_SECONDS + 1
+        if not credential_identity_errors(bad):
+            fail("[derived-vector] excessive dct clock skew was accepted")
 
         bad = copy.deepcopy(derived_vector)
         bad["aka_vcts"].append(bad["vct"])
@@ -682,6 +771,41 @@ for oa in sorted((ARCH / "openapi").glob("*.yaml")):
         fail(f"[openapi] {oa.name} TAMetadata must require credentialTypes")
     if "schemaUri" in properties or "schema_uri" in properties:
         fail(f"[openapi] {oa.name} TAMetadata duplicates schema location from Type Metadata")
+
+    paths = doc.get("paths", {})
+    challenge_path = paths.get("/challenges", {})
+    challenge_post = challenge_path.get("post", {})
+    if "get" in challenge_path or not challenge_post:
+        fail(f"[openapi] {oa.name} challenges must use POST, not GET")
+    if {"operatorAuth": []} not in challenge_post.get("security", []):
+        fail(f"[openapi] {oa.name} challenge POST must require operatorAuth")
+    component_schemas = doc.get("components", {}).get("schemas", {})
+    challenge_request = component_schemas.get("ChallengeRequest", {})
+    if set(challenge_request.get("required", [])) != {"kid"} or challenge_request.get("additionalProperties") is not False:
+        fail(f"[openapi] {oa.name} ChallengeRequest must require only registered kid and reject unknown fields")
+    cache_control = (
+        challenge_post.get("responses", {})
+        .get("201", {})
+        .get("headers", {})
+        .get("Cache-Control", {})
+        .get("schema", {})
+        .get("const")
+    )
+    if cache_control != "no-store":
+        fail(f"[openapi] {oa.name} challenge response must require Cache-Control no-store")
+    proof = component_schemas.get("ProofOfControl", {})
+    proof_required = set(proof.get("required", []))
+    proof_properties = proof.get("properties", {})
+    if proof_required != {"kid", "challenge", "signature"} or "jwk" in proof_properties:
+        fail(f"[openapi] {oa.name} ProofOfControl must use kid without raw jwk")
+    issue_request = component_schemas.get("IssueRequest", {})
+    if (
+        set(issue_request.get("required", [])) != {"proofOfControl"}
+        or "sub" in issue_request.get("properties", {})
+        or issue_request.get("additionalProperties") is not False
+    ):
+        fail(f"[openapi] {oa.name} IssueRequest must require proof only and must not accept sub or unknown identity fields")
+
     for path_name in ("/.well-known/tsai-ta-status", "/.well-known/tsai-ta-hsm-attestation"):
         media = (
             doc.get("paths", {})

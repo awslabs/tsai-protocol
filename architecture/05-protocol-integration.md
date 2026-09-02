@@ -129,7 +129,7 @@ This lets a Service Provider run TSAI in observation before enforcing.
 
 ## 4.6 Integration with the W3C AI Agent Protocol
 
-The W3C AI Agent Protocol handles agent discovery, description, and agent-to-agent communication, and authenticates an agent with its own DIDWba scheme, which uses a `did:wba` identifier. TSAI does not use `did:wba`; it identifies the agent by the key its credential is bound to. The layers are orthogonal: the W3C proof establishes control of the W3C identity, and the TSAI presentation carries the trust signals, as TSAI also composes with Web Bot Auth (ADR 014). A request may carry both.
+The W3C AI Agent Protocol handles agent discovery, description, and agent-to-agent communication, and authenticates an agent with its own DIDWba scheme, which uses a `did:wba` identifier. TSAI does not use `did:wba`; it identifies the registered agent by HTTPS `sub` and verifies its current holder-binding key through `cnf`. The layers are orthogonal: the W3C proof establishes control of the W3C identity, and the TSAI presentation carries the trust signals, as TSAI also composes with Web Bot Auth (ADR 014). A request may carry both.
 
 **One hop.** Because `aud` binds a presentation to one Service Provider, a middle agent cannot forward an upstream agent's presentation, which is correct, and delegation is deferred (ADR 001). The consequence is that in a chain from a personal agent through an orchestrator to a service agent, the service agent learns the orchestrator's trust signals and nothing about the originating agent or the user. This is also recorded as a limitation in §5.11.
 

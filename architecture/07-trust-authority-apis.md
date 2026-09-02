@@ -19,17 +19,29 @@ Beyond the API, a Trust Authority publishes signing-key metadata using the `jwt-
 
 ---
 
-## 7.2 Operator Enrolment and Authentication
+## 7.2 Operator and Agent Registration
 
-An operator enrols with a Trust Authority out of band, through the identity verification (KYC, domain control, and the rest) that the credential's identity floor attests. Enrolment establishes an authenticated channel for that operator.
+An operator enrols with a Trust Authority out of band, through the legal-identity and domain verification that the credential's identity floor attests. Enrolment establishes an authenticated management channel and an operator account. For the normative HTTP API, `operatorAuth` is a bearer session; TSAI does not mandate how that session is established. It MUST provide strong operator identity, scoped authorisation, auditable management actions, and session binding. OAuth 2.1 is RECOMMENDED as the session-establishment mechanism but is not required.
 
-Issuance is authenticated as the enrolled operator: `POST /credentials/issue` and `POST /credentials/refresh` require the operator's credentials (the `operatorAuth` security scheme in the OpenAPI), and the proof of control (Section 7.3) then proves the binding key within that authenticated session. Without this, the API would grant a credential to any party that can generate a key pair; with it, a credential is tied to a real, verified operator. A Trust Authority MUST authenticate the operator at issuance and MUST bind the proof-of-control challenge to the requesting session. When an enrolled operator presents a new binding key, the Trust Authority associates the new key with the same operator and its evaluation.
+The authenticated management interface for operator enrolment, agent registration, and key registration is TA-specific and outside the v1 OpenAPI scope. TSAI standardises the resulting registration state and the preconditions for challenge creation, issuance, refresh, and repudiation.
+
+Before credential issuance, the operator registers each agent under that account. The agent record contains a required persistent HTTPS `sub`, one current verified `dct`, registered binding keys, status, reputation association, and lifecycle state. The normalised `sub` hostname MUST exactly equal the registered `dct`; a subdomain is accepted only when separately verified as `dct`.
+
+The TA verifies domain control using either a TA-generated DNS TXT challenge at `_tsai-challenge.<dct>` or an HTTPS challenge at `https://<dct>/.well-known/tsai-domain-challenge/<token>`. The published TXT value or HTTPS response body is the TA challenge value. Challenges use at least 256 bits of entropy, are single-use and short-lived, and are bound to the operator account, `sub`, `dct`, and validation method. HTTPS validation follows no redirects and applies public-address, response-size, and timeout controls. The TA records the successful time as `dct.asof`.
+
+A successful domain check remains current for the domain-freshness window defined in Section 2.5.3. The TA SHOULD use a shorter period for recently enrolled operators or agents and where evidence is limited, and MUST publish its cadence policy. Any failed revalidation stops new issuance. Confirmed loss of domain control immediately blocks all registered agents anchored to that `dct`; an inconclusive network failure suspends issuance while the TA retries.
+
+The authenticated management process also registers binding keys against the agent record. TSAI defines no DID input or resolution path and does not require a public JWKS URL. A TA may accept raw JWK, a JWKS document, a JWKS URL, or WBA directory input, but it MUST normalise an accepted key to an EC P-256 public signing JWK and use its RFC 7638 thumbprint as `kid`. Within one operator account, a registered key maps to one agent; several keys may map to the same agent.
 
 ---
 
-## 7.3 Proof of Control
+## 7.3 Proof of Control and Key Rotation
 
-Before binding a credential to a key, the Trust Authority confirms the operator's agent controls that key. The agent requests a challenge, signs the UTF-8 bytes of the challenge value exactly as received with ES256 using the P-256 key to be bound, and returns the base64url-encoded 64-octet `R || S` signature, which the Trust Authority verifies against the public key it will place in `cnf`. Challenges are single-use and expire after five minutes; issuing and tracking them is the one piece of state the Trust Authority holds.
+Credential issuance and refresh are authenticated as the enrolled operator. `POST /challenges` requires `operatorAuth` and creates a single-use challenge bound to the operator session, requested `kid`, derived agent record, and expiry; it expires within five minutes. The response MUST be non-cacheable. `IssueRequest` and `RefreshRequest` identify a pre-registered key by `kid`; they do not carry `sub`, raw JWK material, or a key-discovery URL.
+
+The agent signs the UTF-8 bytes of the challenge exactly as received with ES256 using the private P-256 key matching the registered `kid`, and returns the base64url-encoded 64-octet `R || S` signature. The TA resolves the key from its registration record, verifies the proof, derives the agent record from the authenticated operator and `kid`, copies the stored `sub` into the credential, and places the registered public JWK in `cnf`. An unknown, inactive, repudiated, cross-operator, or ambiguously mapped `kid` MUST be rejected.
+
+Key rotation is a management action, not an issuance side effect. The operator registers and proves a new key against the existing agent record before issuance may use it. Rotation preserves `sub`, status, and reputation and changes `cnf`. An old key may remain recorded for audit and verification of still-valid credentials but cannot obtain new credentials after deactivation.
 
 ---
 
@@ -37,21 +49,21 @@ Before binding a credential to a key, the Trust Authority confirms the operator'
 
 **Holder-directed issuance.** An agent MAY include a `signals` filter in the issuance request, asking for a subset of the signals above the identity floor, such as identity plus compliance only, without naming the Service Provider it will present to (ADR 015). The Trust Authority returns the requested subset and stays blind to the destination; it learns the agent's pattern of requests, which is far weaker than learning its destinations. The filter narrows only the signals above the floor: a Trust Authority MUST include the identity floor (ADR 016) regardless of the filter, and, more generally, a filter can never remove a signal the applicable credential schema requires.
 
-**Honesty.** The contents of a credential MUST match what the Trust Authority actually established. Specifically, a Trust Authority MUST verify the operator's identity before issuing, MUST perform the verification each signal claims — KYC for identity, DNS challenge or email for domain control, certificate validation or registry lookup for a certification, membership confirmation for an affiliation, and the basis it states for reputation — and MUST NOT populate a signal it has no basis to assert. A Trust Authority issuing custom signals MUST use a derived `vct`, publish metadata and a schema rooted in the canonical TSAI type, declare each custom signal's disclosure/display rule in `tsai_signal_metadata`, and define its fields in the schema. Every credential carries the identity floor (ADR 016), and reputation is `sd: never` (ADR 015).
+**Honesty.** The contents of a credential MUST match what the Trust Authority actually established. Specifically, a Trust Authority MUST verify the operator's identity before issuing, MUST perform the verification each signal claims — KYC for identity, DNS or HTTPS challenge for domain control, certificate validation or registry lookup for a certification, membership confirmation for an affiliation, and the basis it states for reputation — and MUST NOT populate a signal it has no basis to assert. A Trust Authority issuing custom signals MUST use a derived `vct`, publish metadata and a schema rooted in the canonical TSAI type, declare each custom signal's disclosure/display rule in `tsai_signal_metadata`, and define its fields in the schema. Every credential carries the registered agent `sub` and identity floor (ADR 016, ADR 017), and reputation is `sd: never` (ADR 015).
 
 ---
 
 ## 7.5 Credential Lifecycle
 
-An agent requests a credential when it needs one. The Trust Authority authenticates the operator, confirms proof of control, evaluates the agent, populates the signals it can honestly support, binds the credential to the key, and signs it. Credentials are short-lived: `exp` is 30 minutes after `iat`. An agent refreshes before expiry, at around 80 per cent of the lifetime.
+An agent requests a credential when it needs one. The Trust Authority authenticates the operator, resolves the pre-registered key and agent record, confirms proof of control, checks that the matching `dct.asof` is within the domain-freshness window, populates the signals it can honestly support, and signs the credential with the stored `sub` and current `cnf`. Credentials are short-lived: `exp` is 30 minutes after `iat`. An agent refreshes before expiry, at around 80 per cent of the lifetime.
 
-The short lifetime carries most of the lifecycle. To stop an agent within the window, the Trust Authority stops re-issuing and publishes a block. A Trust Authority MUST publish an agent-and-operator status list (an IETF Token Status List) and reference it from the credential's `status` claim, so a Service Provider can depend on the mechanism existing; a credential MAY omit `status` only for an agent that requires unlinkability (Section 5.7). A Service Provider consults the list per its risk policy (Section 3.5).
+The short lifetime carries most of the lifecycle. To stop an agent within the window, the Trust Authority stops re-issuing and publishes a block. A Trust Authority MUST publish an agent-and-operator status list (an IETF Token Status List). A credential normally references it from `status`; it MAY omit `status` to remove the additional status-index correlator, accepting that a TA block cannot reach that credential within its lifetime. Required `sub` remains a stable identifier and an SP can still apply its local block by `sub` (Section 5.7). A Service Provider consults the list per its risk policy (Section 3.5).
 
 ---
 
 ## 7.6 Key Repudiation
 
-An agent's binding key is its identity, so its compromise needs a path (Section 5.11). An operator MUST be able to repudiate a binding key at the Trust Authority through the authenticated channel. On repudiation the Trust Authority MUST refuse further issuance against that key and set the block for the affected agent, so that credentials already issued against the key stop verifying once a Service Provider consults status. Because the status list is keyed to the agent or operator rather than to the key, repudiating one key of an agent that uses a distinct key per Service Provider blocks the agent; an operator that needs finer granularity re-enrols the affected agent.
+The persistent agent identity is `sub`; binding keys can rotate or be compromised without changing it. An operator MUST be able to repudiate a registered key through the authenticated management channel. On repudiation the Trust Authority MUST refuse further issuance against that key. Where compromise may affect issued credentials, it MUST set the block for the agent `sub`, so credentials issued under any key for that agent stop verifying once a Service Provider consults status. An operator that needs to replace the key registers and proves a new one against the same agent record.
 
 ---
 
@@ -69,7 +81,7 @@ A Trust Authority runs critical infrastructure, targets high availability, and c
 
 ## 7.9 Normative Requirements
 
-A Trust Authority MUST implement the OpenAPI specification, authenticate the operator at issuance, confirm ES256 proof of control of the P-256 binding key, and use HTTPS with TLS 1.3 and HSM-held EC/P-256 signing keys. It MUST issue only contents it has established (Section 7.4), include the identity floor in every credential, and support key repudiation (Section 7.6). It MUST publish signing-key metadata at the URL produced by the `jwt-vc-issuer` well-known insertion rule, an agent-and-operator status list, and the compact-JWS operational report and HSM attestation (Sections 7.10 and 7.11), and MUST advertise every `vct` it issues through its metadata endpoint. A Trust Authority that defines a derived `vct` MUST publish and retain its immutable Type Metadata and integrity-protected JSON Schema; a Trust Authority using a type defined by TSAI or a community references that publisher's artefacts rather than republishing them. It MUST publish its evaluation criteria and disclose its data-collection, retention, and sharing practices (Section 7.10), and SHOULD minimise data collection to operational necessity.
+A Trust Authority MUST implement the OpenAPI specification, authenticate the operator at registration, challenge creation, issuance, refresh, and repudiation, register each agent `sub` and binding key before issuance, resolve issuance proof by registered `kid`, confirm ES256 proof of control, and use HTTPS with TLS 1.3 and HSM-held EC/P-256 signing keys. It MUST NOT accept `sub` or raw key material from `IssueRequest`. It MUST verify that `sub` exactly matches a current `dct`, record `dct.asof`, stop issuing when it is outside the domain-freshness window, and apply the loss-of-control response in Section 7.2. It MUST issue only contents it has established (Section 7.4), include the identity floor and registered `sub` in every credential, and support key repudiation (Section 7.6). It MUST publish signing-key metadata at the URL produced by the `jwt-vc-issuer` well-known insertion rule, an agent-and-operator status list, and the compact-JWS operational report and HSM attestation (Sections 7.10 and 7.11), and MUST advertise every `vct` it issues through its metadata endpoint. A Trust Authority that defines a derived `vct` MUST publish and retain its immutable Type Metadata and integrity-protected JSON Schema; a Trust Authority using a type defined by TSAI or a community references that publisher's artefacts rather than republishing them. It MUST publish its evaluation criteria and disclose its data-collection, retention, and sharing practices (Section 7.10), and SHOULD minimise data collection to operational necessity.
 
 ---
 
@@ -150,4 +162,4 @@ Assurance levels are `independent-audit` (a third party verified HSM use, the st
 - TSAI Credential Format (Section 2), TSAI Verification (Section 3)
 - ADR 011 (transparency), ADR 015 (holder-directed issuance and Type Metadata), ADR 016 (identity floor and reputation)
 - draft-ietf-oauth-sd-jwt-vc, draft-ietf-oauth-status-list
-- RFC 7515 (JWS), RFC 7518 (ES256), RFC 7519 (JWT)
+- RFC 7515 (JWS), RFC 7518 (ES256), RFC 7519 (JWT), RFC 7638 (JWK Thumbprint), RFC 8615 (Well-Known URIs)

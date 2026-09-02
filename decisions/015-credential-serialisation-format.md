@@ -11,7 +11,7 @@ SPDX-License-Identifier: Apache-2.0
 **Relationship to ADR 003:** supersedes [ADR 003 — W3C Verifiable Credentials as Credential Format](./003-w3c-verifiable-credentials.md)  
 **Depended on by:** the holder-binding decision (ADR 014); carries the signal structure (ADR 016)  
 
-> Note: the illustrative example predates ADR 016's final abbreviated field vocabulary and ADR 017's identity model, so it uses placeholder `category`/`type` names and a `did:web` issuer. It is illustrative rather than normative.
+> Note: the illustrative example focuses on serialisation and predates the final profile vocabulary, so it uses placeholder signal names and omits some required profile claims. It is illustrative rather than normative.
 
 
 ---
@@ -141,7 +141,7 @@ SHA-256 is likewise fixed for SD-JWT disclosure digests and `sd_hash`, RFC 7638 
 
 ES256 is a signature algorithm, not an encryption algorithm. TSAI v1 defines no JWE or payload-encryption scheme; TLS provides confidentiality in transit, and signing keys are not reused for encryption or key agreement. Future algorithm migration is a protocol-version transition with an explicit migration period, not an extension of the v1 allowlist.
 
-The residual cost is that TSAI depends on a credential profile that is not yet an RFC. The key-centric identity consequence is settled by ADR 017: the issuer uses HTTPS `iss` discovery and the holder uses the inline `cnf` JWK; TSAI does not depend on `did:wba`.
+The residual cost is that TSAI depends on a credential profile that is not yet an RFC. ADR 017 settles the identity consequence: the issuer uses HTTPS `iss`, the registered agent uses persistent HTTPS `sub`, and holder binding uses the inline `cnf` JWK; TSAI does not depend on `did:wba`.
 
 ---
 
@@ -154,7 +154,7 @@ The residual cost is that TSAI depends on a credential profile that is not yet a
 - A verifier surfaces the withheld-signal count and may fail closed above its policy threshold.
 - TSAI adopts the `vct` type claim and the `application/dc+sd-jwt` media type, and publishes Type Metadata for each `vct`. Standard metadata carries path-based claim controls; the TSAI profile adds signal disclosure/display controls and binds each type to an integrity-protected JSON Schema that is authoritative for format and presence. A custom extension uses a derived `vct` rooted in immutable, versioned TSAI metadata and its base schema; the publisher defining each type retains those artefacts without in-place changes.
 - The trust signals from ADR 016 are carried in a single top-level `signals` claim, holding the flat list of category-discriminated objects that decision fixes. Selective disclosure is available per claim, and within the list per array element, but is unused by default, so a credential is a flat JWT and only the fields deliberately made disclosable ever appear as digests. Disclosing the `signals` claim as a whole is all-or-nothing across the list; revealing individual signals while withholding others requires the per-element form.
-- The identity model is key-centric under ADR 017: the issuer uses HTTPS `iss` and `jwt-vc-issuer` discovery, and the holder uses the inline `cnf` JWK. A `did:web` issuer is not used.
+- The identity model under ADR 017 uses HTTPS `iss` for the issuer and required registered HTTPS `sub` for the agent; the inline `cnf` JWK is the current holder-binding key. A `did:web` issuer or agent is not used.
 - Where an agent carries credentials from several Trust Authorities, each is a separate SD-JWT VC bound to the same agent `cnf` key; there is no single presentation wrapper, so carrying several together is a protocol-layer concern rather than a credential-format one.
 
 ### Illustrative structure
@@ -164,13 +164,14 @@ A minimal TSAI credential with no selective disclosure is a plain signed JWT. TS
 Issuer-signed JWT (header, then payload):
 
 ```json
-{ "alg": "ES256", "typ": "dc+sd-jwt", "kid": "did:web:trust-authority.example:tsai:ta#key-1" }
+{ "alg": "ES256", "typ": "dc+sd-jwt", "kid": "key-1" }
 ```
 ```json
 {
-  "iss": "did:web:trust-authority.example:tsai:ta",
-  "vct": "https://tsaiprotocol.org/credentials/tsai",
+  "iss": "https://trust-authority.example",
+  "vct": "https://tsaiprotocol.org/credential/tsai/1",
   "exp": 1781866800,
+  "sub": "https://acme-corp.example/agents/shopper-v3",
   "cnf": { "jwk": { "kty": "EC", "crv": "P-256", "x": "TCAER19Zvu3OHF4j4W4vfSVoHIP1ILilDls7vCeGemc", "y": "ZxjiWWbZMQGHVWKVQ4hbSIirsVfuecCE6t4jT9F2HZQ" } },
   "signals": [
     { "category": "‹category›", "type": "‹type›", "verified_at": "2026-06-14" },
@@ -194,8 +195,6 @@ Key-binding JWT at presentation (header, then payload), signed by the `cnf` key:
 ```
 
 On the wire the presentation is `‹issuer-JWT›~‹KB-JWT›`. The issuer signature proves the signals are authentic, the key-binding JWT proves possession of the `cnf` key for this audience and this request, and `sd_hash` binds the two together. With selective disclosure in use, only the disclosed claims would move to `_sd` digests with accompanying disclosures; everything else stays as shown.
-
-The issuer identity in this example is interim. `iss` and `kid` use the `did:web` form of ADR 006, which stands until the follow-on ADR on issuer identity and discovery is decided. Under the `jwt-vc-issuer` discovery named in the consequences above, `iss` would instead be an HTTPS URL beneath which issuer metadata is served. These are alternative key-resolution mechanisms rather than complements, so only one is in use at a time: a verifier built against the example as written needs DID resolution for issuers alongside raw JWK handling for holders, and that duplication is expected to fall away when the follow-on ADR lands.
 
 ---
 

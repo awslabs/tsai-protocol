@@ -27,7 +27,7 @@ The operator is the legal entity, a company, organisation, or individual, that r
 
 ### Agent
 
-The agent is an LLM-driven program that makes requests on behalf of an operator. It is identified by the key it holds, the key the credential is bound to, and it may carry a stable HTTPS name for continuity. It acts as a client to Service Providers, as an MCP client, an A2A participant, or through another protocol, and it builds its own behavioural record.
+The agent is an LLM-driven program that makes requests on behalf of an operator. It has a required, persistent HTTPS `sub` registered with the Trust Authority, while `cnf` carries its current holder-binding key. It acts as a client to Service Providers, as an MCP client, an A2A participant, or through another protocol, and it builds its own behavioural record across key rotation.
 
 ### User
 
@@ -102,7 +102,7 @@ This replaces the earlier tiered model, where the credential carried a tier and 
 
 ## Standards Base
 
-TSAI builds on SD-JWT VC (draft-ietf-oauth-sd-jwt-vc) for the credential, the key-binding JWT for holder binding, and the IETF Token Status List for a block. A Trust Authority is identified by an HTTPS issuer with keys at `/.well-known/jwt-vc-issuer`; an agent by the key it holds; a referenced third party by its own `did:web` (ADR 017). This keeps TSAI within the JWT and JOSE idiom shared by Web Bot Auth and OpenID4VC, and away from a second identifier scheme.
+TSAI builds on SD-JWT VC (draft-ietf-oauth-sd-jwt-vc) for the credential, the key-binding JWT for holder binding, and the IETF Token Status List for a block. A Trust Authority is identified by an HTTPS issuer, an agent by required registered HTTPS `sub` with its current key in `cnf`, and a referenced third party by its own `did:web` (ADR 017). This keeps TSAI within the JWT and JOSE idiom shared by Web Bot Auth and OpenID4VC, and away from a second identifier scheme.
 
 ---
 
@@ -135,7 +135,7 @@ The base path is offline verification against a cached Trust Authority key, whic
 
 ## Integration with the W3C AI Agent Protocol
 
-TSAI complements the W3C AI Agent Protocol, which handles agent discovery, description, and agent-to-agent communication. The W3C protocol authenticates an agent with its own DIDWba scheme, which uses a `did:wba` identifier. TSAI does not use `did:wba`; it identifies the agent by the key its credential is bound to. The two layers are orthogonal: the W3C proof establishes control of the W3C identity, and the TSAI presentation carries the trust signals, in the same way TSAI composes with Web Bot Auth (ADR 014).
+TSAI complements the W3C AI Agent Protocol, which handles agent discovery, description, and agent-to-agent communication. The W3C protocol authenticates an agent with its own DIDWba scheme, which uses a `did:wba` identifier. TSAI does not use `did:wba`; it identifies the registered agent by HTTPS `sub` and verifies its current holder-binding key through `cnf`. The two layers are orthogonal: the W3C proof establishes control of the W3C identity, and the TSAI presentation carries the trust signals, in the same way TSAI composes with Web Bot Auth (ADR 014).
 
 For example, Alice's personal agent discovers a hotel booking agent that requires TSAI, obtains a credential from a Trust Authority, and sends a request carrying both its DIDWba proof and its TSAI presentation. The hotel agent verifies both and decides on the signals per its own policy.
 

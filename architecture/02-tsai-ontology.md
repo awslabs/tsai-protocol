@@ -23,7 +23,7 @@ The legal entity, a company, organisation, or individual, that runs agents and i
 
 ## Agent
 
-The program that makes requests on behalf of an operator. It is identified by the key its credential is bound to, the `cnf` key, and it may carry a stable HTTPS name for continuity (ADR 017). It carries its own reputation; the operator may also carry a reputation aggregated across its agents (ADR 016).
+The program that makes requests on behalf of an operator. It has a stable identity across key rotation and carries its own reputation; the operator may also carry reputation aggregated across its agents (ADR 016, ADR 017).
 
 ## The operatedBy relationship
 
@@ -51,14 +51,14 @@ A flat signal list carrying operator-level and agent-level signals:
   { "cat": "idn", "typ": "org", "val": "ACME Corporation GmbH" },
   { "cat": "idn", "typ": "jur", "val": "DE" },
   { "cat": "idn", "typ": "kyc", "val": "enhanced" },
-  { "cat": "idn", "typ": "dct", "val": "acme-corp.example" },
+  { "cat": "idn", "typ": "dct", "val": "acme-corp.example", "asof": 1754300000 },
   { "cat": "cmp", "typ": "iso27001", "prv": "did:web:cert-corp.example", "asof": 1754300000 },
   { "cat": "rep", "typ": "ecommerce", "scp": "agent", "band": "established", "scr": 0.94, "cnt": 3518, "wdw": "P90D", "asof": 1754300000 },
   { "cat": "rep", "typ": "ecommerce", "scp": "operator", "band": "strong", "cnt": 41200, "wdw": "P365D", "asof": 1754300000 }
 ]
 ```
 
-The four identity signals and the compliance signal describe the operator. The two reputation signals differ in scope: the `agent` record is this agent's own history, and the `operator` record aggregates across the operator's agents (ADR 016). The credential binds them to the agent's `cnf` key and to the operator's identity.
+The four identity signals and the compliance signal describe the operator. The two reputation signals differ in scope: the `agent` record is this agent's own history, and the `operator` record aggregates across the operator's agents (ADR 016). The credential links the agent to the accountable operator and carries signals at the applicable scope.
 
 ---
 
@@ -68,7 +68,7 @@ The four identity signals and the compliance signal describe the operator. The t
 
 **The operator is identified by verified attributes, not a minted identifier.** An identifier a Trust Authority mints for the operator would not be consistent across Trust Authorities. The operator's legal identity and verified domain are what a Service Provider needs, and they are decided outside any single TA (ADR 017).
 
-**The agent is identified by the key it holds.** The `cnf` key is self-authenticating and is what the holder proves possession of at presentation, so the agent needs no separate identifier for verification (ADR 014).
+**The agent identity survives key rotation.** Reputation, status, and Service-Provider policy remain attached to the same agent when its proof key changes (ADR 014, ADR 017).
 
 ---
 
