@@ -4,7 +4,7 @@
   "name": "Example TA TSAI Credential",
   "description": "Derived TSAI credential type adding a TA-specific risk signal.",
   "extends": "https://tsaiprotocol.org/credential/tsai/1",
-  "extends#integrity": "sha256-VuWmtTefEMDCYc/gkSHZHBpIzFmAHFUUYNRcN2Ke1w4=",
+  "extends#integrity": "sha256-y4zXgoIrRHqL6PNnuvddqd7qkSF+3oIs2L/LK5fIc04=",
   "tsai_schema_uri": "https://ta.example/schemas/credential/tsai/1.json",
   "tsai_schema_uri#integrity": "sha256-H5gGR/iMLT9a4ajpGQBRXOEwR4E1fUMqZl1gtCuhvtQ=",
   "tsai_signal_metadata": [

@@ -183,20 +183,31 @@ for issuer in (
         fail(f"[issuer] credential schema accepts invalid issuer {issuer}")
 
 
-def normalized_hostname(value):
-    try:
-        hostname = urlsplit(value).hostname if "://" in value else value
-        if not hostname:
-            return None
-        return hostname.rstrip(".").encode("idna").decode("ascii").lower()
-    except (UnicodeError, ValueError):
+CANONICAL_HOSTNAME = re.compile(
+    r"^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)"
+    r"(?:\.(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?))*$"
+)
+
+
+def canonical_hostname(value):
+    if not isinstance(value, str):
         return None
+    hostname = urlsplit(value).netloc if "://" in value else value
+    return hostname if CANONICAL_HOSTNAME.fullmatch(hostname) else None
+
+
+for valid_hostname in ("acme.example", "xn--bcher-kva.example"):
+    if canonical_hostname(valid_hostname) != valid_hostname:
+        fail(f"[identity] canonical hostname was rejected: {valid_hostname}")
+for invalid_hostname in ("Acme.example", "acme.example.", "bücher.example", "-acme.example"):
+    if canonical_hostname(invalid_hostname) is not None:
+        fail(f"[identity] non-canonical hostname was accepted: {invalid_hostname}")
 
 
 def credential_identity_errors(instance):
     errors = []
     sub = instance.get("sub")
-    sub_host = normalized_hostname(sub) if isinstance(sub, str) else None
+    sub_host = canonical_hostname(sub) if isinstance(sub, str) else None
     if sub_host is None:
         return ["sub is missing or has no valid hostname"]
     iat = instance.get("iat")
@@ -206,7 +217,7 @@ def credential_identity_errors(instance):
         if isinstance(signal, dict)
         and signal.get("cat") == "idn"
         and signal.get("typ") == "dct"
-        and normalized_hostname(signal.get("val")) == sub_host
+        and canonical_hostname(signal.get("val")) == sub_host
     ]
     if not matching:
         return ["sub hostname does not match any dct"]

@@ -55,7 +55,7 @@ where the disclosures are present only under selective disclosure (Section 2.6);
 | `aka_vcts` | CONDITIONAL | Additional credential types. REQUIRED on a derived TSAI type and MUST include the canonical TSAI `vct`; MUST NOT contain the credential's primary `vct` (Sections 2.5.7 and 2.9). |
 | `iat` | REQUIRED | Issuance time, seconds since the Unix epoch. |
 | `exp` | REQUIRED | Expiry time, 30 minutes after `iat` (Section 2.7). |
-| `sub` | REQUIRED | The registered, persistent HTTPS identifier for the agent. It has no port because its hostname is compared to port-less `dct`. The TA copies it from the authenticated agent record; it survives binding-key rotation and is not accepted from `IssueRequest`. |
+| `sub` | REQUIRED | The registered, persistent HTTPS identifier for the agent. Its hostname is a canonical lower-case ASCII DNS name in A-label form, with no trailing dot or port, and exactly matches a `dct`. The TA copies it from the authenticated agent record; it survives binding-key rotation and is not accepted from `IssueRequest`. |
 | `cnf` | REQUIRED | The holder binding key, a JWK (Section 2.4). |
 | `status` | OPTIONAL | A reference into a status list keyed to the agent or operator identity (Section 2.7). |
 | `signals` | REQUIRED | The flat list of trust signals, carrying at least the identity floor (Sections 2.5, 2.5.3). |
@@ -156,7 +156,7 @@ Attributes the Trust Authority verified; the provider is the Trust Authority, so
   - `basic` — legal name, address, and business registration verified;
   - `enhanced` — basic, plus beneficial ownership and financial checks;
   - `institutional` — enhanced, plus regulatory-compliance checks and audits.
-- `dct` — a hostname the operator controls, verified by DNS or HTTPS challenge. `val` is the hostname and `asof` is REQUIRED; freshness follows the domain-freshness window below.
+- `dct` — a hostname the operator controls, verified by DNS or HTTPS challenge. `val` is the canonical lower-case ASCII DNS name in A-label form, with no trailing dot; Unicode U-labels are not carried in a credential. `asof` is REQUIRED, and freshness follows the domain-freshness window below.
 - `dag` — the age of that domain. `val` is an ISO 8601 duration; `asof` fixes the measurement time.
 
 **The identity floor (ADR 016).** A Trust Authority MUST NOT issue a credential unless `signals` contains, as identity signals, the operator's legal name (`org`), jurisdiction (`jur`), verification depth (`kyc`), and at least one verified controlled domain (`dct`). The schema enforces their presence, and `tsai_signal_metadata` marks them `sd: never` (Section 2.9). The floor is not a tier and defines no ordering.
@@ -255,7 +255,7 @@ A derived TSAI type uses the standard `extends` and `extends#integrity` properti
 {
   "vct": "https://ta.example/credential/tsai/1",
   "extends": "https://tsaiprotocol.org/credential/tsai/1",
-  "extends#integrity": "sha256-VuWmtTefEMDCYc/gkSHZHBpIzFmAHFUUYNRcN2Ke1w4=",
+  "extends#integrity": "sha256-y4zXgoIrRHqL6PNnuvddqd7qkSF+3oIs2L/LK5fIc04=",
   "tsai_schema_uri": "https://ta.example/schemas/credential/tsai/1.json",
   "tsai_schema_uri#integrity": "sha256-H5gGR/iMLT9a4ajpGQBRXOEwR4E1fUMqZl1gtCuhvtQ=",
   "tsai_signal_metadata": [
@@ -290,7 +290,7 @@ An issued credential, flat, before presentation:
 {
   "iss": "https://trust-authority.example",
   "vct": "https://tsaiprotocol.org/credential/tsai/1",
-  "vct#integrity": "sha256-VuWmtTefEMDCYc/gkSHZHBpIzFmAHFUUYNRcN2Ke1w4=",
+  "vct#integrity": "sha256-y4zXgoIrRHqL6PNnuvddqd7qkSF+3oIs2L/LK5fIc04=",
   "iat": 1781863200,
   "exp": 1781865000,
   "sub": "https://acme-corp.example/agents/shopper-v3",
