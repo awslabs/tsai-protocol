@@ -156,10 +156,10 @@ Attributes the Trust Authority verified; the provider is the Trust Authority, so
   - `basic` — legal name, address, and business registration verified;
   - `enhanced` — basic, plus beneficial ownership and financial checks;
   - `institutional` — enhanced, plus regulatory-compliance checks and audits.
-- `dct` — a hostname the operator controls, verified by DNS or HTTPS challenge. `val` is the canonical lower-case ASCII DNS name in A-label form, with no trailing dot; Unicode U-labels are not carried in a credential. `asof` is REQUIRED, and freshness follows the domain-freshness window below.
-- `dag` — the age of that domain. `val` is an ISO 8601 duration; `asof` fixes the measurement time.
+- `dct` — the single hostname anchoring the agent `sub`, verified by DNS or HTTPS challenge. `val` is the canonical lower-case ASCII DNS name in A-label form, with no trailing dot; Unicode U-labels are not carried in a credential. `asof` is REQUIRED, and freshness follows the domain-freshness window below.
+- `dag` — the optional age of that sole `dct`; it appears at most once. `val` is an ISO 8601 duration; `asof` fixes the measurement time.
 
-**The identity floor (ADR 016).** A Trust Authority MUST NOT issue a credential unless `signals` contains, as identity signals, the operator's legal name (`org`), jurisdiction (`jur`), verification depth (`kyc`), and at least one verified controlled domain (`dct`). The schema enforces their presence, and `tsai_signal_metadata` marks them `sd: never` (Section 2.9). The floor is not a tier and defines no ordering.
+**The identity floor (ADR 016).** A Trust Authority MUST NOT issue a credential unless `signals` contains exactly one of each identity-floor signal: the operator's legal name (`org`), jurisdiction (`jur`), verification depth (`kyc`), and the verified controlled domain (`dct`) anchoring `sub`. The schema enforces their presence, and `tsai_signal_metadata` marks them `sd: never` (Section 2.9). The floor is not a tier and defines no ordering.
 
 **Domain-freshness window.** The `dct` used to anchor `sub` MUST have been verified no more than 12 hours before credential issuance. A verifier allows `dct.asof` to be up to 30 seconds later than credential `iat` for clock skew between TA components (Section 3.4).
 
@@ -255,7 +255,7 @@ A derived TSAI type uses the standard `extends` and `extends#integrity` properti
 {
   "vct": "https://ta.example/credential/tsai/1",
   "extends": "https://tsaiprotocol.org/credential/tsai/1",
-  "extends#integrity": "sha256-F9msU5Foz+5Az8M/CMOx6wUiNgJ0QH3g+LbHJLO0Q3I=",
+  "extends#integrity": "sha256-TlXnQgvmjbrYiaBBCe7CJr5u1kN8EKlAfJphROLDYBI=",
   "tsai_schema_uri": "https://ta.example/schemas/credential/tsai/1.json",
   "tsai_schema_uri#integrity": "sha256-H5gGR/iMLT9a4ajpGQBRXOEwR4E1fUMqZl1gtCuhvtQ=",
   "tsai_signal_metadata": [
@@ -290,7 +290,7 @@ An issued credential, flat, before presentation:
 {
   "iss": "https://trust-authority.example",
   "vct": "https://tsaiprotocol.org/credential/tsai/1",
-  "vct#integrity": "sha256-F9msU5Foz+5Az8M/CMOx6wUiNgJ0QH3g+LbHJLO0Q3I=",
+  "vct#integrity": "sha256-TlXnQgvmjbrYiaBBCe7CJr5u1kN8EKlAfJphROLDYBI=",
   "iat": 1781863200,
   "exp": 1781865000,
   "sub": "https://acme-corp.example/agents/shopper-v3",

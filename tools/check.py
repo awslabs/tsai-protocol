@@ -466,7 +466,7 @@ def required_signal_selectors(value):
             props = contained.get("properties", {})
             cat = props.get("cat", {}).get("const") if isinstance(props.get("cat"), dict) else None
             typ = props.get("typ", {}).get("const") if isinstance(props.get("typ"), dict) else None
-            if cat is not None and typ is not None:
+            if cat is not None and typ is not None and value.get("minContains", 1) > 0:
                 selectors.add((cat, typ))
         for child in value.values():
             selectors.update(required_signal_selectors(child))
@@ -716,6 +716,22 @@ if derived_vector_path.exists():
                 fail(f"[derived-vector] negative case was accepted: {label}")
 
         derived_validator = Draft202012Validator(resolved_derived_schema, format_checker=FORMAT_CHECKER)
+
+        for identity_type in ("org", "jur", "kyc", "dct"):
+            duplicate = copy.deepcopy(derived_vector)
+            signal = next(
+                item for item in duplicate["signals"]
+                if item.get("cat") == "idn" and item.get("typ") == identity_type
+            )
+            duplicate["signals"].append(copy.deepcopy(signal))
+            must_reject(duplicate, derived_validator, f"duplicate {identity_type}")
+
+        with_dag = copy.deepcopy(derived_vector)
+        with_dag["signals"].append({"cat": "idn", "typ": "dag", "val": "P850D"})
+        if list(derived_validator.iter_errors(with_dag)):
+            fail("[derived-vector] one optional dag signal was rejected")
+        with_dag["signals"].append({"cat": "idn", "typ": "dag", "val": "P850D"})
+        must_reject(with_dag, derived_validator, "duplicate dag")
 
         rotated = copy.deepcopy(derived_vector)
         rotated_key = ec.derive_private_key(2, ec.SECP256R1()).public_key().public_numbers()

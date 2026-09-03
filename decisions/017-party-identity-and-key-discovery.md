@@ -72,7 +72,7 @@ Adopt **Option 3**.
 
 ### Agent identity
 
-`sub` is REQUIRED in every TSAI credential and is the persistent agent identifier. It is an HTTPS URL with no user information, port, query, or fragment. Its hostname and every `dct` use canonical lower-case ASCII DNS A-label form without a trailing dot; credentials do not carry Unicode U-labels. The TA performs this conversion before registration, and the verifier compares the canonical `sub` hostname with one current `dct` as exact strings. A subdomain is valid only when that hostname is independently verified as `dct`. The URL path distinguishes agents within the domain.
+`sub` is REQUIRED in every TSAI credential and is the persistent agent identifier. It is an HTTPS URL with no user information, port, query, or fragment. Its hostname and every `dct` use canonical lower-case ASCII DNS A-label form without a trailing dot; credentials do not carry Unicode U-labels. The TA performs this conversion before registration. Each credential carries exactly one current `dct`, the verifier compares it with the canonical `sub` hostname as exact strings, and an optional `dag` describes that sole domain. A subdomain is valid only when that hostname is independently verified as `dct`. The URL path distinguishes agents within the domain.
 
 The operator registers the agent before issuance through an authenticated TA management process. The TA stores the operator-to-agent association and MUST NOT accept `sub` from `IssueRequest`. A stable `sub` may be registered with several TAs, but TSAI cannot enforce cross-TA uniqueness.
 
