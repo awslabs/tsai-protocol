@@ -165,13 +165,16 @@ Attributes the Trust Authority verified; the provider is the Trust Authority, so
 
 ### 2.5.4 Reputation (`rep`)
 
-The agent's behavioural record, observed by the Trust Authority; `prv` is omitted, since the Trust Authority is the source (ADR 016). Fields:
+The agent's behavioural record, observed by the Trust Authority; `prv` is omitted, since the Trust Authority is the source (ADR 016). The following shape applies to registered TSAI reputation types under the canonical `vct`; a derived `vct` may define a custom `rep` shape through its own schema and `tsai_signal_metadata`. Fields:
 
-- `band` — a portable ordinal, one of `insufficient-history`, `established`, or `strong`. Comparable across Trust Authorities; each authority publishes how it maps its own scale (Section 2.9, Section 7.10).
-- `scr` — a TA-specific score, not comparable across authorities.
-- `cnt` — the number of interactions behind the record. REQUIRED whenever `band` or `scr` is present.
-- `wdw` — the observation window, an ISO 8601 duration; with `asof` (the window end) it is computable. REQUIRED whenever `band` or `scr` is present.
+- `mtd` — a versioned HTTPS identifier for the immutable methodology document. REQUIRED.
+- `mtd#integrity` — SHA-256 integrity metadata over the exact methodology-document bytes. REQUIRED.
+- `scr` — the Trust Authority's score. REQUIRED. Its range, direction, semantics, calculation, and evidence basis are defined by `mtd`; it MUST NOT be compared across methodologies without Service-Provider calibration.
+- `cnt` — the number of eligible interactions behind the score. REQUIRED.
+- `wdw` — the observation window, an ISO 8601 duration; with `asof` (the window end) it is computable. REQUIRED.
 - `scp` — the scope of the record, `agent` (the default) or `operator`. An `operator` record aggregates across the operator's agents; a Service Provider evaluating a thin agent-level record reads the operator-level one (Section 5.11, ADR 016).
+
+The methodology document MUST conform to [`schemas/tsai-reputation-methodology.schema.json`](schemas/tsai-reputation-methodology.schema.json), its `id` MUST equal `mtd`, and its score range MUST have `minimum` less than `maximum`. It defines the score range and direction, score semantics, calculation method, eligible evidence, outcome classification, minimum history, and treatment of insufficient history. A material change to any of those properties requires a new `mtd`; methodology documents are immutable. A Trust Authority serves an HTTPS `mtd` document as `application/json`. A Service Provider obtains and caches it out of band, verifies `mtd#integrity`, and keys score policy by `(iss, typ, mtd)` (Section 3.3). An unknown or invalid methodology gives no favourable reputation result.
 
 `typ` names the registered domain of the record. The TSAI v1 registry contains `ecommerce`; another domain is added through the registry or a derived `vct`. Reputation signals at both scopes are `sd: never` in the type metadata (Section 2.9), so an agent cannot withhold a record it holds, including the operator-level one a washed agent would most want to hide.
 
@@ -252,7 +255,7 @@ A derived TSAI type uses the standard `extends` and `extends#integrity` properti
 {
   "vct": "https://ta.example/credential/tsai/1",
   "extends": "https://tsaiprotocol.org/credential/tsai/1",
-  "extends#integrity": "sha256-9GPWoE/zqkVoa+aLL+fkeYqBrGU5wkikBO7JGkRl/S0=",
+  "extends#integrity": "sha256-dxT9WvyRpXCwEmNwyFK0ofLIzFZyrejMsksgR7C4smU=",
   "tsai_schema_uri": "https://ta.example/schemas/credential/tsai/1.json",
   "tsai_schema_uri#integrity": "sha256-H5gGR/iMLT9a4ajpGQBRXOEwR4E1fUMqZl1gtCuhvtQ=",
   "tsai_signal_metadata": [
@@ -287,7 +290,7 @@ An issued credential, flat, before presentation:
 {
   "iss": "https://trust-authority.example",
   "vct": "https://tsaiprotocol.org/credential/tsai/1",
-  "vct#integrity": "sha256-9GPWoE/zqkVoa+aLL+fkeYqBrGU5wkikBO7JGkRl/S0=",
+  "vct#integrity": "sha256-dxT9WvyRpXCwEmNwyFK0ofLIzFZyrejMsksgR7C4smU=",
   "iat": 1781863200,
   "exp": 1781865000,
   "sub": "https://acme-corp.example/agents/shopper-v3",
@@ -299,7 +302,7 @@ An issued credential, flat, before presentation:
     { "cat": "idn", "typ": "kyc", "val": "enhanced" },
     { "cat": "idn", "typ": "dct", "val": "acme-corp.example", "asof": 1781860000 },
     { "cat": "idn", "typ": "dag", "val": "P850D", "asof": 1781000000 },
-    { "cat": "rep", "typ": "ecommerce", "band": "established", "scr": 0.94, "cnt": 3518, "wdw": "P90D", "asof": 1781800000 },
+    { "cat": "rep", "typ": "ecommerce", "mtd": "https://ta.example/reputation/test-vector/1", "mtd#integrity": "sha256-Td9FdWbwljmeY78DD/gKxGxPSjjV9vzvOU3oXPH4dJY=", "scr": 0.94, "cnt": 3518, "wdw": "P90D", "asof": 1781800000 },
     { "cat": "cmp", "typ": "iso27001", "prv": "did:web:cert-corp.example", "vld": 1981863200, "asof": 1780000000 },
     { "cat": "asr", "typ": "insurance", "prv": "did:web:cyber-insurance.example", "lei": "WDIFANOQF6AW1CXRCR17", "cvr": { "val": 100000, "cur": "EUR" }, "basis": "aggregate", "scope": "third-party liability", "vld": 1790000000, "asof": 1780000000 }
   ]
@@ -323,7 +326,7 @@ Authorization and mandate — value limits, permitted operations, rate limits, a
 - Carry a SHA-256 `vct#integrity` claim binding the credential to its Type Metadata document, and publish an integrity-protected schema for that type (Section 2.9).
 - Include the identity floor (`org`, `jur`, `kyc`, `dct`) in every credential (ADR 016).
 - Include the registered agent `sub`, copy it from the authenticated agent record, and ensure its hostname exactly matches a `dct` within the domain-freshness window (Section 2.5.3, ADR 017).
-- Include `cnt` and the observation window whenever a reputation signal carries `band` or `scr` (ADR 016).
+- Include `mtd`, `mtd#integrity`, `scr`, `cnt`, `wdw`, and `asof` in every registered TSAI reputation signal; derived `rep` signals follow their own integrity-pinned schema (ADR 016).
 - Not make an `sd: never` signal, reputation among them, selectively disclosable.
 - Publish signing-key metadata at the URL produced by the `jwt-vc-issuer` well-known insertion rule and publish an agent-and-operator status list. The publisher that defines each `vct` publishes its immutable Type Metadata and JSON Schema; TSAI publishes the canonical artefacts, while a TA or community publishes the derived artefacts it defines.
 - Advertise every `vct` the Trust Authority issues. For a derived TSAI type, extend and integrity-pin the parent metadata and schema, include the canonical base type in `aka_vcts`, and declare every custom signal.

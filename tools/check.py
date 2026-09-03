@@ -8,7 +8,8 @@ Mechanises the artefact-agreement checks from the review process feedback:
 
   1. every JSON schema is a valid Draft 2020-12 schema;
   2. every JSON example embedded in the docs validates against the right schema;
-  3. the type-metadata instance validates against its schema;
+  3. Type Metadata, credential schemas, reputation methodology documents, and
+     their integrity bindings agree;
   4. the key-binding-JWT test vectors are schema-valid and their freshness verdict
      matches the Section 3.4 rule;
   5. no review-artefact tokens ([A-L].n) leak into the repository;
@@ -79,20 +80,57 @@ for sf in schema_files:
 CRED = schemas.get("tsai-credential.schema.json")
 KB = schemas.get("key-binding-jwt.schema.json")
 TM = schemas.get("tsai-type-metadata.schema.json")
+REPUTATION_METHOD = schemas.get("tsai-reputation-methodology.schema.json")
 A2A = schemas.get("a2a-agent-card-tsai.schema.json")
 MCP = schemas.get("mcp-capability-tsai.schema.json")
 TA_STATUS = schemas.get("tsai-ta-status.schema.json")
 HSM = schemas.get("tsai-ta-hsm-attestation.schema.json")
+REGISTERED_REPUTATION_TYPES = set(
+    CRED.get("$defs", {})
+    .get("reputationSignal", {})
+    .get("properties", {})
+    .get("typ", {})
+    .get("enum", [])
+) if CRED else set()
 
 # a sub-schema over just the signals array, for the fragment examples
 SIGNALS_SUB = None
+reputation_fixture = None
 if CRED:
+    signals_fragment_schema = copy.deepcopy(CRED["properties"]["signals"])
+    signals_fragment_schema["items"] = {"$ref": "#/$defs/registeredSignal"}
     SIGNALS_SUB = {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
         "required": ["signals"],
-        "properties": {"signals": CRED["properties"]["signals"]},
+        "properties": {"signals": signals_fragment_schema},
+        "$defs": copy.deepcopy(CRED["$defs"]),
     }
+
+    reputation_validator = Draft202012Validator(
+        CRED["$defs"]["reputationSignal"],
+        format_checker=FORMAT_CHECKER,
+    )
+    reputation_fixture = {
+        "cat": "rep",
+        "typ": "ecommerce",
+        "asof": 1781800000,
+        "mtd": "https://ta.example/reputation/test-vector/1",
+        "mtd#integrity": "sha256-Td9FdWbwljmeY78DD/gKxGxPSjjV9vzvOU3oXPH4dJY=",
+        "scr": 0.94,
+        "cnt": 3518,
+        "wdw": "P90D",
+    }
+    if list(reputation_validator.iter_errors(reputation_fixture)):
+        fail("[reputation] valid score, methodology, and evidence context were rejected")
+    for required_field in ("asof", "mtd", "mtd#integrity", "scr", "cnt", "wdw"):
+        invalid_reputation = dict(reputation_fixture)
+        invalid_reputation.pop(required_field)
+        if not list(reputation_validator.iter_errors(invalid_reputation)):
+            fail(f"[reputation] missing {required_field} was accepted")
+    invalid_reputation = dict(reputation_fixture, band="established")
+    if not list(reputation_validator.iter_errors(invalid_reputation)):
+        fail("[reputation] removed band field was accepted")
 
 
 def issuer_metadata_url(issuer):
@@ -190,6 +228,84 @@ def validate(instance, schema, label):
         fail(f"[example] {label}: {loc}: {e.message}")
 
 
+def sri(path):
+    digest = hashlib.sha256(path.read_bytes()).digest()
+    return "sha256-" + base64.b64encode(digest).decode()
+
+
+def methodology_semantic_errors(methodology):
+    score = methodology.get("score", {})
+    minimum = score.get("minimum")
+    maximum = score.get("maximum")
+    if isinstance(minimum, (int, float)) and isinstance(maximum, (int, float)) and minimum >= maximum:
+        return ["score.minimum must be less than score.maximum"]
+    return []
+
+
+METHODOLOGY_VECTOR_PATH = ARCH / "test-vectors" / "reputation-methodology.json"
+METHODOLOGY_FIXTURE = load_json(METHODOLOGY_VECTOR_PATH)
+METHODOLOGY_FIXTURE_INTEGRITY = sri(METHODOLOGY_VECTOR_PATH)
+validate(METHODOLOGY_FIXTURE, REPUTATION_METHOD, "reputation methodology test vector")
+for error in methodology_semantic_errors(METHODOLOGY_FIXTURE):
+    fail(f"[reputation-methodology] test vector: {error}")
+methodologies_by_id = {METHODOLOGY_FIXTURE["id"]: METHODOLOGY_FIXTURE}
+methodology_integrities_by_id = {
+    METHODOLOGY_FIXTURE["id"]: METHODOLOGY_FIXTURE_INTEGRITY,
+}
+
+
+def reputation_methodology_errors(signal):
+    errors = []
+    methodology_id = signal.get("mtd")
+    methodology = methodologies_by_id.get(methodology_id)
+    methodology_integrity = methodology_integrities_by_id.get(methodology_id)
+    if methodology is None or methodology_integrity is None:
+        return [f"methodology {methodology_id!r} is unavailable"]
+    if signal.get("mtd#integrity") != methodology_integrity:
+        errors.append("mtd#integrity does not match methodology bytes")
+    score = methodology.get("score", {})
+    minimum = score.get("minimum")
+    maximum = score.get("maximum")
+    value = signal.get("scr")
+    if (
+        isinstance(minimum, (int, float))
+        and isinstance(maximum, (int, float))
+        and isinstance(value, (int, float))
+        and not minimum <= value <= maximum
+    ):
+        errors.append("scr is outside the methodology range")
+    return errors
+
+
+def validate_registered_reputation_signals(instance, label):
+    for signal in instance.get("signals", []):
+        if (
+            isinstance(signal, dict)
+            and signal.get("cat") == "rep"
+            and signal.get("typ") in REGISTERED_REPUTATION_TYPES
+        ):
+            for error in reputation_methodology_errors(signal):
+                fail(f"[reputation] {label}: {error}")
+
+
+if reputation_fixture is not None:
+    if reputation_fixture.get("mtd#integrity") != METHODOLOGY_FIXTURE_INTEGRITY:
+        fail("[reputation] fixture integrity is not derived from methodology test-vector bytes")
+    if reputation_methodology_errors(reputation_fixture):
+        fail("[reputation] valid methodology binding was rejected")
+    invalid_reputation = dict(reputation_fixture)
+    invalid_reputation["mtd#integrity"] = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    if not reputation_methodology_errors(invalid_reputation):
+        fail("[reputation] invalid methodology integrity was accepted")
+    invalid_reputation = dict(reputation_fixture, scr=1.01)
+    if not reputation_methodology_errors(invalid_reputation):
+        fail("[reputation] out-of-range score was accepted")
+invalid_methodology = copy.deepcopy(METHODOLOGY_FIXTURE)
+invalid_methodology["score"]["minimum"] = invalid_methodology["score"]["maximum"]
+if not methodology_semantic_errors(invalid_methodology):
+    fail("[reputation-methodology] invalid score range was accepted")
+
+
 # ---- 2. examples in the docs validate against the right schema ------------
 FENCE = re.compile(r"```json\s*\n(.*?)```", re.DOTALL)
 
@@ -220,8 +336,10 @@ def classify_and_validate(obj, label):
         validate(obj, CRED, label + " (credential)")
         for error in credential_identity_errors(obj):
             fail(f"[example] {label} (credential identity): {error}")
+        validate_registered_reputation_signals(obj, label)
     elif "signals" in obj and isinstance(obj["signals"], list):
         validate(obj, SIGNALS_SUB, label + " (signals-fragment)")
+        validate_registered_reputation_signals(obj, label)
     elif "trustedAuthorities" in obj:
         validate(obj, MCP, label + " (mcp-capability)")
     # anything else (cnf snippet, status snippet, config) is not classifiable; skip
@@ -247,11 +365,6 @@ for doc in doc_files:
 # ---- 3. type metadata, schemas, inheritance, and integrity ----------------
 BASE_VCT = "https://tsaiprotocol.org/credential/tsai/1"
 BASE_SCHEMA_ID = "https://tsaiprotocol.org/schemas/tsai-credential/1.json"
-
-
-def sri(path):
-    digest = hashlib.sha256(path.read_bytes()).digest()
-    return "sha256-" + base64.b64encode(digest).decode()
 
 
 def refs_in(value):

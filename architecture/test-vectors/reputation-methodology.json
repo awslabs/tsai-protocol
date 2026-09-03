@@ -1,0 +1,20 @@
+{
+  "$comment": "Copyright Amazon.com Inc. or its affiliates. SPDX-License-Identifier: Apache-2.0",
+  "id": "https://ta.example/reputation/test-vector/1",
+  "version": "test-vector-1",
+  "name": "Reputation methodology test vector",
+  "score": {
+    "minimum": 0,
+    "maximum": 1,
+    "direction": "higher-better"
+  },
+  "semantics": "Illustrative score semantics for checker validation.",
+  "calculation": "Illustrative calculation description for checker validation.",
+  "evidence": {
+    "eligibleInteractions": "Illustrative eligible-interaction definition.",
+    "outcomes": "Illustrative outcome-classification definition.",
+    "minimumHistory": "Illustrative minimum-history definition.",
+    "insufficientHistory": "Illustrative insufficient-history treatment.",
+    "qualityControls": "Illustrative data-quality controls."
+  }
+}

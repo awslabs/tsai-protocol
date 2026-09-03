@@ -246,7 +246,7 @@ https://datatracker.ietf.org/doc/html/rfc3986
 - Initial architecture specification
 
 **Version 1.0 (Draft), revised - 2026-09**
-- Moved the credential to SD-JWT VC with a key-binding JWT, replaced the T0–T3 tiers with a flat four-category signal list, and defined party identity as an HTTPS issuer, a required registered agent `sub` with rotating `cnf`, and `did:web` for referenced third parties (ADRs 014–018)
+- Moved the credential to SD-JWT VC with a key-binding JWT, replaced the T0–T3 tiers with a flat four-category signal list, bound registered reputation scores to versioned integrity-pinned methodologies, and defined party identity as an HTTPS issuer, a required registered agent `sub` with rotating `cnf`, and `did:web` for referenced third parties (ADRs 014–018)
 
 ---
 

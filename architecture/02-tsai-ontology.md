@@ -53,8 +53,8 @@ A flat signal list carrying operator-level and agent-level signals:
   { "cat": "idn", "typ": "kyc", "val": "enhanced" },
   { "cat": "idn", "typ": "dct", "val": "acme-corp.example", "asof": 1754300000 },
   { "cat": "cmp", "typ": "iso27001", "prv": "did:web:cert-corp.example", "asof": 1754300000 },
-  { "cat": "rep", "typ": "ecommerce", "scp": "agent", "band": "established", "scr": 0.94, "cnt": 3518, "wdw": "P90D", "asof": 1754300000 },
-  { "cat": "rep", "typ": "ecommerce", "scp": "operator", "band": "strong", "cnt": 41200, "wdw": "P365D", "asof": 1754300000 }
+  { "cat": "rep", "typ": "ecommerce", "scp": "agent", "mtd": "https://ta.example/reputation/test-vector/1", "mtd#integrity": "sha256-Td9FdWbwljmeY78DD/gKxGxPSjjV9vzvOU3oXPH4dJY=", "scr": 0.94, "cnt": 3518, "wdw": "P90D", "asof": 1754300000 },
+  { "cat": "rep", "typ": "ecommerce", "scp": "operator", "mtd": "https://ta.example/reputation/test-vector/1", "mtd#integrity": "sha256-Td9FdWbwljmeY78DD/gKxGxPSjjV9vzvOU3oXPH4dJY=", "scr": 0.97, "cnt": 41200, "wdw": "P365D", "asof": 1754300000 }
 ]
 ```
 

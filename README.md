@@ -49,15 +49,16 @@ Normative technical specification defining the TSAI protocol. These documents sp
   - [mcp-capability-tsai.schema.json](./architecture/schemas/mcp-capability-tsai.schema.json) - MCP capability declaration
   - [a2a-agent-card-tsai.schema.json](./architecture/schemas/a2a-agent-card-tsai.schema.json) - A2A agent card extension
   - [tsai-type-metadata.schema.json](./architecture/schemas/tsai-type-metadata.schema.json) - Type-metadata document structure
+  - [tsai-reputation-methodology.schema.json](./architecture/schemas/tsai-reputation-methodology.schema.json) - Immutable versioned reputation-methodology document
   - [tsai-ta-status.schema.json](./architecture/schemas/tsai-ta-status.schema.json) - Decoded operational-report JWS payload
   - [tsai-ta-hsm-attestation.schema.json](./architecture/schemas/tsai-ta-hsm-attestation.schema.json) - Decoded HSM-attestation JWS payload
   - [example-ta-tsai-credential.schema.json](./architecture/schemas/example-ta-tsai-credential.schema.json) - Illustrative derived TSAI credential schema
 - **type-metadata/** - Canonical and illustrative derived per-`vct` Type Metadata
-- **test-vectors/** - Key-binding JWT freshness, derived-`vct`, and signed TA publication vectors exercised by the checker
+- **test-vectors/** - Key-binding JWT freshness, reputation-methodology, derived-`vct`, and signed TA publication vectors exercised by the checker
 
 ### Tooling (`tools/`)
 
-- **[tools/check.py](./tools/check.py)** - Conformance checker. Validates the JSON schemas as Draft 2020-12, every JSON example in the documents against its schema, Type Metadata and schema inheritance and integrity, the test vectors, internal cross-references, and the OpenAPI servers block. Run `python3 tools/check.py` before pushing; it requires `jsonschema`, `pyyaml`, and `cryptography`.
+- **[tools/check.py](./tools/check.py)** - Conformance checker. Validates the JSON schemas as Draft 2020-12, every JSON example in the documents against its schema, Type Metadata and schema inheritance and integrity, the reputation-methodology schema and score bindings, the test vectors, internal cross-references, and the OpenAPI servers block. Run `python3 tools/check.py` before pushing; it requires `jsonschema`, `pyyaml`, and `cryptography`.
 
 ### Architecture Decision Records (`decisions/`)
 

@@ -64,7 +64,7 @@ A network attacker cannot break HTTPS or forge a signature. A compromised agent 
 
 **Signature profile.** Every TSAI v1 protocol signature MUST use `ES256`: ECDSA over the NIST P-256 curve with SHA-256. This applies to issuer-signed credentials, key-binding JWTs, proof-of-control challenges, Status List Tokens, Trust Authority operational reports, and HSM attestations. Every signing JWK MUST use `kty` `EC` and `crv` `P-256`; a verifier MUST reject every other `alg`, key type, or curve. TSAI v1 performs no signature-algorithm negotiation.
 
-**Hash profile.** TSAI v1 uses SHA-256 for SD-JWT disclosure digests and `sd_hash`, RFC 7638 JWK thumbprints, type-metadata integrity, and RFC 9530 request content digests. A verifier MUST reject another digest algorithm in these protocol fields.
+**Hash profile.** TSAI v1 uses SHA-256 for SD-JWT disclosure digests and `sd_hash`, RFC 7638 JWK thumbprints, type-metadata and reputation-methodology integrity, and RFC 9530 request content digests. A verifier MUST reject another digest algorithm in these protocol fields.
 
 **Key generation and use.** Keys and nonces MUST be generated with a cryptographically secure random source; P-256 keys provide at least a 128-bit security level, and nonces carry at least 128 bits of entropy. Implementations MUST use an established cryptographic library or HSM with secure ECDSA nonce generation; software signers SHOULD use deterministic ECDSA per RFC 6979. A TSAI signing key MUST be used only for signing and MUST NOT be reused for encryption or key agreement.
 
@@ -82,7 +82,7 @@ A network attacker cannot break HTTPS or forge a signature. A compromised agent 
 
 **Transmission.** Credentials travel over HTTPS with TLS 1.2 or higher. The `TSAI-Credential` value MUST NOT be logged or placed in a URL, and proxies MUST NOT cache requests carrying it.
 
-**Verification and caching (Service Provider).** Verification follows Section 3, and verification-result caching is bounded there (§3.7.3): a cached result MUST NOT outlive the credential's `exp`, the cache key includes the presented credential, and a positive result is not served across an observable status change.
+**Verification and caching (Service Provider).** Verification follows Section 3, and verification-result caching is bounded there (§3.7.3): a cached result MUST NOT outlive the credential's `exp`, the cache key includes the presented credential, and a positive result is not served across an observable status change. Reputation-methodology documents are obtained only out of band, integrity-checked, and cached by `(mtd, mtd#integrity)`; reputation policy is keyed by `(iss, typ, mtd)`. Request-time verification does not fetch a methodology or reveal the presenting agent.
 
 ---
 

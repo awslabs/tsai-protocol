@@ -35,7 +35,7 @@ Open work items, organized by document or workstream.
 - TA bootstrapping: machine-readable attestations about TA practices in `/metadata` endpoint
 - Signal-to-capability guidance: how a Service Provider might map a set of signals to capabilities (non-normative)
 - TA cross-recognition: mechanism for TAs to accept each other's evaluations
-- Cross-TA reputation: clarify that scores are TA-specific ordinal rankings, or define normative methodology
+- Comparable cross-TA reputation: define a domain-specific evidence and calibration profile if the use case requires one
 - Operator model edge cases: agent marketplaces (builder ≠ hoster), open-source agents, agent-of-agents
 
 ## Security

@@ -50,7 +50,7 @@ A credential carries a flat list of signals. Each signal has a category, a type,
 The four categories answer four questions a Service Provider asks.
 
 - **Identity** — who the agent and operator are: the operator's legal identity and jurisdiction, the depth of identity verification, a controlled domain and its age.
-- **Reputation** — how the agent has behaved: a portable band (insufficient-history, established, or strong) with an optional finer score, the number of interactions behind it, and the window observed; carried at agent level and, optionally, aggregated at operator level.
+- **Reputation** — how the agent has behaved: a Trust-Authority-specific score bound to an immutable, versioned methodology, the number of eligible interactions behind it, and the window observed; carried at agent level and, optionally, aggregated at operator level.
 - **Compliance** — what third-party certifications the operator holds, such as ISO 27001 or SOC 2, each naming the certifier.
 - **Assurance** — what economic backing stands behind the agent, such as insurance or posted collateral, each naming the backer.
 
