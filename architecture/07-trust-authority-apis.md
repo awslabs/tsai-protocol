@@ -150,7 +150,7 @@ The decoded payload conforms to [`schemas/tsai-ta-hsm-attestation.schema.json`](
 }
 ```
 
-`exp` is the sole acceptance deadline and MUST NOT exceed the validity period of the supporting evidence. For `self-attestation`, which has no external evidence period, `exp` MUST NOT exceed `iat` plus 30 days. `nextAuditDate` is not carried. For `independent-audit`, `reportDigest` binds the attestation to the exact audit-report bytes; public report access is not required.
+`exp` is the sole acceptance deadline and MUST NOT exceed the validity period of the supporting evidence. For `self-attestation`, which has no external evidence period, `exp` MUST NOT exceed `iat` plus 30 days. `nextAuditDate` is not carried. For `independent-audit`, `reportDigest` binds the attestation to the exact audit-report bytes. Public report access is permitted but not required because independent audit reports may have distribution restrictions or contain security-sensitive control details; a Service Provider can obtain the report separately and verify it against `reportDigest`.
 
 Assurance levels are `independent-audit` (a third party verified HSM use, the strongest), `vendor-attestation` (the HSM vendor confirms residency), and `self-attestation` (the weakest, transitional only). The JWS MUST use the normal current TA credential-signing key. A Service Provider verifies it under the common procedure in Section 7.10.2 and MAY check the supporting report obtained through a separate channel. The attestation proves HSM use at audit time, not continuously; the short credential lifetime and operational report provide complementary operational signals.
 
