@@ -13,7 +13,7 @@ SPDX-License-Identifier: Apache-2.0
 
 ## 2.1 Overview
 
-A TSAI credential is an SD-JWT VC, as defined in draft-ietf-oauth-sd-jwt-vc. A Trust Authority issues it, binds it to the holder's key, and populates it with a flat list of trust signals. Every credential carries a minimum identity set, the identity floor (Section 2.5.3), so that it always names an accountable operator. The agent presents the credential with a key-binding JWT that proves possession of the bound key.
+A TSAI credential is an SD-JWT VC, as defined in draft-ietf-oauth-sd-jwt-vc-18. A Trust Authority issues it, binds it to the holder's key, and populates it with a flat list of trust signals. Every credential carries a minimum identity set, the identity floor (Section 2.5.3), so that it always names an accountable operator. The agent presents the credential with a key-binding JWT that proves possession of the bound key.
 
 This section specifies the serialisation, the payload claims, the holder binding, the trust-signal structure and its categories, selective disclosure, status and lifetime, party identity, the type-metadata document, and versioning. The verification algorithm, the freshness and replay rules, and the policy for when a Service Provider fetches status are specified in Section 3.
 
@@ -29,7 +29,7 @@ A credential in transit has the SD-JWT VC form
 <issuer-signed JWT>~<disclosure 1>~...~<disclosure N>~<key-binding JWT>
 ```
 
-where the disclosures are present only under selective disclosure (Section 2.6); the default form is `<issuer-signed JWT>~<key-binding JWT>`. A stored, unpresented credential is the issuer-signed JWT alone, with a trailing `~`.
+where the disclosures are present only under selective disclosure (Section 2.6); the default form is `<issuer-signed JWT>~<key-binding JWT>`. A stored, unpresented credential is the SD-JWT without a key-binding JWT: it includes any issuer-provided disclosures and ends with a trailing `~`; without disclosures it is `<issuer-signed JWT>~`.
 
 ---
 
@@ -87,7 +87,7 @@ The `cnf` JWK MUST have `kty` `EC` and `crv` `P-256`, MUST contain the public `x
 | `sd_hash` | REQUIRED | The SHA-256 digest over the issuer-signed JWT and any forwarded disclosures, computed per RFC 9901 §4.3.1. |
 | `req` | OPTIONAL | A request binding (ADR 014): the request method and target URI, and, when the request has a body, a SHA-256 content digest of the body per RFC 9530. REQUIRED for a state-changing action and where the verifying and acting components differ (Section 3). |
 
-`nonce` is REQUIRED in every key-binding JWT, per RFC 9901 §4.3; the escalation decision concerns who supplies it, not whether it is present. `req` is an added claim, adopted deliberately per ADR 014.
+`nonce` is REQUIRED in every key-binding JWT, per RFC 9901 §4.3; the escalation decision concerns who supplies it, not whether it is present. `req` is an added claim, adopted deliberately per ADR 014. TSAI v1 defines the closed claim set shown above; a key-binding JWT MUST NOT contain additional claims.
 
 **Worked example.** The header is `{ "alg": "ES256", "typ": "kb+jwt" }`. The baseline claims set for a read, with an agent-generated `nonce`:
 
@@ -205,7 +205,7 @@ Within a derived `vct`, custom signal types are short codes. They need neither a
 
 ## 2.6 Selective Disclosure
 
-Selective disclosure is optional and off by default. When used, the issuer replaces a signal in `signals` with a digest object `{"...": "<digest>"}`, emits the disclosure alongside the credential, and sets `_sd_alg` to `sha-256`; a TSAI verifier MUST reject any other disclosure digest algorithm. A signal marked `sd: never` in `tsai_signal_metadata` (Section 2.9), reputation among them, MUST NOT be made disclosable by the issuer. A withheld signal remains visible to the verifier as a digest object until reconstruction, so the verifier can count how many were withheld; the verifier surfaces that count and MAY fail closed above a policy threshold (Section 3, ADR 015).
+Selective disclosure is optional and off by default. When used, the issuer replaces a signal in `signals` with a digest object `{"...": "<digest>"}`, emits the disclosure alongside the credential, and sets `_sd_alg` to `sha-256`; a TSAI verifier MUST reject any other disclosure digest algorithm. A Trust Authority MUST NOT insert decoy digests under RFC 9901 §4.2.5, because TSAI exposes unmatched signal digests as the withheld-signal count. A signal marked `sd: never` in `tsai_signal_metadata` (Section 2.9), reputation among them, MUST NOT be made disclosable by the issuer. A withheld signal remains visible to the verifier as a digest object until reconstruction, so the verifier can count how many were withheld; the verifier surfaces that count and MAY fail closed above a policy threshold (Section 3, ADR 015).
 
 `tsai_signal_metadata` is a TSAI Type Metadata extension because standard SD-JWT VC paths cannot select array elements by their `cat` and `typ` values. A generic consumer ignores this top-level extension; a TSAI verifier processes it and enforces its `sd` controls (Section 3.3).
 
@@ -222,7 +222,7 @@ Selective disclosure is optional and off by default. When used, the issuer repla
 An individual short-lived credential is not revoked; the control is a block on the agent `sub` or operator (ADR 018). A Trust Authority MUST publish an agent-and-operator status list, so a Service Provider can depend on the mechanism existing. A credential normally carries a `status` claim referencing it, keyed to the persistent agent `sub` or operator identity, so that blocking one identity invalidates all of its credentials across key rotation. The Status List Token MUST be signed with ES256:
 
 ```json
-"status": { "status_list": { "idx": 94567, "uri": "https://trust-authority.example/tsai/status/agents/1" } }
+"status": { "status_list": { "idx": 94567, "uri": "https://trust-authority.example/status/agents-1" } }
 ```
 
 A credential MAY omit `status` to avoid the additional status-index correlator, accepting that a TA block cannot reach it within the lifetime. The required `sub` remains a stable cross-Service-Provider identifier, so omitting `status` does not provide agent unlinkability; an SP can still apply its local block by `sub` (Section 5.7). When a Service Provider fetches and how it verifies the status list are specified in Section 3.
@@ -255,7 +255,7 @@ A derived TSAI type uses the standard `extends` and `extends#integrity` properti
 {
   "vct": "https://ta.example/credential/tsai/1",
   "extends": "https://tsaiprotocol.org/credential/tsai/1",
-  "extends#integrity": "sha256-eeNWBWnRsSiHbgTNrPa6MuywUv72tKRnxfmtl66NnnM=",
+  "extends#integrity": "sha256-VuWmtTefEMDCYc/gkSHZHBpIzFmAHFUUYNRcN2Ke1w4=",
   "tsai_schema_uri": "https://ta.example/schemas/credential/tsai/1.json",
   "tsai_schema_uri#integrity": "sha256-H5gGR/iMLT9a4ajpGQBRXOEwR4E1fUMqZl1gtCuhvtQ=",
   "tsai_signal_metadata": [
@@ -290,12 +290,12 @@ An issued credential, flat, before presentation:
 {
   "iss": "https://trust-authority.example",
   "vct": "https://tsaiprotocol.org/credential/tsai/1",
-  "vct#integrity": "sha256-eeNWBWnRsSiHbgTNrPa6MuywUv72tKRnxfmtl66NnnM=",
+  "vct#integrity": "sha256-VuWmtTefEMDCYc/gkSHZHBpIzFmAHFUUYNRcN2Ke1w4=",
   "iat": 1781863200,
   "exp": 1781865000,
   "sub": "https://acme-corp.example/agents/shopper-v3",
   "cnf": { "jwk": { "kty": "EC", "crv": "P-256", "x": "TCAER19Zvu3OHF4j4W4vfSVoHIP1ILilDls7vCeGemc", "y": "ZxjiWWbZMQGHVWKVQ4hbSIirsVfuecCE6t4jT9F2HZQ" } },
-  "status": { "status_list": { "idx": 94567, "uri": "https://trust-authority.example/tsai/status/agents/1" } },
+  "status": { "status_list": { "idx": 94567, "uri": "https://trust-authority.example/status/agents-1" } },
   "signals": [
     { "cat": "idn", "typ": "org", "val": "Acme Corporation GmbH" },
     { "cat": "idn", "typ": "jur", "val": "DE" },
@@ -327,7 +327,7 @@ Authorization and mandate — value limits, permitted operations, rate limits, a
 - Include the identity floor (`org`, `jur`, `kyc`, `dct`) in every credential (ADR 016).
 - Include the registered agent `sub`, copy it from the authenticated agent record, and ensure its hostname exactly matches a `dct` within the domain-freshness window (Section 2.5.3, ADR 017).
 - Include `mtd`, `mtd#integrity`, `scr`, `cnt`, `wdw`, and `asof` in every registered TSAI reputation signal, and constrain `scr` to the inclusive range 0 to 1 with higher values more favourable; derived `rep` signals follow their own integrity-pinned schema (ADR 016).
-- Not make an `sd: never` signal, reputation among them, selectively disclosable.
+- Not insert decoy digests and not make an `sd: never` signal, reputation among them, selectively disclosable.
 - Publish signing-key metadata at the URL produced by the `jwt-vc-issuer` well-known insertion rule and publish an agent-and-operator status list. The publisher that defines each `vct` publishes its immutable Type Metadata and JSON Schema; TSAI publishes the canonical artefacts, while a TA or community publishes the derived artefacts it defines.
 - Advertise every `vct` the Trust Authority issues. For a derived TSAI type, extend and integrity-pin the parent metadata and schema, include the canonical base type in `aka_vcts`, and declare every custom signal.
 

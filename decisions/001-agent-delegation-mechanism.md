@@ -162,4 +162,3 @@ Without delegation support, each agent operates independently with no way to exp
 
 - [W3C Authorization Capabilities (ZCAP-LD)](https://w3c-ccg.github.io/zcap-spec/)
 - TSAI High-Level Concept (concept/02-high-level-concept.md)
-- TSAI TODO (concept/TODO.md)

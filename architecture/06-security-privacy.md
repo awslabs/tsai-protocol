@@ -129,6 +129,7 @@ TSAI does not protect against LLM-specific attacks, poor output quality, an agen
 - **Derived-type trust.** A derived `vct`, `aka_vcts`, or `extends` assertion does not authorise its issuer (SD-JWT VC §6.6). A Service Provider accepts a derived TSAI type only from an issuer it trusts and only after validating the integrity-pinned metadata and schema chain to the canonical TSAI type.
 - **Reputation washing.** Agent-level reputation lets an operator register a new agent to shed a poor record; an operator-level reputation signal (`rep` with `scp: operator`, ADR 016) and the identity floor bound this, but do not close it. End-user-level Sybil resistance is deferred (ADR 008).
 - **Agent key compromise.** A stolen registered binding key lets an attacker present existing credentials until they expire. It cannot register a new identity or key without the authenticated operator management channel. The operator repudiates the key; where issued credentials may be affected, the TA blocks the persistent agent `sub` (§7.6).
+- **Operator-session compromise.** An agent host that holds both a binding key and the `operatorAuth` bearer session can request challenges, issuance, and refresh until that session is revoked. Operators SHOULD keep management and refresh credentials outside the agent runtime where practical; Trust Authorities SHOULD scope sessions to the required agent and operations, limit their lifetime, and support immediate revocation (§7.2).
 - **Request substitution without `req`.** Where a presentation does not carry `req`, TSAI binds the presenter to the credential and the audience, not to the action; a Service Provider whose verifying and acting components differ must require `req` (§3.4).
 - **Persistent-agent correlation.** Required global `sub` enables cross-SP correlation. TSAI v1 accepts this cost to support stable agent-level policy and blocking; omitting `status` removes only the additional status-index correlator (§5.7).
 - **One hop.** In a multi-agent chain a service agent learns the immediately connecting agent's signals, not the originating agent's (§4.6).
@@ -149,6 +150,6 @@ TSAI does not protect against LLM-specific attacks, poor output quality, an agen
 
 ## References
 
-- draft-ietf-oauth-sd-jwt-vc; RFC 9901 (§10.1 correlation, §10.2 key storage); draft-ietf-oauth-status-list
+- draft-ietf-oauth-sd-jwt-vc-18; RFC 9901 (§10.1 correlation, §10.2 key storage); draft-ietf-oauth-status-list-21
 - RFC 7519, RFC 7518, RFC 7515, RFC 7638, RFC 8725, RFC 6979, RFC 9530; NIST SP 800-57
 - ADR 007, ADR 014, ADR 016, ADR 017, ADR 018

@@ -167,4 +167,4 @@ The flat list is chosen over tiers because assurances are not cumulative, so an 
 - ADR 015 — Credential Serialisation Format
 - ADR 018 — Verification Strength, Replay, and Lifetime without Tiers
 - [W3C Verifiable Credentials Data Model 2.0](https://www.w3.org/TR/vc-data-model-2.0/)
-- [draft-ietf-oauth-sd-jwt-vc](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-sd-jwt-vc)
+- [draft-ietf-oauth-sd-jwt-vc-18](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-sd-jwt-vc-18)

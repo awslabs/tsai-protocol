@@ -4,7 +4,7 @@
   "name": "TSAI Credential",
   "description": "Type Metadata for the canonical TSAI credential. Standard claims metadata is path-based; TSAI signal disclosure and display controls use tsai_signal_metadata because signals are selected by content.",
   "tsai_schema_uri": "https://tsaiprotocol.org/schemas/tsai-credential/1.json",
-  "tsai_schema_uri#integrity": "sha256-NzqP0qmwBBst/ALEr5/3DQ9GnuaraiuaLXTg3AWxEBg=",
+  "tsai_schema_uri#integrity": "sha256-ET0/S8Xlo72UTIG9aPL+cjQqM8irmos4g7RZzhyGScE=",
   "claims": [
     {
       "path": [

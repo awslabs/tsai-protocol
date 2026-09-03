@@ -37,7 +37,7 @@ TSAI v1 mandates [ES256](https://www.rfc-editor.org/rfc/rfc7518.html#section-3.4
 
 For each interaction, the agent presents the credential with a fresh [key-binding JWT](https://www.rfc-editor.org/rfc/rfc9901.html#section-4.3) signed by the private key associated with the credential. The proof binds the presentation to the receiving Service Provider and to the exact credential. State-changing actions also use a Service-Provider-issued single-use nonce and bind the method, target URI, and [request-body digest](https://www.rfc-editor.org/rfc/rfc9530.html).
 
-The normal verification path uses previously obtained issuer keys and integrity-pinned credential definitions, so it does not depend on a request-time call to the Trust Authority. A verifier checks both signatures, credential type and schema, lifetime, identity continuity, audience, freshness, and any request binding required for the action. A Service Provider may add an online [Token Status List](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-status-list) check where its risk policy requires one.
+The normal verification path uses previously obtained issuer keys and integrity-pinned credential definitions, so it does not depend on a request-time call to the Trust Authority. A verifier checks both signatures, credential type and schema, lifetime, identity continuity, audience, freshness, and any request binding required for the action. A Service Provider may add an online [Token Status List](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-status-list-21) check where its risk policy requires one.
 
 ### Policy and existing controls
 

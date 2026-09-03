@@ -8,7 +8,7 @@ SPDX-License-Identifier: Apache-2.0
 **Status:** Accepted  
 **Date:** 2026-07-02  
 **Deciders:** TSAI Working Group  
-**Relationship to ADR 013:** reaffirms the self-contained binding approach of [ADR 013 — VP-JWT Claim Structure](./013-vp-jwt-claim-structure.md), and amends it: since ADR 015 selects SD-JWT VC, the binding is a key-binding JWT in place of ADR 013's VP-JWT claim structure  
+**Relationship to ADR 013:** retains the self-contained binding rationale of [ADR 013 — VP-JWT Claim Structure](./013-vp-jwt-claim-structure.md); ADR 015 supersedes that ADR's VP-JWT serialisation, and this ADR realises the retained rationale through a key-binding JWT  
 **Depends on:** the credential serialisation format, decided separately in ADR 015  
 
 
@@ -179,7 +179,7 @@ This is a deliberate extension of the RFC 9901 key-binding JWT claim set. The al
 - The key-binding JWT carries the TSAI `req` extension. It is required for state-changing and split-topology actions, with SHA-256 fixed for the body digest; reads retain the bounded-replay baseline.
 - Variant 1a's strength is qualified accordingly: its standard claims do not bind the request, and `req` supplies that property without a second signature-verification path.
 - The credential-format decision (ADR 015) selects SD-JWT VC, so the self-contained binding is the key-binding JWT: a holder-signed JWT carrying `aud`, `nonce`, `iat`, and `sd_hash`, appended to the credential as `‹credential›~‹KB-JWT›`. This ADR fixed the binding approach independent of format; the format decision makes it concrete.
-- Relationship to ADR 013: the self-contained binding approach is reaffirmed, and ADR 013 is amended rather than retired. Because ADR 015 selects SD-JWT VC, the binding is a key-binding JWT, which replaces ADR 013's VP-JWT claim structure while the rest of that decision stands.
+- Relationship to ADR 013: ADR 015 supersedes its VP-JWT serialisation, while this ADR retains only its self-contained binding rationale and realises that rationale through the SD-JWT VC key-binding JWT.
 - Where an agent also runs WBA, it produces two signatures: the WBA request signature for the Service Provider's own bot management, and the TSAI binding signature. This duplicated signing is accepted; it is sub-millisecond and does not affect verification.
 - The binding key is the credential's confirmation key, an EC/P-256 JWK used with ES256 and identified by its RFC 7638 SHA-256 thumbprint (the `cnf` key under SD-JWT VC; ADR 015). An operator may also use that key for Web Bot Auth, but TSAI does not require the two keys to match because WBA is not consulted for holder binding. Durable agent identity is the registered HTTPS `sub`; the operator rotates binding keys through the authenticated TA management process without changing `sub`. TSAI defines no `did:key` or `did:wba` role.
 - Variant 1b remains available as a forward-compatible extension. It adds only an optional acceptance path on top of this baseline, so it can be introduced later, if ecosystem reuse becomes worth the second verification path, without changing anything decided here.

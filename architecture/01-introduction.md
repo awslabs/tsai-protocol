@@ -96,9 +96,9 @@ The domain model behind the credential is in `02-tsai-ontology.md`. The JSON sch
 
 ## 1.5 Normative References
 
-- **[SD-JWT-VC]** SD-JWT-based Verifiable Credentials, draft-ietf-oauth-sd-jwt-vc
+- **[SD-JWT-VC]** SD-JWT-based Verifiable Credentials, draft-ietf-oauth-sd-jwt-vc-18
 - **[SD-JWT]** Selective Disclosure for JWTs (SD-JWT), RFC 9901
-- **[STATUS-LIST]** Token Status List, draft-ietf-oauth-status-list
+- **[STATUS-LIST]** Token Status List, draft-ietf-oauth-status-list-21
 - **[RFC7519]** JSON Web Token (JWT); **[RFC7515]** JSON Web Signature (JWS); **[RFC7638]** JWK Thumbprint; **[RFC7800]** Proof-of-Possession Key Semantics (`cnf`); **[RFC7517]** JSON Web Key (JWK); **[RFC7518]** JSON Web Algorithms (ES256)
 - **[RFC2119]** Requirement-level keywords; **[RFC8259]** JSON
 
@@ -112,7 +112,7 @@ The domain model behind the credential is in `02-tsai-ontology.md`. The JSON sch
 - **[TSAI-ADR-005]** Signaling vs Enforcement
 - **[TSAI-ADR-007]** Short-Lived Credentials
 - **[TSAI-ADR-012]** Service Provider Terminology
-- **[TSAI-ADR-014]** Holder Binding and Web Bot Auth Integration (supersedes the binding parts of ADR 013)
+- **[TSAI-ADR-014]** Holder Binding and Web Bot Auth Integration (retains the self-contained binding rationale of ADR 013; ADR 015 supersedes its VP-JWT serialisation)
 - **[TSAI-ADR-015]** Credential Serialisation Format (supersedes ADR 003)
 - **[TSAI-ADR-016]** Trust Signal Structure (supersedes ADR 004)
 - **[TSAI-ADR-017]** Party Identity and Key Discovery (supersedes ADR 006)
@@ -122,6 +122,6 @@ The domain model behind the credential is in `02-tsai-ontology.md`. The JSON sch
 
 ## 1.7 Design Rationale
 
-This specification follows a set of architectural decisions. Centralised Trust Authorities (ADR 002) give performance, reliability, and legal accountability. The credential is an SD-JWT VC (ADR 015), which keeps TSAI within the JWT and JOSE idiom. Signals are a flat list in four categories with no tiers (ADR 016); a Service Provider sets verification strength from the signals and the risk of the action (ADR 018) rather than from a tier. As a signalling protocol (ADR 005), TSAI defines the signals and the Service Provider decides. Identity follows ADR 017: a Trust Authority is an HTTPS issuer, an agent is its bound key, and a referenced third party is its own `did:web`. Holder binding is a key-binding JWT (ADR 014). Credentials are short-lived, thirty minutes (ADR 018, amending ADR 007).
+This specification follows a set of architectural decisions. Centralised Trust Authorities (ADR 002) give performance, reliability, and legal accountability. The credential is an SD-JWT VC (ADR 015), which keeps TSAI within the JWT and JOSE idiom. Signals are a flat list in four categories with no tiers (ADR 016); a Service Provider sets verification strength from the signals and the risk of the action (ADR 018) rather than from a tier. As a signalling protocol (ADR 005), TSAI defines the signals and the Service Provider decides. Identity follows ADR 017: a Trust Authority is an HTTPS issuer, an agent is its registered persistent HTTPS `sub`, and a referenced third party is its own `did:web`; `cnf` is the agent's current rotating binding key. Holder binding is a key-binding JWT (ADR 014). Credentials are short-lived, thirty minutes (ADR 018, amending ADR 007).
 
 See the ADRs for the reasoning and the alternatives considered.

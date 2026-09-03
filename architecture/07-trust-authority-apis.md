@@ -21,7 +21,7 @@ Beyond the API, a Trust Authority publishes signing-key metadata using the `jwt-
 
 ## 7.2 Operator and Agent Registration
 
-An operator enrols with a Trust Authority out of band, through the legal-identity and domain verification that the credential's identity floor attests. Enrolment establishes an authenticated management channel and an operator account. For the normative HTTP API, `operatorAuth` is a bearer session; TSAI does not mandate how that session is established. It MUST provide strong operator identity, scoped authorisation, auditable management actions, and session binding. OAuth 2.1 is RECOMMENDED as the session-establishment mechanism but is not required.
+An operator enrols with a Trust Authority out of band, through the legal-identity and domain verification that the credential's identity floor attests. Enrolment establishes an authenticated management channel and an operator account. For the normative HTTP API, `operatorAuth` is a bearer session; TSAI does not mandate how that session is established. It MUST provide strong operator identity, scoped authorisation, auditable management actions, and session binding. OAuth 2.1 is RECOMMENDED as the session-establishment mechanism but is not required. A Trust Authority SHOULD scope each session to the required agents and operations, limit its lifetime, and support immediate revocation; an operator SHOULD keep management and refresh credentials outside the agent runtime where practical.
 
 The authenticated management interface for operator enrolment, agent registration, and key registration is TA-specific and outside the v1 OpenAPI scope. TSAI standardises the resulting registration state and the preconditions for challenge creation, issuance, refresh, and repudiation.
 
@@ -161,5 +161,5 @@ Assurance levels are `independent-audit` (a third party verified HSM use, the st
 - OpenAPI Specification: [`openapi/trust-authority-api.yaml`](openapi/trust-authority-api.yaml)
 - TSAI Credential Format (Section 2), TSAI Verification (Section 3)
 - ADR 011 (transparency), ADR 015 (holder-directed issuance and Type Metadata), ADR 016 (identity floor and reputation)
-- draft-ietf-oauth-sd-jwt-vc, draft-ietf-oauth-status-list
+- draft-ietf-oauth-sd-jwt-vc-18, draft-ietf-oauth-status-list-21
 - RFC 7515 (JWS), RFC 7518 (ES256), RFC 7519 (JWT), RFC 7638 (JWK Thumbprint), RFC 8615 (Well-Known URIs)

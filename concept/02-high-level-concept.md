@@ -92,7 +92,7 @@ This replaces the earlier tiered model, where the credential carried a tier and 
 
 **Replay is prevented per presentation.** Each presentation carries a fresh key-binding JWT addressed to one Service Provider, on a clock independent of the credential lifetime. A captured presentation is not usable elsewhere. For a state-changing action the presentation is also bound to the request and carries a single-use challenge the Service Provider issues, so it cannot be replayed or attached to a different action (ADR 014).
 
-**Short lifetime bounds exposure.** A credential lives thirty minutes, so a compromised agent loses access quickly, and a Trust Authority stops re-issuing to a misbehaving agent. Where the in-window risk justifies it, a Trust Authority publishes a block against the agent or operator, keyed to its identity, which a Service Provider checks online when its policy calls for it. An operator can repudiate an agent's binding key at the Trust Authority, which then refuses further issuance against it and blocks the affected agent.
+**Short lifetime bounds exposure.** A credential lives thirty minutes, so a compromised agent loses access quickly, and a Trust Authority stops re-issuing to a misbehaving agent. Where the in-window risk justifies it, a Trust Authority publishes a block against the agent or operator, keyed to its identity, which a Service Provider checks online when its policy calls for it. An operator can repudiate an agent's binding key at the Trust Authority, which then refuses further issuance against it and, where compromise may affect issued credentials, blocks the affected agent.
 
 **Defence in depth.** Credentials give identity and signals, but a Service Provider still monitors behaviour, rate-limits, detects anomalies, and keeps a kill switch. Multiple Trust Authorities give redundancy.
 
@@ -102,7 +102,7 @@ This replaces the earlier tiered model, where the credential carried a tier and 
 
 ## Standards Base
 
-TSAI builds on SD-JWT VC (draft-ietf-oauth-sd-jwt-vc) for the credential, the key-binding JWT for holder binding, and the IETF Token Status List for a block. A Trust Authority is identified by an HTTPS issuer, an agent by required registered HTTPS `sub` with its current key in `cnf`, and a referenced third party by its own `did:web` (ADR 017). This keeps TSAI within the JWT and JOSE idiom shared by Web Bot Auth and OpenID4VC, and away from a second identifier scheme.
+TSAI builds on SD-JWT VC (draft-ietf-oauth-sd-jwt-vc-18) for the credential, the key-binding JWT for holder binding, and the IETF Token Status List for a block. A Trust Authority is identified by an HTTPS issuer, an agent by required registered HTTPS `sub` with its current key in `cnf`, and a referenced third party by its own `did:web` (ADR 017). This keeps TSAI within the JWT and JOSE idiom shared by Web Bot Auth and OpenID4VC, and away from a second identifier scheme.
 
 ---
 

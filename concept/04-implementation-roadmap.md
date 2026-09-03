@@ -80,5 +80,4 @@ The critical path is security first: no stage proceeds without security validati
 
 **Related Documents:**
 - `02-high-level-concept.md` — protocol overview
-- `TODO.md` — detailed implementation tasks
 - `architecture/` — technical specifications

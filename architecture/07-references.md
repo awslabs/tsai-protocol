@@ -17,8 +17,8 @@ The following documents are required for conformance to this specification. Impl
 
 **[SD-JWT-VC]**  
 SD-JWT-based Verifiable Credentials  
-IETF, draft-ietf-oauth-sd-jwt-vc  
-https://datatracker.ietf.org/doc/html/draft-ietf-oauth-sd-jwt-vc
+IETF, draft-ietf-oauth-sd-jwt-vc-18  
+https://datatracker.ietf.org/doc/html/draft-ietf-oauth-sd-jwt-vc-18
 
 **[SD-JWT]**  
 Selective Disclosure for JWTs (SD-JWT)  
@@ -27,8 +27,8 @@ https://www.rfc-editor.org/rfc/rfc9901
 
 **[STATUS-LIST]**  
 Token Status List  
-IETF, draft-ietf-oauth-status-list  
-https://datatracker.ietf.org/doc/html/draft-ietf-oauth-status-list
+IETF, draft-ietf-oauth-status-list-21  
+https://datatracker.ietf.org/doc/html/draft-ietf-oauth-status-list-21
 
 **[RFC7638]**  
 JSON Web Key (JWK) Thumbprint  
@@ -169,7 +169,7 @@ TSAI Working Group, April 2026
 `decisions/012-service-provider-terminology.md`
 
 **[TSAI-ADR-013]**  
-ADR 013: VP-JWT Claim Structure (superseded by ADR 015)  
+ADR 013: VP-JWT Claim Structure (serialisation superseded by ADR 015; self-contained binding rationale retained by ADR 014)  
 TSAI Working Group, June 2026  
 `decisions/013-vp-jwt-claim-structure.md`
 
@@ -187,7 +187,7 @@ https://github.com/modelcontextprotocol/modelcontextprotocol
 
 **[A2A]**  
 Agent2Agent Protocol Specification  
-Version 0.3.0  
+Version 1.0.0  
 https://github.com/a2aproject/A2A
 
 **[AP2]**  
@@ -267,16 +267,7 @@ This specification was developed by the TSAI Working Group, comprising European 
 
 ## 6.5 Copyright and License
 
-> Working-group note: an earlier draft of this section asserted "All rights reserved" under CC BY 4.0, which conflicts with the repository, whose `LICENSE` is Apache 2.0 and whose every file header reads Apache 2.0. The `LICENSE` file governs. This section is to be reconciled or removed before external circulation.
-
-Copyright Amazon.com Inc. or its affiliates. Licensed under the Apache License 2.0; see [LICENSE](../LICENSE).
-
-**You are free to:**
-- Share — copy and redistribute the material in any medium or format
-- Adapt — remix, transform, and build upon the material for any purpose
-
-**Under the following terms:**
-- Attribution — You must give appropriate credit, provide a link to the license, and indicate if changes were made
+Copyright Amazon.com Inc. or its affiliates. This specification and all repository content are licensed solely under the Apache License 2.0; see [LICENSE](../LICENSE).
 
 ---
 

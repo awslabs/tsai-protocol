@@ -24,11 +24,11 @@ First, the holder binding decided in ADR 014 rests on a key the agent controls a
 
 ### Two credential models, not one
 
-W3C VC and SD-JWT VC are two different credential data models from two different bodies, not layers of one another. W3C VC 2.0 is a W3C Recommendation, JSON-LD based, identifying issuer and subject by DID and securing the credential with VC-JOSE-COSE or Data Integrity proofs. SD-JWT VC (IETF `draft-ietf-oauth-sd-jwt-vc`) is a JWT-based credential: the type is the `vct` claim, holder binding is the `cnf` key, and it does not use the W3C `@context` or `credentialSubject` structure. Choosing between them is choosing a data model, not adjusting a securing mechanism, so this decision changes the credential, the presentation, the revocation mechanism, and the identity model together.
+W3C VC and SD-JWT VC are two different credential data models from two different bodies, not layers of one another. W3C VC 2.0 is a W3C Recommendation, JSON-LD based, identifying issuer and subject by DID and securing the credential with VC-JOSE-COSE or Data Integrity proofs. SD-JWT VC (IETF `draft-ietf-oauth-sd-jwt-vc-18`) is a JWT-based credential: the type is the `vct` claim, holder binding is the `cnf` key, and it does not use the W3C `@context` or `credentialSubject` structure. Choosing between them is choosing a data model, not adjusting a securing mechanism, so this decision changes the credential, the presentation, the revocation mechanism, and the identity model together.
 
 ### Maturity
 
-The two are at different stages, and the distinction matters. The SD-JWT mechanism is published as RFC 9901. The SD-JWT VC profile built on it is a working-group draft (`draft-ietf-oauth-sd-jwt-vc`, revision 18 at the time of writing), not yet an RFC. W3C VC 2.0 is a finalised W3C Recommendation. So on formal finality W3C leads, while for SD-JWT the security-critical mechanism is finalised and only the credential profile is still a late-stage draft, sitting on finalised primitives (JWT, JWS, JWK, RFC 7638 thumbprints, RFC 9901, and the Token Status List).
+The two are at different stages, and the distinction matters. The SD-JWT mechanism is published as RFC 9901. The SD-JWT VC profile built on it is working-group draft revision 18 (`draft-ietf-oauth-sd-jwt-vc-18`), not yet an RFC. W3C VC 2.0 is a finalised W3C Recommendation. So on formal finality W3C leads, while for SD-JWT the security-critical mechanism is finalised and only the credential profile is still a late-stage draft, sitting on finalised primitives (JWT, JWS, JWK, RFC 7638 thumbprints, RFC 9901, and the Token Status List).
 
 ### Adoption
 
@@ -36,7 +36,7 @@ Neither format has won; they occupy different strongholds. SD-JWT VC is the cred
 
 ### Selective disclosure, minimisation, and issuer blindness
 
-SD-JWT VC supports holder-controlled selective disclosure natively; W3C VC needs the BBS add-on for the same. Selective disclosure is retained rather than the deciding reason for the format, and the default TSAI credential remains a flat JWT without disclosure structure.
+SD-JWT VC supports holder-controlled selective disclosure natively; W3C VC needs the BBS add-on for the same. Selective disclosure is retained rather than the deciding reason for the format, and the default TSAI credential remains a flat JWT without disclosure structure. TSAI prohibits issuer-generated decoy digests because the verifier exposes unmatched signal digests as the withheld-signal count.
 
 Short lifetime does not remove the need for minimisation. A Trust Authority cannot issue exactly the signals an interaction needs without learning the destination and purpose, which would contradict TSAI's issuer-blindness property. TSAI therefore keeps the Trust Authority blind to the Service Provider. An agent may request a subset above the identity floor during issuance without naming its destination, and Type Metadata constrains what the issuer may make selectively disclosable. This gives a coarse holder-directed minimisation path at issuance and a finer holder-controlled path at presentation.
 
@@ -70,7 +70,7 @@ The credential is a W3C VC 2.0 secured as VC-JWT; the self-contained binding is 
 
 ### Option B: SD-JWT VC
 
-The credential is an SD-JWT VC (`draft-ietf-oauth-sd-jwt-vc`, on RFC 9901); the self-contained binding is the key-binding JWT, and the holder key is the `cnf` claim.
+The credential is an SD-JWT VC (`draft-ietf-oauth-sd-jwt-vc-18`, on RFC 9901); the self-contained binding is the key-binding JWT, and the holder key is the `cnf` claim.
 
 **Pros.** JWT-native, so the binding is the key-binding JWT and the holder key is a JWK identified by a thumbprint, the same material Web Bot Auth uses (criteria 1 and 3). It shares one idiom with the binding and with the surrounding protocols, so the credential, the binding, the keys, and revocation are all JWT and JWK, with nothing to translate (criterion 8). Selective disclosure is available if needed (criterion 2). Revocation uses the IETF Token Status List, and can be omitted where short expiry suffices, since credentials are short-lived (criterion 4). Lighter than the JSON-LD model, and a flat JWT when disclosure is unused (criterion 5). The mechanism beneath it, RFC 9901, is finalised (criterion 6).
 
@@ -131,7 +131,7 @@ TSAI publishes immutable Type Metadata and an integrity-protected JSON Schema fo
 
 A Trust Authority or community defining custom signals mints a derived `vct`. Its metadata uses `extends` and `extends#integrity`; its schema composes the immutable parent schema with `allOf`; and the credential carries the canonical TSAI type in `aka_vcts`, which cannot contain the primary `vct`. A child cannot relax inherited disclosure controls. The publisher defining a type retains its versioned metadata and schema while any credential or derived type refers to them. Any vocabulary, constraint, display, or disclosure change mints a new `vct`.
 
-A verifier surfaces the number of withheld signal elements and may reject above its policy threshold. It accepts a derived type only from an issuer it trusts and after validating the complete metadata and schema chain to the canonical TSAI type.
+A Trust Authority does not insert decoy digests, so a verifier can surface the number of withheld signal elements and may reject above its policy threshold. It accepts a derived type only from an issuer it trusts and after validating the complete metadata and schema chain to the canonical TSAI type.
 
 ### TSAI v1 cryptographic profile
 
@@ -151,7 +151,7 @@ The residual cost is that TSAI depends on a credential profile that is not yet a
 - The self-contained binding of ADR 014 is realised as an ES256-signed SD-JWT key-binding JWT, and the holder key is the EC/P-256 `cnf` JWK.
 - Revocation uses the IETF Token Status List, referenced by an optional `status` claim. Where a Service Provider relies on short expiry, `status` may be omitted.
 - Trust-Authority blindness is preserved. Holder-directed issuance provides coarse minimisation without revealing the destination; selective disclosure provides fine minimisation at presentation.
-- A verifier surfaces the withheld-signal count and may fail closed above its policy threshold.
+- A Trust Authority does not insert decoy digests; a verifier surfaces the resulting withheld-signal count and may fail closed above its policy threshold.
 - TSAI adopts the `vct` type claim and the `application/dc+sd-jwt` media type, and publishes Type Metadata for each `vct`. Standard metadata carries path-based claim controls; the TSAI profile adds signal disclosure/display controls and binds each type to an integrity-protected JSON Schema that is authoritative for format and presence. A custom extension uses a derived `vct` rooted in immutable, versioned TSAI metadata and its base schema; the publisher defining each type retains those artefacts without in-place changes.
 - The trust signals from ADR 016 are carried in a single top-level `signals` claim, holding the flat list of category-discriminated objects that decision fixes. Selective disclosure is available per claim, and within the list per array element, but is unused by default, so a credential is a flat JWT and only the fields deliberately made disclosable ever appear as digests. Disclosing the `signals` claim as a whole is all-or-nothing across the list; revealing individual signals while withholding others requires the per-element form.
 - The identity model under ADR 017 uses HTTPS `iss` for the issuer and required registered HTTPS `sub` for the agent; the inline `cnf` JWK is the current holder-binding key. A `did:web` issuer or agent is not used.
@@ -214,11 +214,11 @@ On the wire the presentation is `‹issuer-JWT›~‹KB-JWT›`. The issuer sign
 - ADR 014 — Holder Binding and Web Bot Auth Integration
 - ADR 016 — Trust Signal Structure
 - ADR 017 — Party Identity and Key Discovery
-- [draft-ietf-oauth-sd-jwt-vc](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-sd-jwt-vc)
+- [draft-ietf-oauth-sd-jwt-vc-18](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-sd-jwt-vc-18)
 - [RFC 9901 — Selective Disclosure for JSON Web Tokens (SD-JWT)](https://www.rfc-editor.org/rfc/rfc9901)
 - [RFC 7638 — JSON Web Key (JWK) Thumbprint](https://www.rfc-editor.org/rfc/rfc7638)
 - [RFC 7518 — JSON Web Algorithms](https://www.rfc-editor.org/rfc/rfc7518)
 - [RFC 8725 — JSON Web Token Best Current Practices](https://www.rfc-editor.org/rfc/rfc8725)
 - [RFC 6979 — Deterministic Usage of DSA and ECDSA](https://www.rfc-editor.org/rfc/rfc6979)
-- [IETF Token Status List](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-status-list)
+- [IETF Token Status List](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-status-list-21)
 - [W3C Verifiable Credentials Data Model 2.0](https://www.w3.org/TR/vc-data-model-2.0/)

@@ -8,7 +8,7 @@ SPDX-License-Identifier: Apache-2.0
 **Status:** Superseded  
 **Date:** 2026-06-11  
 **Deciders:** TSAI Working Group  
-**Amended by:** [ADR 014 — Holder Binding and Web Bot Auth Integration](./014-holder-binding-and-web-bot-auth-integration.md)  
+**Binding rationale retained by:** [ADR 014 — Holder Binding and Web Bot Auth Integration](./014-holder-binding-and-web-bot-auth-integration.md)  
 **Superseded by:** [ADR 015 — Credential Serialisation Format](./015-credential-serialisation-format.md)
 
 ---

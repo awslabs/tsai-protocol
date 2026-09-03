@@ -114,5 +114,5 @@ The Trust Authority is identified by HTTPS `iss`; signing-key metadata uses the 
 - ADR 014 — Holder Binding and Web Bot Auth Integration
 - ADR 015 — Credential Serialisation Format
 - [RFC 7638 — JSON Web Key (JWK) Thumbprint](https://www.rfc-editor.org/rfc/rfc7638)
-- [draft-ietf-oauth-sd-jwt-vc](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-sd-jwt-vc)
+- [draft-ietf-oauth-sd-jwt-vc-18](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-sd-jwt-vc-18)
 - [did:web Method Specification](https://w3c-ccg.github.io/did-method-web/)
