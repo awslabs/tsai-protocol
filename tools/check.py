@@ -400,6 +400,19 @@ for tm_path in tm_paths:
 if BASE_VCT not in metadata_by_vct:
     fail("[type-metadata] canonical TSAI metadata is missing")
 
+base_claims_by_path = {
+    tuple(claim.get("path", [])): claim
+    for claim in metadata_by_vct[BASE_VCT].get("claims", [])
+    if claim.get("path")
+}
+sub_claim_metadata = base_claims_by_path.get(("sub",))
+if not sub_claim_metadata:
+    fail("[type-metadata] canonical TSAI metadata is missing the sub claim control")
+elif sub_claim_metadata.get("mandatory") is not True or sub_claim_metadata.get("sd") != "never":
+    fail("[type-metadata] canonical TSAI sub must be mandatory and sd never")
+if ("aka_vcts",) in base_claims_by_path:
+    fail("[type-metadata] canonical TSAI metadata must not define an aka_vcts claim control")
+
 for vct, tm in metadata_by_vct.items():
     tm_path = metadata_paths_by_vct[vct]
     tsai_schema_uri = tm.get("tsai_schema_uri")

@@ -8,29 +8,10 @@
   "claims": [
     {
       "path": [
-        "aka_vcts"
-      ],
-      "mandatory": false,
-      "sd": "never",
-      "display": [
-        {
-          "locale": "en",
-          "label": "Additional credential types"
-        }
-      ]
-    },
-    {
-      "path": [
         "sub"
       ],
       "mandatory": true,
-      "sd": "never",
-      "display": [
-        {
-          "locale": "en",
-          "label": "Agent identifier"
-        }
-      ]
+      "sd": "never"
     }
   ],
   "tsai_signal_metadata": [

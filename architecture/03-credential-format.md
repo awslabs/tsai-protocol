@@ -242,29 +242,26 @@ Each `vct` resolves to a Type Metadata document (ADR 015). SD-JWT VC Type Metada
 
 **Schema.** TSAI adds two required top-level properties: `tsai_schema_uri`, which identifies the JSON Schema for the complete credential payload, and `tsai_schema_uri#integrity`, which pins the exact schema bytes. The schema is authoritative for the permitted claims and signals, their field shapes, and required presence. A TSAI verifier processes these properties even though a generic SD-JWT VC consumer ignores them.
 
-**Standard claim metadata.** The standard `claims` array remains conformant to SD-JWT VC §4.6: every entry is addressed by a `path`. Its `mandatory` and `sd` controls apply to ordinary JSON claims such as `aka_vcts`; standard inheritance rules apply when a type extends another type.
+**Standard claim metadata.** When used, the standard `claims` array remains conformant to SD-JWT VC §4.6 and every entry is addressed by a `path`. TSAI does not add claim metadata for `aka_vcts`: SD-JWT VC already makes it non-disclosable, while the credential schema and verifier enforce its TSAI-specific content rules. The canonical TSAI metadata uses `claims` to mark `sub` as mandatory and non-disclosable because SD-JWT VC permits `sub` to be selectively disclosed, whereas TSAI requires the persistent agent identifier in every presentation.
 
 **Signal metadata.** Standard claim paths cannot select array elements by their `cat` and `typ` values, so TSAI adds the top-level `tsai_signal_metadata` property. Each entry selects every signal in a category, or one exact category/type pair, and carries `sd` plus optional display metadata. It does not define presence: the JSON Schema does that. A parent category selector governs every signal in that category unless the child defines a more specific selector. A child may narrow `sd: allowed` to `always` or `never`, but MUST NOT change an inherited `always` or `never` value. A schema-required signal MUST have an effective `tsai_signal_metadata` rule of `sd: never`, so it remains available for payload validation after disclosure processing.
 
-A derived TSAI type uses the standard `extends` and `extends#integrity` properties to inherit its parent metadata. Its schema MUST use JSON Schema `allOf` with a `$ref` to the parent's immutable schema, thereby composing the canonical TSAI base transitively. The child adds standard path metadata for `aka_vcts` and `tsai_signal_metadata` entries for its custom signals.
+A derived TSAI type uses the standard `extends` and `extends#integrity` properties to inherit its parent metadata. Its schema MUST use JSON Schema `allOf` with a `$ref` to the parent's immutable schema, thereby composing the canonical TSAI base transitively. The child adds `tsai_signal_metadata` entries for its custom signals; `aka_vcts` is governed by the credential schema and verification rules.
 
 ```json
 {
   "vct": "https://ta.example/credential/tsai/1",
   "extends": "https://tsaiprotocol.org/credential/tsai/1",
-  "extends#integrity": "sha256-2YKb4NkMmDePUe8A3Ldp2PJfU5OpVMjLYVInDbMRHUM=",
+  "extends#integrity": "sha256-9GPWoE/zqkVoa+aLL+fkeYqBrGU5wkikBO7JGkRl/S0=",
   "tsai_schema_uri": "https://ta.example/schemas/credential/tsai/1.json",
   "tsai_schema_uri#integrity": "sha256-H5gGR/iMLT9a4ajpGQBRXOEwR4E1fUMqZl1gtCuhvtQ=",
-  "claims": [
-    { "path": ["aka_vcts"], "mandatory": true, "sd": "never" }
-  ],
   "tsai_signal_metadata": [
     { "signal": { "cat": "rep", "typ": "risk" }, "sd": "never" }
   ]
 }
 ```
 
-This separation keeps the standard `claims` array processable by generic SD-JWT VC consumers. A generic consumer ignores the unknown top-level `tsai_schema_uri` and `tsai_signal_metadata` properties; a TSAI-aware consumer processes them in addition to the standard metadata.
+This separation keeps any standard `claims` entries processable by generic SD-JWT VC consumers. A generic consumer ignores the unknown top-level `tsai_schema_uri` and `tsai_signal_metadata` properties; a TSAI-aware consumer processes them in addition to any standard metadata.
 
 **Integrity and caching.** The credential carries a `vct#integrity` claim (Section 2.3.2) using SHA-256 integrity metadata for its Type Metadata document, per SD-JWT VC §5. Derived metadata additionally carries `extends#integrity`; every TSAI metadata document carries `tsai_schema_uri#integrity`. A Service Provider MUST obtain the complete metadata and schema chain out of band or from cache and MUST NOT fetch it on the verification path.
 
@@ -290,7 +287,7 @@ An issued credential, flat, before presentation:
 {
   "iss": "https://trust-authority.example",
   "vct": "https://tsaiprotocol.org/credential/tsai/1",
-  "vct#integrity": "sha256-2YKb4NkMmDePUe8A3Ldp2PJfU5OpVMjLYVInDbMRHUM=",
+  "vct#integrity": "sha256-9GPWoE/zqkVoa+aLL+fkeYqBrGU5wkikBO7JGkRl/S0=",
   "iat": 1781863200,
   "exp": 1781865000,
   "sub": "https://acme-corp.example/agents/shopper-v3",

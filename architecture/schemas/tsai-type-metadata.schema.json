@@ -5,7 +5,7 @@
   "title": "TSAI Type Metadata",
   "description": "The Type Metadata document for a TSAI vct. Standard SD-JWT VC claims entries remain path-based. The TSAI profile adds an integrity-protected JSON Schema and content-based signal disclosure/display metadata.",
   "type": "object",
-  "required": ["vct", "tsai_schema_uri", "tsai_schema_uri#integrity", "claims", "tsai_signal_metadata"],
+  "required": ["vct", "tsai_schema_uri", "tsai_schema_uri#integrity", "tsai_signal_metadata"],
   "properties": {
     "vct": { "type": "string", "format": "uri", "description": "The credential type this metadata describes" },
     "extends": { "type": "string", "format": "uri", "description": "Parent credential type metadata, for a derived TSAI vct" },
