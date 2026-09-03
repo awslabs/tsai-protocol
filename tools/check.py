@@ -82,7 +82,7 @@ KB = schemas.get("key-binding-jwt.schema.json")
 TM = schemas.get("tsai-type-metadata.schema.json")
 REPUTATION_METHOD = schemas.get("tsai-reputation-methodology.schema.json")
 A2A = schemas.get("a2a-agent-card-tsai.schema.json")
-MCP = schemas.get("mcp-capability-tsai.schema.json")
+TSAI_CONFIG = schemas.get("tsai-config.schema.json")
 TA_STATUS = schemas.get("tsai-ta-status.schema.json")
 HSM = schemas.get("tsai-ta-hsm-attestation.schema.json")
 REGISTERED_REPUTATION_TYPES = set(
@@ -369,7 +369,7 @@ def classify_and_validate(obj, label):
         validate(obj, SIGNALS_SUB, label + " (signals-fragment)")
         validate_registered_reputation_signals(obj, label)
     elif "trustedAuthorities" in obj:
-        validate(obj, MCP, label + " (mcp-capability)")
+        validate(obj, TSAI_CONFIG, label + " (tsai-config)")
     # anything else (cnf snippet, status snippet, config) is not classifiable; skip
 
 

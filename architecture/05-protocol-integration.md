@@ -19,7 +19,7 @@ A TSAI presentation is a credential (SD-JWT VC) with a key-binding JWT appended,
 
 ### 4.1.1 Carrying more than one credential
 
-An agent MAY present credentials from more than one Trust Authority, which is how the redundancy of §5.1.4 and ADR 002 is realised. The `TSAI-Credential` header MAY appear more than once, each occurrence carrying one compact presentation, all bound to the same `cnf` key. A Service Provider SHOULD accept more than one, MAY cap the number it will process, and MUST state its cap in its discovery document, since each additional credential costs a signature verification and possibly a fetch, and an agent needs to know the cap before it presents.
+An agent MAY present credentials from more than one Trust Authority, which is how the redundancy of §5.1.4 and ADR 002 is realised. The `TSAI-Credential` header MAY appear more than once, each occurrence carrying one compact presentation, all bound to the same `cnf` key. A Service Provider MUST support one credential and MAY support more than one; it MAY reject a request that exceeds its implementation-defined processing limit.
 
 Where two credentials assert conflicting values for the same signal about the same operator, a Service Provider MUST NOT silently prefer one. Its policy resolves the conflict; absent a policy, it treats the disputed signal as unresolved and does not rely on it. This conflict rule is the substantive part of multi-Trust-Authority operation.
 
@@ -101,7 +101,7 @@ A service carries the presentation in a `TSAI-Credential` header over HTTPS, and
 { "required": true, "trustedAuthorities": ["https://trust-authority.example"] }
 ```
 
-The `aud` a Service Provider expects is its HTTPS origin; a service reachable at several hostnames, or an MCP server on a path, publishes the exact expected `aud` value in this document so an agent constructs an acceptable presentation.
+The document conforms to [`schemas/tsai-config.schema.json`](schemas/tsai-config.schema.json). The `aud` a Service Provider expects is its HTTPS origin by default; a service reachable at several hostnames, or an MCP server on a path, includes the exact expected `aud` value so an agent constructs an acceptable presentation.
 
 ### 4.4.1 Soft-fail postures
 

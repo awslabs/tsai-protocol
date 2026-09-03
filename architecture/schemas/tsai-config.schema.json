@@ -1,0 +1,32 @@
+{
+  "$comment": "Copyright Amazon.com Inc. or its affiliates. SPDX-License-Identifier: Apache-2.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tsaiprotocol.org/schemas/tsai-config.json",
+  "title": "TSAI Service Provider Configuration",
+  "description": "Discovery document served at /.well-known/tsai-config.json by an HTTPS Service Provider.",
+  "type": "object",
+  "required": ["required", "trustedAuthorities"],
+  "properties": {
+    "required": {
+      "type": "boolean",
+      "description": "Whether the Service Provider requires a TSAI credential"
+    },
+    "trustedAuthorities": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "format": "uri",
+        "pattern": "^https://",
+        "description": "Accepted Trust Authority HTTPS issuer identifier"
+      }
+    },
+    "aud": {
+      "type": "string",
+      "format": "uri",
+      "pattern": "^https://",
+      "description": "Exact key-binding JWT audience; omitted when the Service Provider HTTPS origin is used"
+    }
+  },
+  "additionalProperties": false
+}
