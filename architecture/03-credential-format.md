@@ -85,7 +85,7 @@ The `cnf` JWK MUST have `kty` `EC` and `crv` `P-256`, MUST contain the public `x
 | `aud` | REQUIRED | The Service Provider the presentation is addressed to: the HTTPS origin of the service (Section 2.8). On a transport with no HTTP origin, such as MCP over stdio, it is the stable audience identifier the server declares in its capability exchange (Section 4.2). The Service Provider MAY publish the expected value in its discovery documents. |
 | `nonce` | REQUIRED | A value binding the presentation to a transaction. The agent generates it from a cryptographically secure source, at least 128 bits, fresh per presentation; where the risk of the action warrants, the Service Provider issues it as a challenge instead (Section 3). |
 | `sd_hash` | REQUIRED | The SHA-256 digest over the issuer-signed JWT and any forwarded disclosures, computed per RFC 9901 §4.3.1. |
-| `req` | OPTIONAL | A request binding (ADR 014): the request method and target URI, and, when the request has a body, a SHA-256 content digest of the body per RFC 9530. REQUIRED for a state-changing action and where the verifying and acting components differ (Section 3). |
+| `req` | OPTIONAL | A request binding (ADR 014): the request method and absolute target URI, and, when the request has a body, a SHA-256 content digest of the body per RFC 9530. The URI MUST match the request target by exact string equality, without normalisation. REQUIRED for a state-changing action and where the verifying and acting components differ (Section 3). |
 
 `nonce` is REQUIRED in every key-binding JWT, per RFC 9901 §4.3; the escalation decision concerns who supplies it, not whether it is present. `req` is an added claim, adopted deliberately per ADR 014. TSAI v1 defines the closed claim set shown above; a key-binding JWT MUST NOT contain additional claims.
 
@@ -255,7 +255,7 @@ A derived TSAI type uses the standard `extends` and `extends#integrity` properti
 {
   "vct": "https://ta.example/credential/tsai/1",
   "extends": "https://tsaiprotocol.org/credential/tsai/1",
-  "extends#integrity": "sha256-y4zXgoIrRHqL6PNnuvddqd7qkSF+3oIs2L/LK5fIc04=",
+  "extends#integrity": "sha256-F9msU5Foz+5Az8M/CMOx6wUiNgJ0QH3g+LbHJLO0Q3I=",
   "tsai_schema_uri": "https://ta.example/schemas/credential/tsai/1.json",
   "tsai_schema_uri#integrity": "sha256-H5gGR/iMLT9a4ajpGQBRXOEwR4E1fUMqZl1gtCuhvtQ=",
   "tsai_signal_metadata": [
@@ -290,7 +290,7 @@ An issued credential, flat, before presentation:
 {
   "iss": "https://trust-authority.example",
   "vct": "https://tsaiprotocol.org/credential/tsai/1",
-  "vct#integrity": "sha256-y4zXgoIrRHqL6PNnuvddqd7qkSF+3oIs2L/LK5fIc04=",
+  "vct#integrity": "sha256-F9msU5Foz+5Az8M/CMOx6wUiNgJ0QH3g+LbHJLO0Q3I=",
   "iat": 1781863200,
   "exp": 1781865000,
   "sub": "https://acme-corp.example/agents/shopper-v3",

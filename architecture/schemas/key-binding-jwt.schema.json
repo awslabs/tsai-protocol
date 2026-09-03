@@ -13,11 +13,11 @@
     "sd_hash": { "type": "string", "pattern": "^[A-Za-z0-9_-]{43}$", "description": "SHA-256 digest over the issuer-signed JWT and forwarded disclosures, per RFC 9901 §4.3.1" },
     "req": {
       "type": "object",
-      "description": "Optional request binding (ADR 014); required for state-changing actions and where the verifying and acting components differ. Binds the method and target URI always, and the body digest when the request has a body.",
+      "description": "Optional request binding (ADR 014); required for state-changing actions and where the verifying and acting components differ. Binds the method and absolute target URI always, and the body digest when the request has a body.",
       "required": ["method", "uri"],
       "properties": {
         "method": { "type": "string", "description": "The HTTP method of the bound request" },
-        "uri": { "type": "string", "format": "uri", "description": "The target URI of the bound request" },
+        "uri": { "type": "string", "format": "uri", "description": "Absolute target URI; compared with the request target by exact string equality without normalisation" },
         "digest": { "type": "string", "pattern": "^sha-256=:[A-Za-z0-9+/]+={0,2}:$", "description": "SHA-256 Content-Digest of the request body per RFC 9530; present only when the request has a body" }
       },
       "additionalProperties": false

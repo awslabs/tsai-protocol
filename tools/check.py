@@ -135,6 +135,21 @@ if CRED:
         invalid_reputation = dict(reputation_fixture, scr=invalid_score)
         if not list(reputation_validator.iter_errors(invalid_reputation)):
             fail(f"[reputation] score outside [0, 1] was accepted: {invalid_score}")
+    invalid_reputation = dict(reputation_fixture, wdw="90D")
+    if not list(reputation_validator.iter_errors(invalid_reputation)):
+        fail("[reputation] invalid wdw duration was accepted")
+
+    identity_validator = Draft202012Validator(
+        CRED["$defs"]["identitySignal"],
+        format_checker=FORMAT_CHECKER,
+    )
+    valid_dag = {"cat": "idn", "typ": "dag", "val": "P850D"}
+    if list(identity_validator.iter_errors(valid_dag)):
+        fail("[identity] valid dag duration was rejected")
+    for invalid_duration in ("PT", "P1YT"):
+        invalid_dag = {"cat": "idn", "typ": "dag", "val": invalid_duration}
+        if not list(identity_validator.iter_errors(invalid_dag)):
+            fail(f"[identity] invalid dag duration was accepted: {invalid_duration}")
 
 
 def issuer_metadata_url(issuer):
