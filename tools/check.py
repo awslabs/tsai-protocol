@@ -850,6 +850,30 @@ if not hsm_lifetime_valid({"attestationType": "self-attestation", "iat": 0, "exp
 if hsm_lifetime_valid({"attestationType": "self-attestation", "iat": 0, "exp": 30 * 24 * 60 * 60 + 1}):
     fail("[ta-jws] overlong self-attestation lifetime was accepted")
 
+_report_url_on_independent_audit = dict(
+    load_json(ARCH / "test-vectors" / "ta-hsm-attestation-jws.json")["payload"],
+    reportUrl="https://ta.example/reports/hsm.pdf?access=requested",
+)
+if HSM and not Draft202012Validator(HSM, format_checker=FORMAT_CHECKER).is_valid(
+    _report_url_on_independent_audit
+):
+    fail("[ta-jws] reportUrl was rejected on independent-audit")
+
+_report_url_on_self_attestation = {
+    "iss": "https://ta.example",
+    "iat": 0,
+    "exp": 1,
+    "version": "1.0",
+    "attestationType": "self-attestation",
+    "auditDate": "2026-01-01",
+    "scope": "Signing-key storage",
+    "reportUrl": "https://ta.example/report",
+}
+if HSM and Draft202012Validator(HSM, format_checker=FORMAT_CHECKER).is_valid(
+    _report_url_on_self_attestation
+):
+    fail("[ta-jws] reportUrl was accepted on self-attestation")
+
 verify_ta_jws_vector("ta-status-jws.json", "tsai-ta-status+jwt", TA_STATUS, 86400)
 verify_ta_jws_vector("ta-hsm-attestation-jws.json", "tsai-ta-hsm-attestation+jwt", HSM)
 

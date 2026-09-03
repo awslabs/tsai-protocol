@@ -16,12 +16,20 @@
     "auditDate": { "type": "string", "format": "date", "description": "Date on which the audit or attestation evidence was established" },
     "auditStandard": { "type": "string", "description": "Standard against which the audit was performed; required for independent-audit" },
     "scope": { "type": "string", "description": "Signing-key generation, storage, and use covered by the evidence" },
-    "reportDigest": { "type": "string", "pattern": "^sha256-[A-Za-z0-9+/]+={0,2}$", "description": "SHA-256 integrity metadata over the exact audit-report bytes; required for independent-audit" }
+    "reportDigest": { "type": "string", "pattern": "^sha256-[A-Za-z0-9+/]+={0,2}$", "description": "SHA-256 integrity metadata over the exact audit-report bytes; required for independent-audit" },
+    "reportUrl": { "type": "string", "format": "uri", "pattern": "^https://[^\\s#]+$", "description": "Optional HTTPS location where the independent audit report can be requested; access need not be public or unauthenticated" }
   },
   "allOf": [
     {
       "if": { "properties": { "attestationType": { "const": "independent-audit" } }, "required": ["attestationType"] },
       "then": { "required": ["auditor", "auditStandard", "reportDigest"] }
+    },
+    {
+      "if": { "required": ["reportUrl"] },
+      "then": {
+        "properties": { "attestationType": { "const": "independent-audit" } },
+        "required": ["reportDigest"]
+      }
     }
   ],
   "additionalProperties": true

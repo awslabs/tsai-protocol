@@ -80,7 +80,7 @@ When it fetches, a Service Provider MUST confirm the status-list token uses `ES2
 
 ## 3.6 Fetch Hardening
 
-A Service Provider fetches URLs it did not choose: the issuer metadata at `iss`, Type Metadata, schema, and reputation-methodology documents out of band, and, where used, the status list and a `prv` `did:web`. Each is a server-side request-forgery vector (SD-JWT VC §6.1). For each, a Service Provider MUST validate the URL, MUST refuse a private, loopback, or link-local address after DNS resolution, and MUST bound the response size and the timeout. A Service Provider SHOULD use DNSSEC-validated resolution, and MUST do so where it resolves a `prv` `did:web` on which it relies for a material decision.
+A Service Provider fetches URLs it did not choose: the issuer metadata at `iss`, Type Metadata, schema, and reputation-methodology documents out of band, and, where used, the status list, an HSM-attestation `reportUrl`, and a `prv` `did:web`. Each is a server-side request-forgery vector (SD-JWT VC §6.1). For each, a Service Provider MUST validate the URL, MUST refuse a private, loopback, or link-local address after DNS resolution, and MUST bound the response size and the timeout. A Service Provider SHOULD use DNSSEC-validated resolution, and MUST do so where it resolves a `prv` `did:web` on which it relies for a material decision.
 
 ---
 
