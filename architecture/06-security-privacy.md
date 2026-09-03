@@ -104,6 +104,8 @@ A presentation is bound to one Service Provider by `aud`, carries a fresh key-bi
 
 ## 5.8 Trust Authority Security
 
+**Registration index.** The `kid`-to-agent registration index is security-critical. A Trust Authority MUST restrict changes to authenticated and authorised management actions, record them in tamper-evident audit logs, and protect the index against unauthorised modification and rollback. Issuance MUST derive `sub` and `cnf` only from the active registration selected by this index.
+
 Signing keys are held in an HSM with multi-person authorisation, restricted and audited access, and periodic rotation with old keys retained for verification. A verifier, not the Trust Authority, resolves `jwt-vc-issuer` to obtain the signing key, under the fetch hardening of Section 3.6; a Trust Authority resolves a `prv` when it verifies a certifier, over HTTPS and with DNSSEC-validated resolution where it relies on the result, since a hijacked DNS record could redirect that lookup. It publishes a compact-JWS operational report (§7.10) and HSM attestation (§7.11), both signed by the normal current TA signing key. On key compromise it rotates the key through the out-of-band path (§3.7.2), notifies Service Providers and the governance body, and re-issues; Service Providers can drop it from their trusted set. A Trust Authority is a legal entity accountable for what it issues.
 
 ---

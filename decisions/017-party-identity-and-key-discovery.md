@@ -78,9 +78,9 @@ The operator registers the agent before issuance through an authenticated TA man
 
 ### Binding keys
 
-A registered binding key is an EC P-256 public signing JWK identified by its RFC 7638 thumbprint as `kid`. Within one operator account, a registered key maps to one agent; several keys may map to the same agent. Key material may arrive through raw JWK, a JWKS document, a JWKS URL, or a WBA key directory, but DID input and resolution are not part of TSAI.
+A registered binding key is an EC P-256 public signing JWK identified by its RFC 7638 thumbprint as `kid`. Across all operator accounts at one Trust Authority, an active `kid` maps to exactly one agent; several keys may map to the same agent. The TA rejects an already-active `kid` and does not assign it to a different agent, whether under the same operator or another. It retains inactive registrations for audit; reassignment is permitted only after the existing registration is deactivated through the authenticated management process. Key material may arrive through raw JWK, a JWKS document, a JWKS URL, or a WBA key directory, but DID input and resolution are not part of TSAI.
 
-`IssueRequest` supplies `kid` and proof of control, not `sub` or raw JWK material. The TA resolves the registered key, verifies the proof, copies the stored `sub` into the credential, and places the registered public JWK in `cnf`. An unknown, inactive, repudiated, cross-operator, or ambiguous `kid` is rejected.
+`IssueRequest` supplies `kid` and proof of control, not `sub` or raw JWK material. The TA resolves the unique active registration, confirms that it belongs to the authenticated operator, verifies the proof, copies the stored `sub` into the credential, and places the registered public JWK in `cnf`. An unknown, inactive, repudiated, or cross-operator `kid` is rejected.
 
 Key rotation registers and proves a new key against the existing agent before issuance uses it. Rotation preserves `sub`, status, and reputation and changes `cnf`.
 
