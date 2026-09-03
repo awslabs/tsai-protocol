@@ -27,12 +27,12 @@
       "type": "object",
       "required": ["minimum", "maximum", "direction"],
       "properties": {
-        "minimum": { "type": "number", "description": "Inclusive minimum score" },
-        "maximum": { "type": "number", "description": "Inclusive maximum score; MUST be greater than minimum" },
+        "minimum": { "type": "number", "const": 0, "description": "Inclusive minimum for a normalised TSAI score" },
+        "maximum": { "type": "number", "const": 1, "description": "Inclusive maximum for a normalised TSAI score" },
         "direction": {
           "type": "string",
-          "enum": ["higher-better", "lower-better"],
-          "description": "Whether higher or lower values represent the more favourable result"
+          "const": "higher-better",
+          "description": "Higher values represent the more favourable result under the methodology"
         }
       },
       "additionalProperties": false

@@ -45,7 +45,7 @@ The groupings below are exploratory rather than normative. Reputation subsumes t
 - **Complaint rate** - Frequency of reported issues
 - **Time in operation** - How long agent has been active
 - **Behavioral consistency** - Stability of performance over time (variance metrics)
-- **Reputation score** - Aggregated trust score (e.g., 0-100)
+- **Reputation score** - Normalised value from 0 to 1, where higher values are more favourable under the referenced methodology
 - **Confidence level** - Statistical confidence in score (based on sample size)
 - **Trend** - Improving, stable, or declining
 - **Recovery patterns** - How agent responds to failures

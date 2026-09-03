@@ -29,7 +29,7 @@ The Trust Authority issues a short-lived [SD-JWT VC](https://www.ietf.org/archiv
 
 The credential carries a flat list of signals across identity, reputation, compliance, and assurance. The standard TSAI credential type defines the registered signal vocabulary and field shapes. An extension publishes a separate credential type and schema while retaining the TSAI base requirements; the specification calls this a derived type.
 
-Reputation scores remain specific to the Trust Authority that issues them. Each registered score pins an immutable, versioned methodology document, so a Service Provider or auditor can determine how the score was produced without requiring every authority to share one evaluation model.
+Reputation scores remain specific to the Trust Authority that issues them. Registered scores use a normalised value from 0 to 1, where higher values are more favourable under the referenced methodology. Each score pins an immutable, versioned methodology document, so a Service Provider or auditor can determine how it was produced without requiring every authority to share one evaluation model.
 
 TSAI v1 mandates [ES256](https://www.rfc-editor.org/rfc/rfc7518.html#section-3.4) signatures, P-256 signing and binding keys, and [SHA-256](https://www.rfc-editor.org/rfc/rfc6234.html) protocol digests. Credentials expire after 30 minutes, while time-sensitive signals carry their own confirmation time.
 

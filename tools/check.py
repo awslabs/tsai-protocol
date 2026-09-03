@@ -131,6 +131,10 @@ if CRED:
     invalid_reputation = dict(reputation_fixture, band="established")
     if not list(reputation_validator.iter_errors(invalid_reputation)):
         fail("[reputation] removed band field was accepted")
+    for invalid_score in (-0.01, 1.01):
+        invalid_reputation = dict(reputation_fixture, scr=invalid_score)
+        if not list(reputation_validator.iter_errors(invalid_reputation)):
+            fail(f"[reputation] score outside [0, 1] was accepted: {invalid_score}")
 
 
 def issuer_metadata_url(issuer):
@@ -235,11 +239,14 @@ def sri(path):
 
 def methodology_semantic_errors(methodology):
     score = methodology.get("score", {})
-    minimum = score.get("minimum")
-    maximum = score.get("maximum")
-    if isinstance(minimum, (int, float)) and isinstance(maximum, (int, float)) and minimum >= maximum:
-        return ["score.minimum must be less than score.maximum"]
-    return []
+    errors = []
+    if score.get("minimum") != 0:
+        errors.append("score.minimum must be 0")
+    if score.get("maximum") != 1:
+        errors.append("score.maximum must be 1")
+    if score.get("direction") != "higher-better":
+        errors.append("score.direction must be higher-better")
+    return errors
 
 
 METHODOLOGY_VECTOR_PATH = ARCH / "test-vectors" / "reputation-methodology.json"
@@ -263,17 +270,9 @@ def reputation_methodology_errors(signal):
         return [f"methodology {methodology_id!r} is unavailable"]
     if signal.get("mtd#integrity") != methodology_integrity:
         errors.append("mtd#integrity does not match methodology bytes")
-    score = methodology.get("score", {})
-    minimum = score.get("minimum")
-    maximum = score.get("maximum")
     value = signal.get("scr")
-    if (
-        isinstance(minimum, (int, float))
-        and isinstance(maximum, (int, float))
-        and isinstance(value, (int, float))
-        and not minimum <= value <= maximum
-    ):
-        errors.append("scr is outside the methodology range")
+    if isinstance(value, (int, float)) and not 0 <= value <= 1:
+        errors.append("scr is outside the normalized range [0, 1]")
     return errors
 
 
@@ -300,10 +299,13 @@ if reputation_fixture is not None:
     invalid_reputation = dict(reputation_fixture, scr=1.01)
     if not reputation_methodology_errors(invalid_reputation):
         fail("[reputation] out-of-range score was accepted")
-invalid_methodology = copy.deepcopy(METHODOLOGY_FIXTURE)
-invalid_methodology["score"]["minimum"] = invalid_methodology["score"]["maximum"]
-if not methodology_semantic_errors(invalid_methodology):
-    fail("[reputation-methodology] invalid score range was accepted")
+for field, value in (("minimum", -1), ("maximum", 100), ("direction", "lower-better")):
+    invalid_methodology = copy.deepcopy(METHODOLOGY_FIXTURE)
+    invalid_methodology["score"][field] = value
+    if not methodology_semantic_errors(invalid_methodology):
+        fail(f"[reputation-methodology] invalid normalized score {field} was accepted")
+    if not list(Draft202012Validator(REPUTATION_METHOD).iter_errors(invalid_methodology)):
+        fail(f"[reputation-methodology] schema accepted invalid normalized score {field}")
 
 
 # ---- 2. examples in the docs validate against the right schema ------------

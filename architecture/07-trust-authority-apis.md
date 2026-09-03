@@ -89,7 +89,7 @@ A Trust Authority MUST implement the OpenAPI specification, authenticate the ope
 
 ### 7.10.1 Published criteria and data practices
 
-A Trust Authority MUST publish every methodology referenced by a registered reputation signal at its versioned HTTPS `mtd` as `application/json`. The document MUST conform to the TSAI reputation-methodology schema and define the score range, direction, semantics, calculation, eligible evidence, outcome classification, minimum history, and treatment of insufficient history. The bytes identified by a given `mtd` are immutable; a material change requires a new identifier. The Trust Authority MUST disclose its data-collection, retention, and sharing practices.
+A Trust Authority MUST publish every methodology referenced by a registered reputation signal at its versioned HTTPS `mtd` as `application/json`. The document MUST conform to the TSAI reputation-methodology schema, declare the normalised score profile (`minimum` 0, `maximum` 1, and `direction` `higher-better`), and define the score semantics, calculation, eligible evidence, outcome classification, minimum history, and treatment of insufficient history. The bytes identified by a given `mtd` are immutable; a material change requires a new identifier. The Trust Authority MUST disclose its data-collection, retention, and sharing practices.
 
 ### 7.10.2 Status report
 
