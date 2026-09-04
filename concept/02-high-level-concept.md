@@ -82,7 +82,7 @@ The Service Provider checks the Trust Authority's signature on the credential, t
 
 A Service Provider decides how strongly to verify from the risk of the action, not from a tier on the credential. The base path is offline and fast: it needs the Trust Authority's published key and nothing from the Trust Authority at request time. Where the risk warrants, a Service Provider can require a nonce it issues, apply a tighter freshness window to the presentation, or fetch the agent or operator status list, at the cost of a round trip. The precise rules, and how they follow from the signals and the action, are specified in the verification section (ADR 018).
 
-This replaces the earlier tiered model, where the credential carried a tier and the tier fixed the verification method. Grading is now the Service Provider's policy over the signals, which keeps the credential uniform and lets each Service Provider match rigour to its own risk. A Service Provider MAY adopt a published signal profile, a named set of signal requirements with the identity floor as its base, rather than define its policy from scratch.
+This replaces the earlier tiered model, where the credential carried a tier and the tier fixed the verification method. Grading is now the Service Provider's policy over the signals, which keeps the credential uniform and lets each Service Provider match rigour to its own risk.
 
 ---
 

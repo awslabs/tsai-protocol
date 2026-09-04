@@ -55,8 +55,6 @@ This specification uses RFC 2119 terminology: MUST, MUST NOT, SHOULD, SHOULD NOT
 
 **DID** — a W3C Decentralised Identifier. In TSAI, used only to identify referenced third parties (a certifier or a backer) by their own `did:web`.
 
-**Signal profile** — a named, versioned predicate over the signals that a Service Provider applies at admission (Section 8); not carried in the credential.
-
 **Type metadata** — the per-`vct` document carrying standard path-based claim controls plus TSAI signal disclosure/display controls. The TSAI profile binds each type to an integrity-protected JSON Schema that is authoritative for format and presence (Section 2.9).
 
 **Request binding** — an optional `req` digest in the key-binding JWT that binds a presentation to the request it accompanies (Section 3.4).
@@ -80,7 +78,6 @@ The specification is in numbered sections. The section numbers and the file name
 | 5 | `06-security-privacy.md` |
 | 6 | `07-references.md` |
 | 7 | `07-trust-authority-apis.md` |
-| 8 | `08-signal-profiles.md` |
 
 - **Section 2: Credential Format** — the SD-JWT VC structure, the four signal categories, the identity floor, type metadata, and the schema.
 - **Section 3: Verification** — the algorithm, freshness, request binding, status, and fetch hardening.
@@ -88,7 +85,6 @@ The specification is in numbered sections. The section numbers and the file name
 - **Section 5: Security and Privacy** — the trust model, threats, limitations, and requirements.
 - **Section 6: References.**
 - **Section 7: Trust Authority APIs** — enrolment, issuance, refresh, status, key repudiation, and transparency.
-- **Section 8: Signal Profiles** — verifier-side profiles over the signals, with the identity floor as the base.
 
 The domain model behind the credential is in `02-tsai-ontology.md`. The JSON schemas and the OpenAPI are under `architecture/schemas/` and `architecture/openapi/`, and per-`vct` type metadata under `architecture/type-metadata/`.
 

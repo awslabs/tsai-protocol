@@ -99,7 +99,7 @@ The value of the category discriminator, independent of what the categories turn
 
 ### Identity-floor alternatives
 
-Three placements were considered. No floor maximises flexibility but permits a credential that identifies nobody. A verifier-side base profile keeps all policy in one place but makes the v1 identity guarantee depend on each Service Provider configuring that profile. An issuer obligation is chosen: every credential carries the operator's legal name, jurisdiction, verification depth, and a verified controlled domain. This applies before verifier policy and reintroduces no tier or ordering.
+Three placements were considered. No floor maximises flexibility but permits a credential that identifies nobody. A verifier-side baseline predicate keeps all policy in one place but makes the v1 identity guarantee depend on each Service Provider configuring that predicate. An issuer obligation is chosen: every credential carries the operator's legal name, jurisdiction, verification depth, and a verified controlled domain. This applies before verifier policy and reintroduces no tier or ordering.
 
 ### Reputation alternatives
 
@@ -134,7 +134,7 @@ The options differ on three dimensions: faithfulness to independent assurances, 
 
 Adopt **Variant 3b**: a flat list of signals in which each signal is an object carrying a `category`, a `type`, and type-specific fields.
 
-The four registered categories are identity (`idn`), reputation (`rep`), compliance (`cmp`), and assurance (`asr`). Each signal has `cat`, `typ`, and type-specific fields; the schema and registry define the vocabulary.
+The four registered categories are identity (`idn`), reputation (`rep`), compliance (`cmp`), and assurance (`asr`). Each signal has `cat`, `typ`, and type-specific fields; the canonical schema defines the vocabulary for that `vct` version.
 
 **Identity floor.** A Trust Authority MUST NOT issue a TSAI credential unless it contains exactly one operator legal name (`idn/org`), jurisdiction (`idn/jur`), verification depth (`idn/kyc`: `basic`, `enhanced`, or `institutional`), and verified controlled domain (`idn/dct`) anchoring the agent `sub`. An optional domain-age signal (`idn/dag`) appears at most once and describes that sole `dct`. The schema enforces presence and the signal metadata makes these signals non-disclosable. The floor is an issuer obligation, not a tier or verifier-configured profile.
 
@@ -148,7 +148,7 @@ The flat list is chosen over tiers because assurances are not cumulative, so an 
 
 - Supersedes ADR 004. The tiered model and its redundant markers are replaced by the flat signal list.
 - A signal is an object with a `category`, a `type`, and type-specific fields. A Service Provider's admission policy is a predicate over these signals.
-- The registered category/type vocabulary and field constraints live in the canonical schema and registry; extensions use derived credential types under ADR 015.
+- The registered category/type vocabulary and field constraints live in the canonical schema; extensions use derived credential types under ADR 015.
 - Every credential identifies an accountable operator through the identity floor, without requiring Service-Provider policy. The floor does not define levels or ordering.
 - Verification strength is no longer keyed to tiers; ADR 018 expresses it as a fixed baseline plus Service-Provider policy over the signals and action.
 - Revocation stays atomic. A single credential carrying all signals is revoked as a whole, which fits the short-expiry-and-refresh model; per-signal revocation is not proposed.

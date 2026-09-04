@@ -122,7 +122,7 @@ For a state-changing action, the `nonce` is the Service-Provider-issued single-u
 
 `signals` is a flat array (ADR 016). Each signal has a category, a type, and type-specific fields.
 
-The field and type codes are abbreviated (`cat`, `typ`, `prv`, `org`, `dct`, and so on) because a credential is fetched every 30 minutes and sent on every request, so wire size matters; the human-readable labels live in the type metadata (Section 2.9), and the registry of categories and types is governance-maintained (Section 8).
+The field and type codes are abbreviated (`cat`, `typ`, `prv`, `org`, `dct`, and so on) because a credential is fetched every 30 minutes and sent on every request, so wire size matters; the human-readable labels live in the type metadata (Section 2.9), and the canonical schema defines the registered categories and types.
 
 Absence of a signal is not a negative assertion. It may mean the Trust Authority did not evaluate that category, not that it evaluated it unfavourably; TSAI carries no adverse signals, and the block is the sanctioned negative path. A Service Provider MUST NOT read the absence of a signal as an adverse finding, and a Trust Authority MAY indicate which categories it assessed so a Service Provider can tell silence from a gap.
 
@@ -176,11 +176,11 @@ The agent's behavioural record, observed by the Trust Authority; `prv` is omitte
 
 The methodology document MUST conform to [`schemas/tsai-reputation-methodology.schema.json`](schemas/tsai-reputation-methodology.schema.json), its `id` MUST equal `mtd`, and its score object MUST declare `minimum` 0, `maximum` 1, and `direction` `higher-better`. It defines the normalised score's semantics, calculation method, eligible evidence, outcome classification, minimum history, and treatment of insufficient history. A material change to any of those properties requires a new `mtd`; methodology documents are immutable. A Trust Authority serves an HTTPS `mtd` document as `application/json`. A Service Provider obtains and caches it out of band, verifies `mtd#integrity`, and keys score policy by `(iss, typ, mtd)` (Section 3.3). An unknown or invalid methodology gives no favourable reputation result.
 
-`typ` names the registered domain of the record. The TSAI v1 registry contains `ecommerce`; another domain is added through the registry or a derived `vct`. Reputation signals at both scopes are `sd: never` in the type metadata (Section 2.9), so an agent cannot withhold a record it holds, including the operator-level one a washed agent would most want to hide.
+`typ` names the registered domain of the record. The canonical TSAI v1 type contains `ecommerce`; adding another registered domain requires a new canonical `vct` version, while a custom domain uses a derived `vct`. Reputation signals at both scopes are `sd: never` in the type metadata (Section 2.9), so an agent cannot withhold a record it holds, including the operator-level one a washed agent would most want to hide.
 
 ### 2.5.5 Compliance (`cmp`)
 
-A third-party certification the operator holds. `prv` is the certifier's `did:web`. The TSAI v1 registered types are `iso27001`, `soc2`, and `pci-dss`; another certification type is added through the registry or a derived `vct`. A `vld` field MAY carry the certification's own validity end (renamed from the earlier `exp` to avoid collision with the credential's `exp`); `asof` carries when the Trust Authority confirmed it.
+A third-party certification the operator holds. `prv` is the certifier's `did:web`. The canonical TSAI v1 registered types are `iso27001`, `soc2`, and `pci-dss`; adding another registered certification type requires a new canonical `vct` version, while a custom type uses a derived `vct`. A `vld` field MAY carry the certification's own validity end (renamed from the earlier `exp` to avoid collision with the credential's `exp`); `asof` carries when the Trust Authority confirmed it.
 
 A `prv` is attribution, not proof: it names the third party the Trust Authority asserts stands behind the claim, without a signature from that party (Section 5.11). A Service Provider relying on a compliance signal for a material decision verifies it out of band.
 
