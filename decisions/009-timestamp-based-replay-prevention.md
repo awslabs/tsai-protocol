@@ -8,7 +8,8 @@ SPDX-License-Identifier: Apache-2.0
 **Status:** Accepted  
 **Date:** 2026-01-27  
 **Deciders:** TSAI Working Group  
-**Amended by:** [ADR 012 — Service Provider Terminology](./012-service-provider-terminology.md)
+**Amended by:** [ADR 012 — Service Provider Terminology](./012-service-provider-terminology.md)  
+**Amended by:** [ADR 018 — Verification Strength, Replay, and Lifetime without Tiers](./018-verification-strength-and-replay.md)
 
 ---
 
@@ -163,3 +164,5 @@ Use **timestamp-based replay prevention** (Option 3) for T0/T1 credentials:
 - TSAI Architecture Specification Section 3.6.2 (Clock Synchronization)
 - RFC 3161 (Time-Stamp Protocol) - for context on timestamp-based security
 
+
+> Note: architecture section numbers in this ADR refer to the pre-2026-08 structure, before the specification was renumbered.

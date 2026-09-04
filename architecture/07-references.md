@@ -6,7 +6,7 @@ SPDX-License-Identifier: Apache-2.0
 # TSAI Architecture Specification - References
 
 **Version:** 1.0 (Draft)  
-**Date:** January 2026  
+**Date:** 2026-08  
 **Status:** Working Group Draft
 
 ---
@@ -15,30 +15,60 @@ SPDX-License-Identifier: Apache-2.0
 
 The following documents are required for conformance to this specification. Implementations MUST follow these standards.
 
-**[VC-DATA-MODEL-2.0]**  
-W3C Verifiable Credentials Data Model 2.0  
-W3C Recommendation, May 2025  
-https://www.w3.org/TR/vc-data-model-2.0/
+**[SD-JWT-VC]**  
+SD-JWT-based Verifiable Credentials  
+IETF, draft-ietf-oauth-sd-jwt-vc-19  
+https://datatracker.ietf.org/doc/html/draft-ietf-oauth-sd-jwt-vc-19
 
-**[VC-JOSE-COSE]**  
-W3C Securing Verifiable Credentials using JOSE and COSE  
-W3C Recommendation, May 2025  
-https://www.w3.org/TR/vc-jose-cose/
+**[SD-JWT]**  
+Selective Disclosure for JWTs (SD-JWT)  
+IETF RFC 9901, November 2025  
+https://www.rfc-editor.org/rfc/rfc9901
 
-**[DID-CORE]**  
-W3C Decentralized Identifiers (DIDs) v1.0  
-W3C Recommendation, July 2022  
-https://www.w3.org/TR/did-core/
+**[STATUS-LIST]**  
+Token Status List  
+IETF, draft-ietf-oauth-status-list-21  
+https://datatracker.ietf.org/doc/html/draft-ietf-oauth-status-list-21
 
-**[DID-RESOLUTION]**  
-W3C DID Resolution  
-W3C Working Draft, January 2026  
-https://w3c-ccg.github.io/did-resolution/
+**[RFC7638]**  
+JSON Web Key (JWK) Thumbprint  
+IETF RFC 7638, September 2015  
+https://datatracker.ietf.org/doc/html/rfc7638
 
-**[BitstringStatusList]**  
-W3C Bitstring Status List v1.0  
-W3C Candidate Recommendation, December 2023  
-https://www.w3.org/TR/vc-bitstring-status-list/
+**[RFC9530]**  
+Digest Fields  
+IETF RFC 9530  
+https://www.rfc-editor.org/rfc/rfc9530
+
+**[RFC7800]**  
+Proof-of-Possession Key Semantics for JWTs (`cnf`)  
+IETF RFC 7800  
+https://www.rfc-editor.org/rfc/rfc7800
+
+**[RFC7517]**  
+JSON Web Key (JWK)  
+IETF RFC 7517  
+https://www.rfc-editor.org/rfc/rfc7517
+
+**[RFC7518]**  
+JSON Web Algorithms (JWA), including ES256  
+IETF RFC 7518  
+https://www.rfc-editor.org/rfc/rfc7518
+
+**[RFC8725]**  
+JSON Web Token Best Current Practices  
+IETF BCP 225 / RFC 8725  
+https://www.rfc-editor.org/rfc/rfc8725
+
+**[RFC6979]**  
+Deterministic Usage of DSA and ECDSA  
+IETF RFC 6979  
+https://www.rfc-editor.org/rfc/rfc6979
+
+**[DID-WEB]**  
+did:web Method Specification (referenced third parties)  
+W3C CCG  
+https://w3c-ccg.github.io/did-method-web/
 
 **[RFC2119]**  
 Key words for use in RFCs to Indicate Requirement Levels  
@@ -64,6 +94,21 @@ https://datatracker.ietf.org/doc/html/rfc7515
 The JavaScript Object Notation (JSON) Data Interchange Format  
 IETF RFC 8259, December 2017  
 https://datatracker.ietf.org/doc/html/rfc8259
+
+**[RFC6890]**  
+Special-Purpose IP Address Registries  
+IETF BCP 153 / RFC 6890  
+https://www.rfc-editor.org/rfc/rfc6890
+
+**[RFC9110]**  
+HTTP Semantics  
+IETF RFC 9110  
+https://www.rfc-editor.org/rfc/rfc9110
+
+**[RFC9111]**  
+HTTP Caching  
+IETF RFC 9111  
+https://www.rfc-editor.org/rfc/rfc9111
 
 ---
 
@@ -128,6 +173,26 @@ ADR 010: Fail-Closed with Degraded Mode
 TSAI Working Group, January 2026  
 `decisions/010-fail-closed-with-degraded-mode.md`
 
+**[TSAI-ADR-011]**  
+ADR 011: TA Operational Transparency  
+TSAI Working Group, January 2026  
+`decisions/011-ta-operational-transparency.md`
+
+**[TSAI-ADR-012]**  
+ADR 012: Service Provider Terminology  
+TSAI Working Group, April 2026  
+`decisions/012-service-provider-terminology.md`
+
+**[TSAI-ADR-013]**  
+ADR 013: VP-JWT Claim Structure (serialisation superseded by ADR 015; self-contained binding rationale retained by ADR 014)  
+TSAI Working Group, June 2026  
+`decisions/013-vp-jwt-claim-structure.md`
+
+**[TSAI-ADR-014..018]**  
+Follow-on ADRs: Holder Binding and Request Binding (ADR 014), Credential Serialisation, Holder-Directed Issuance, and Type Metadata (ADR 015, supersedes 003), Trust Signal Structure, Identity Floor, and Reputation (ADR 016, supersedes 004), Party Identity (ADR 017, supersedes 006), Verification Strength and Replay (ADR 018, amends 007 and 009).  
+TSAI Working Group  
+`decisions/`
+
 ### 6.2.2 Protocol Specifications
 
 **[MCP]**  
@@ -137,12 +202,12 @@ https://github.com/modelcontextprotocol/modelcontextprotocol
 
 **[A2A]**  
 Agent2Agent Protocol Specification  
-Version 0.3.0  
+Version 1.0.0  
 https://github.com/a2aproject/A2A
 
 **[AP2]**  
 Agent Payments Protocol  
-https://github.com/agentpayments/ap2
+https://github.com/google-agentic-commerce/AP2
 
 **[ERC-8004]**  
 ERC-8004: Trustless Agents  
@@ -194,8 +259,10 @@ https://datatracker.ietf.org/doc/html/rfc3986
 
 **Version 1.0 (Draft) - January 2026**
 - Initial architecture specification
-- Sections 1-6 complete
-- Ready for working group review
+
+**Version 1.0 (Draft), revised - 2026-09**
+- Moved the credential to SD-JWT VC with a key-binding JWT, replaced the T0–T3 tiers with a flat four-category signal list, normalised registered reputation scores to the range 0 to 1 and bound them to versioned integrity-pinned methodologies, and defined party identity as an HTTPS issuer, a required registered agent `sub` with rotating `cnf`, and `did:web` for referenced third parties (ADRs 014–018)
+- Updated the SD-JWT VC basis to draft-19 and aligned HTTP retrieval, caching, integrity verification, and protected-subclaim rules
 
 ---
 
@@ -205,7 +272,7 @@ This specification was developed by the TSAI Working Group, comprising European 
 
 **Contributing Organizations:**
 - Amazon Web Services
-- [Additional contributors to be listed]
+- TSAI Working Group member organisations
 
 **Special Thanks:**
 - W3C Verifiable Credentials Working Group for foundational standards
@@ -216,16 +283,7 @@ This specification was developed by the TSAI Working Group, comprising European 
 
 ## 6.5 Copyright and License
 
-Copyright © 2026 TSAI Working Group. All rights reserved.
-
-This document is made available under the [Creative Commons Attribution 4.0 International License](https://creativecommons.org/licenses/by/4.0/).
-
-**You are free to:**
-- Share — copy and redistribute the material in any medium or format
-- Adapt — remix, transform, and build upon the material for any purpose
-
-**Under the following terms:**
-- Attribution — You must give appropriate credit, provide a link to the license, and indicate if changes were made
+Copyright Amazon.com Inc. or its affiliates. This specification and all repository content are licensed solely under the Apache License 2.0; see [LICENSE](../LICENSE).
 
 ---
 

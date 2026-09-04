@@ -4,14 +4,26 @@
 openapi: 3.1.0
 info:
   title: TSAI Trust Authority API
-  version: 1.0.0-mvp
+  version: 1.0.0
   description: |
-    Trust Authority API for issuing and refreshing TSAI credentials (T0/T1 only).
+    Trust Authority API for issuing and refreshing TSAI credentials (SD-JWT VC).
+    An agent proves control of a pre-registered binding key, and the Trust
+    Authority issues a short-lived ES256-signed credential carrying the stored
+    agent identity and verified trust signals.
   contact:
     name: TSAI Working Group
   license:
     name: Apache 2.0
     url: https://www.apache.org/licenses/LICENSE-2.0.html
+
+servers:
+  - url: https://trust-authority.example
+    description: >-
+      The Trust Authority origin. The API endpoints (challenges, credentials,
+      status, metadata) MAY instead be mounted under a path prefix. The status
+      report and HSM attestation remain origin-rooted. Issuer metadata starts at the origin-rooted
+      /.well-known/jwt-vc-issuer suffix and appends any issuer path, per the
+      SD-JWT VC insertion rule (Section 2.8, Section 3.2.1).
 
 tags:
   - name: credentials
@@ -21,21 +33,40 @@ tags:
 
 paths:
   /challenges:
-    get:
-      summary: Get authentication challenge
+    post:
+      summary: Create proof-of-control challenge
       description: |
-        Returns a random challenge nonce for proof-of-control authentication.
-        Challenges are single-use and expire after 5 minutes.
-      operationId: getChallenge
-      tags:
-        - credentials
+        Creates a single-use challenge bound to the authenticated operator
+        session, requested kid, and its registered agent record. The requested
+        kid must already be active under that operator. Challenges expire after
+        5 minutes.
+      operationId: createChallenge
+      tags: [credentials]
+      security:
+        - operatorAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChallengeRequest'
       responses:
-        '200':
-          description: Challenge generated successfully
+        '201':
+          description: Challenge created
+          headers:
+            Cache-Control:
+              schema: { type: string, const: no-store }
+              description: Challenge responses must not be cached
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Challenge'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '429':
           $ref: '#/components/responses/RateLimitExceeded'
         '500':
@@ -43,13 +74,15 @@ paths:
 
   /credentials/issue:
     post:
-      summary: Issue new credential
+      summary: Issue a credential
       description: |
-        Issues a new TSAI credential for an agent. Agent must prove control
-        of the DID by signing a challenge obtained from /challenges.
+        Issues a TSAI credential for the agent record selected by the registered
+        kid in proofOfControl. The Trust Authority derives sub and cnf from its
+        registration records; the request cannot supply either value.
       operationId: issueCredential
-      tags:
-        - credentials
+      tags: [credentials]
+      security:
+        - operatorAuth: []
       requestBody:
         required: true
         content:
@@ -58,7 +91,7 @@ paths:
               $ref: '#/components/schemas/IssueRequest'
       responses:
         '201':
-          description: Credential issued successfully
+          description: Credential issued
           content:
             application/json:
               schema:
@@ -76,13 +109,14 @@ paths:
 
   /credentials/refresh:
     post:
-      summary: Refresh existing credential
+      summary: Refresh a credential
       description: |
-        Refreshes an existing credential with updated expiry time.
-        Agent must provide current valid credential and proof of control.
+        Issues a fresh credential with a new expiry, given the current credential
+        and proof of control of its active registered binding key.
       operationId: refreshCredential
-      tags:
-        - credentials
+      tags: [credentials]
+      security:
+        - operatorAuth: []
       requestBody:
         required: true
         content:
@@ -91,7 +125,7 @@ paths:
               $ref: '#/components/schemas/RefreshRequest'
       responses:
         '200':
-          description: Credential refreshed successfully
+          description: Credential refreshed
           content:
             application/json:
               schema:
@@ -109,18 +143,146 @@ paths:
         '500':
           $ref: '#/components/responses/ServerError'
 
+  /credentials/repudiate:
+    post:
+      summary: Repudiate a binding key
+      description: |
+        An enrolled operator repudiates a binding key. The Trust Authority
+        refuses further issuance against it and, where compromise may affect
+        issued credentials, blocks the affected agent (Section 7.6).
+      operationId: repudiateKey
+      tags: [credentials]
+      security:
+        - operatorAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [kid]
+              properties:
+                kid:
+                  type: string
+                  pattern: '^[A-Za-z0-9_-]{43}$'
+                  description: RFC 7638 thumbprint of the registered binding key to repudiate
+              additionalProperties: false
+      responses:
+        '204':
+          description: Repudiated
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          description: Operator authentication failed
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: unauthorized, error_description: Operator authentication failed }
+        '403':
+          description: Binding key is not managed by the authenticated operator
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: forbidden, error_description: Binding key is not managed by this operator }
+        '404':
+          description: Registered binding key not found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: not_found, error_description: Registered binding key not found }
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /.well-known/jwt-vc-issuer:
+    get:
+      summary: SD-JWT VC issuer metadata (signing keys)
+      description: >-
+        Returns the issuer metadata document containing jwks or jwks_uri. This
+        literal path is for an issuer without a path component. For an issuer
+        such as https://ta.example/tenant/acme, the same operation is served at
+        /.well-known/jwt-vc-issuer/tenant/acme under the SD-JWT VC insertion
+        rule, regardless of any API base path.
+      operationId: getIssuerMetadata
+      tags: [metadata]
+      responses:
+        '200':
+          description: Issuer metadata
+          content:
+            application/json:
+              schema: { type: object }
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /.well-known/tsai-ta-status:
+    get:
+      summary: Signed operational status report (Section 7.10)
+      description: >-
+        Origin-rooted compact ES256 JWS with typ tsai-ta-status+jwt,
+        served regardless of any API base path.
+      operationId: getStatusReport
+      tags: [metadata]
+      responses:
+        '200':
+          description: Compact-JWS operational status report
+          content:
+            application/jwt:
+              schema:
+                type: string
+                pattern: '^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /.well-known/tsai-ta-hsm-attestation:
+    get:
+      summary: Signed HSM attestation (Section 7.11)
+      description: >-
+        Origin-rooted compact ES256 JWS with typ
+        tsai-ta-hsm-attestation+jwt, served regardless of any API base path.
+      operationId: getHsmAttestation
+      tags: [metadata]
+      responses:
+        '200':
+          description: Compact-JWS HSM attestation
+          content:
+            application/jwt:
+              schema:
+                type: string
+                pattern: '^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /status/{listId}:
+    get:
+      summary: Agent-and-operator Token Status List
+      operationId: getStatusList
+      tags: [credentials]
+      parameters:
+        - name: listId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Token Status List token
+          content:
+            application/statuslist+jwt:
+              schema: { type: string }
+        '404':
+          description: Status list not found
+        '500':
+          $ref: '#/components/responses/ServerError'
+
   /metadata:
     get:
       summary: Get Trust Authority metadata
-      description: |
-        Returns metadata about the Trust Authority including supported tiers,
-        DID methods, endpoints, and policies.
+      description: Returns the issuer identifier, key discovery location, supported credential types, and endpoints.
       operationId: getMetadata
-      tags:
-        - metadata
+      tags: [metadata]
       responses:
         '200':
-          description: Metadata retrieved successfully
+          description: Metadata retrieved
           content:
             application/json:
               schema:
@@ -129,123 +291,114 @@ paths:
           $ref: '#/components/responses/ServerError'
 
 components:
+  securitySchemes:
+    operatorAuth:
+      type: http
+      scheme: bearer
+      description: >-
+        The operator's authenticated session, established out of band at
+        enrolment (Section 7.2). Challenge creation, issuance, refresh,
+        registration management, and repudiation run within it; proof of
+        control then verifies a pre-registered binding key.
   schemas:
+    ChallengeRequest:
+      type: object
+      required: [kid]
+      properties:
+        kid:
+          type: string
+          description: RFC 7638 thumbprint of an active key registered under the authenticated operator
+          pattern: '^[A-Za-z0-9_-]{43}$'
+          example: aISfTcr9M_Zd09AXGAAeFxnLbFY6lBa87UN515wm5d4
+      additionalProperties: false
+
     Challenge:
       type: object
-      required:
-        - challenge
-        - expiresAt
+      required: [challenge, expiresAt]
       properties:
         challenge:
           type: string
-          description: Random nonce (hex-encoded, minimum 32 bytes)
+          description: Random 32-byte nonce encoded as lowercase hexadecimal
+          pattern: '^[0-9a-f]{64}$'
           example: a1b2c3d4e5f67890abcdef1234567890abcdef1234567890abcdef1234567890
         expiresAt:
           type: string
           format: date-time
           example: '2026-01-23T10:05:00Z'
+      additionalProperties: false
 
     ProofOfControl:
       type: object
-      required:
-        - type
-        - created
-        - verificationMethod
-        - proofPurpose
-        - challenge
-        - proofValue
+      description: Proof that the agent controls an active, pre-registered EC/P-256 binding key.
+      required: [kid, challenge, signature]
       properties:
-        type:
+        kid:
           type: string
-          enum:
-            - Ed25519Signature2020
-            - JsonWebSignature2020
-          example: Ed25519Signature2020
-        created:
-          type: string
-          format: date-time
-          example: '2026-01-23T10:00:00Z'
-        verificationMethod:
-          type: string
-          description: DID URL referencing signing key
-          example: 'did:web:acme-corp.com:agents:agent123#key-1'
-        proofPurpose:
-          type: string
-          enum:
-            - authentication
-          example: authentication
+          description: RFC 7638 thumbprint of the registered binding key
+          pattern: '^[A-Za-z0-9_-]{43}$'
+          example: aISfTcr9M_Zd09AXGAAeFxnLbFY6lBa87UN515wm5d4
         challenge:
           type: string
+          description: Exact challenge value returned by POST /challenges
+          pattern: '^[0-9a-f]{64}$'
           example: a1b2c3d4e5f67890abcdef1234567890abcdef1234567890abcdef1234567890
-        proofValue:
+        signature:
           type: string
-          description: Base64url-encoded signature
-          example: z5...
+          description: Base64url-encoded 64-octet R || S ES256 signature over the UTF-8 bytes of the challenge value exactly as received
+          pattern: '^[A-Za-z0-9_-]{86}$'
+          example: AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8gISIjJCUmJygpKissLS4vMDEyMzQ1Njc4OTo7PD0-Pw
+      additionalProperties: false
 
     IssueRequest:
       type: object
-      required:
-        - agentDid
-        - operatorDid
-        - requestedTier
-        - proofOfControl
+      required: [proofOfControl]
       properties:
-        agentDid:
-          type: string
-          example: 'did:web:acme-corp.com:agents:agent123'
-        operatorDid:
-          type: string
-          description: Must be did:web
-          pattern: '^did:web:'
-          example: 'did:web:acme-corp.com'
-        requestedTier:
-          type: string
-          enum:
-            - T0
-            - T1
-          example: T1
         proofOfControl:
           $ref: '#/components/schemas/ProofOfControl'
+        signals:
+          type: array
+          description: >-
+            Optional holder-directed filter (ADR 015): request a subset of
+            categories or types above the identity floor, without naming the
+            Service Provider. The identity floor is always included regardless
+            of the filter, and the filter can never remove a signal the
+            applicable credential schema requires. The Trust Authority stays blind to the
+            destination.
+          items:
+            type: object
+            required: [cat]
+            properties:
+              cat: { type: string, enum: [idn, rep, cmp, asr] }
+              typ: { type: string }
+            additionalProperties: false
+      additionalProperties: false
 
     RefreshRequest:
       type: object
-      required:
-        - currentCredential
-        - proofOfControl
+      required: [currentCredential, proofOfControl]
       properties:
         currentCredential:
           type: string
-          description: Existing VC-JWT
-          example: eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9...
+          description: The current credential in SD-JWT form, ending with the required trailing ~ and carrying no key-binding JWT
+          pattern: '~$'
+          example: eyJhbGciOiJFUzI1NiIsInR5cCI6ImRjK3NkLWp3dCJ9...~
         proofOfControl:
           $ref: '#/components/schemas/ProofOfControl'
+      additionalProperties: false
 
     CredentialResponse:
       type: object
-      required:
-        - credential
-        - format
-        - tier
-        - issuedAt
-        - expiresAt
-        - credentialId
+      required: [credential, format, issuedAt, expiresAt]
       properties:
         credential:
           type: string
-          description: VC-JWT
-          example: eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9...
+          description: The issued credential in SD-JWT form, ending with the required trailing ~ and carrying no key-binding JWT
+          pattern: '~$'
+          example: eyJhbGciOiJFUzI1NiIsInR5cCI6ImRjK3NkLWp3dCJ9...~
         format:
           type: string
-          enum:
-            - vc-jwt
-          example: vc-jwt
-        tier:
-          type: string
-          enum:
-            - T0
-            - T1
-          description: Issued tier (may differ from requested)
-          example: T1
+          enum: [dc+sd-jwt]
+          example: dc+sd-jwt
         issuedAt:
           type: string
           format: date-time
@@ -253,58 +406,48 @@ components:
         expiresAt:
           type: string
           format: date-time
-          example: '2026-01-23T14:00:00Z'
-        credentialId:
-          type: string
-          format: uri
-          example: 'urn:uuid:a1b2c3d4-e5f6-7890-abcd-ef1234567890'
+          description: 30 minutes after issuedAt
+          example: '2026-01-23T10:30:00Z'
 
     TAMetadata:
       type: object
-      required:
-        - tsaiVersion
-        - issuer
-        - name
-        - supportedTiers
-        - supportedDIDMethods
-        - endpoints
+      required: [tsaiVersion, issuer, name, jwksUri, credentialTypes, endpoints]
       properties:
         tsaiVersion:
           type: string
           example: '1.0'
         issuer:
           type: string
-          example: 'did:web:trust-authority.example:tsai:ta'
+          format: uri
+          description: The Trust Authority HTTPS issuer identifier
+          example: 'https://trust-authority.example'
         name:
           type: string
           example: Example Trust Authority
         description:
           type: string
           example: Professional trust authority for agentic commerce
-        supportedTiers:
+        jwksUri:
+          type: string
+          format: uri
+          description: Issuer key discovery
+          example: 'https://trust-authority.example/.well-known/jwt-vc-issuer'
+        credentialTypes:
           type: array
+          minItems: 1
+          description: >-
+            Credential type identifiers this Trust Authority issues. The Type
+            Metadata at each vct identifies and integrity-pins its JSON Schema;
+            this list does not duplicate schema locations.
           items:
             type: string
-            enum:
-              - T0
-              - T1
+            format: uri
           example:
-            - T0
-            - T1
-        supportedDIDMethods:
-          type: array
-          items:
-            type: string
-          example:
-            - 'did:web'
-            - 'did:key'
-            - 'did:wba'
+            - 'https://tsaiprotocol.org/credential/tsai/1'
+            - 'https://trust-authority.example/credential/tsai/1'
         endpoints:
           type: object
-          required:
-            - issue
-            - refresh
-            - challenges
+          required: [issue, refresh, challenges]
           properties:
             issue:
               type: string
@@ -318,60 +461,45 @@ components:
 
     Error:
       type: object
-      required:
-        - error
-        - error_description
+      required: [error, error_description]
       properties:
         error:
           type: string
           example: invalid_request
         error_description:
           type: string
-          example: agentDid must be a valid DID
+          example: proofOfControl signature did not verify
 
   responses:
     BadRequest:
-      description: Invalid request format or parameters
+      description: Invalid request
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
           example:
             error: invalid_request
-            error_description: agentDid must be a valid DID
-
+            error_description: proofOfControl is required
     Unauthorized:
-      description: Authentication failed
+      description: Proof of control failed
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
           example:
             error: invalid_proof
-            error_description: Signature verification failed
-
+            error_description: Signature over the challenge did not verify
     Forbidden:
-      description: Agent not eligible or credential revoked
+      description: Agent not eligible or blocked
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
           example:
-            error: insufficient_qualification
-            error_description: Agent does not meet T1 requirements
-
-    NotFound:
-      description: Resource not found
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-          example:
-            error: credential_not_found
-            error_description: No credential found with this ID
-
+            error: not_eligible
+            error_description: The agent does not meet the criteria for the requested signals
     Gone:
-      description: Resource permanently unavailable
+      description: The current credential has expired
       content:
         application/json:
           schema:
@@ -379,7 +507,6 @@ components:
           example:
             error: credential_expired
             error_description: Credential expired, request new issuance
-
     RateLimitExceeded:
       description: Rate limit exceeded
       headers:
@@ -394,8 +521,7 @@ components:
             $ref: '#/components/schemas/Error'
           example:
             error: rate_limit_exceeded
-            error_description: Maximum 10 requests per minute
-
+            error_description: Maximum 10 issuance requests per minute
     ServerError:
       description: Internal server error
       content:

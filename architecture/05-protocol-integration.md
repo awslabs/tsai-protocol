@@ -6,890 +6,153 @@ SPDX-License-Identifier: Apache-2.0
 # TSAI Architecture Specification - Protocol Integration
 
 **Version:** 1.0 (Draft)  
-**Date:** January 2026  
+**Date:** 2026-08  
 **Status:** Working Group Draft
 
 ---
 
 ## 4.1 Overview
 
-This section specifies how TSAI integrates with agentic protocols to provide trust signaling. TSAI complements existing protocols without replacing their authentication, authorization, or communication mechanisms.
+This section specifies how TSAI integrates with agentic protocols. TSAI is additive, transport-agnostic, complementary to existing authentication, and adoptable incrementally; it does not modify the semantics of the protocols it sits beside.
 
-TSAI is additive (adds trust signals without modifying protocol semantics), transport-agnostic (works across different protocol bindings), complementary (coexists with existing auth mechanisms like OAuth and API keys), and optional (protocols can adopt TSAI incrementally).
+A TSAI presentation is a credential (SD-JWT VC) with a key-binding JWT appended, in the compact form `<issuer-signed JWT>~<key-binding JWT>`. It travels in a `TSAI-Credential` header or an equivalent field, and verification follows Section 3. The key words MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY are to be interpreted as described in BCP 14 (RFC 2119 and RFC 8174) when, and only when, they appear in all capitals.
 
-Covered protocols: Model Context Protocol (MCP) in Section 4.2, Agent2Agent Protocol (A2A) in Section 4.3, and general HTTP-based protocols in Section 4.4.
+### 4.1.1 Carrying more than one credential
+
+An agent MAY present credentials from more than one Trust Authority, which is how the redundancy of §5.1.4 and ADR 002 is realised. The `TSAI-Credential` header MAY appear more than once, each occurrence carrying one compact presentation, all bound to the same `cnf` key. A Service Provider MUST support one credential and MAY support more than one; it MAY reject a request that exceeds its implementation-defined processing limit.
+
+Where two credentials assert conflicting values for the same signal about the same operator, a Service Provider MUST NOT silently prefer one. Its policy resolves the conflict; absent a policy, it treats the disputed signal as unresolved and does not rely on it. This conflict rule is the substantive part of multi-Trust-Authority operation.
+
+### 4.1.2 Error shape
+
+When verification fails, the protocol-appropriate error carries the Section 3.7 code. The `tsaiError` object is `{ "code": "<Section 3.7 code>", "message": "<generic>" }`, placed in the transport's error-data field: the `data` of a JSON-RPC error for MCP and A2A JSONRPC, or the body for HTTP. The message MUST NOT leak issuer or algorithm detail (Section 3.7).
+
+### 4.1.3 Issuer mismatch and discovery
+
+An agent must present a credential from an issuer the Service Provider accepts. If it holds none, verification fails; there is no issuer negotiation in v1.0. An agent discovers the accepted issuers before connecting, from the Service Provider's `/.well-known/tsai-config.json`, the MCP capability, or the A2A extension params. Trust-Authority cross-recognition, by which one authority accepts another's evaluation so a single credential satisfies more Service Providers, is future work.
 
 ---
 
 ## 4.2 MCP Integration
 
-### 4.2.1 MCP Architecture Context
+### 4.2.1 Context
 
-MCP uses a three-party architecture: host (LLM application like Claude Desktop or VS Code), client (connector within host), and server (capability provider for tools, resources, prompts). The host verifies client/agent credentials before allowing server connections.
+MCP has a host, a client, and a server, over stdio or Streamable HTTP, with OAuth 2.1 for authorization. TSAI answers who the agent is; OAuth answers what the user authorised.
 
-MCP supports stdio transport (local) and HTTP/SSE transport (remote). Authorization uses OAuth 2.1 with Client ID Metadata Documents. Session management is stateful with capability negotiation. The host enforces explicit user consent.
+### 4.2.2 Discovery without circularity
 
-### 4.2.2 Integration Approach
+A server declares its accepted Trust Authorities so an agent can present an acceptable credential. The declaration must be readable before the agent commits a presentation, which the initialization response cannot provide, because the agent would have to present before learning what is accepted. TSAI resolves this two ways, and the applicable one depends on the transport:
 
-**TSAI role:** Verify agent/client identity and trustworthiness before OAuth flow.
+- A server on an HTTP transport MUST publish its TSAI requirement at `/.well-known/tsai-config.json` on its origin, so an agent reads the accepted issuers before connecting.
+- A server on stdio, which has no HTTP origin, MUST expose an unauthenticated `initialize` that returns the TSAI capability together with a server-issued `nonce` and the server's audience identifier; the agent then sends an authenticated request carrying the presentation that echoes the `nonce` and sets `aud` to that identifier. An HTTP server MAY offer this as well, and doing so supplies the Service-Provider-issued nonce that Section 3.4 uses for state-changing actions.
 
-**Integration pattern:**
-```
-User → Host (verifies agent via TSAI) → Client (authorized via OAuth) → Server
-```
+The capability is `{ "required": <bool>, "trustedAuthorities": [<https issuer>, ...], "aud": <audience identifier> }`, per [`schemas/mcp-capability-tsai.schema.json`](schemas/mcp-capability-tsai.schema.json). The `aud` field carries the audience identifier a stdio server declares; an HTTP server omits it and the audience is its origin.
 
-**Separation of concerns:**
-- **TSAI:** Agent identity and trust signals (who is the agent?)
-- **OAuth 2.1:** User authorization and resource access (what can the user do?)
+### 4.2.3 Transport
 
-### 4.2.3 HTTP Transport Integration
-
-For MCP servers using Streamable HTTP transport:
-
-**Credential Presentation:**
-
-Agents include TSAI credentials in HTTP headers:
-
-```http
-POST /mcp HTTP/1.1
-Host: mcp.example.com
-Content-Type: application/json
-Authorization: Bearer <oauth-access-token>
-TSAI-Credential: <vp-jwt>
-MCP-Protocol-Version: 2025-11-25
-MCP-Session-Id: <session-id>
-
-{
-  "jsonrpc": "2.0",
-  "method": "initialize",
-  "params": {
-    "protocolVersion": "2025-11-25",
-    "capabilities": {...},
-    "clientInfo": {...}
-  }
-}
-```
-
-**Header specification:**
-- `TSAI-Credential` (REQUIRED for TSAI-enabled servers): Verifiable Presentation JWT
-- Value format: Base64url-encoded VP-JWT
-- Included on every HTTP request (similar to OAuth bearer token)
-
-**Verification timing:**
-
-Servers SHOULD verify TSAI credentials:
-1. **Before initialization:** Verify agent identity before capability exchange
-2. **Per-request:** Validate credential on each HTTP request (credentials are short-lived)
-
-**Error responses:**
-
-If TSAI verification fails:
-
-```http
-HTTP/1.1 403 Forbidden
-Content-Type: application/json
-
-{
-  "jsonrpc": "2.0",
-  "error": {
-    "code": -32001,
-    "message": "TSAI credential verification failed",
-    "data": {
-      "tsaiError": "SIGNATURE_INVALID",
-      "details": "Credential signature could not be verified"
-    }
-  }
-}
-```
-
-### 4.2.4 Capability Declaration
-
-MCP servers declare TSAI support in initialization response:
-
-**JSON Schema:** [`schemas/mcp-capability-tsai.schema.json`](schemas/mcp-capability-tsai.schema.json)
-
-```json
-{
-  "jsonrpc": "2.0",
-  "result": {
-    "protocolVersion": "2025-11-25",
-    "capabilities": {
-      "tools": {...},
-      "resources": {...},
-      "tsai": {
-        "required": true,
-        "minimumTier": "T1",
-        "trustedAuthorities": [
-          "did:web:trust-authority-a.example:tsai:ta",
-          "did:web:trust-authority-b.example:tsai:ta"
-        ]
-      }
-    },
-    "serverInfo": {...}
-  }
-}
-```
-
-**TSAI capability fields:**
-- `required` (boolean): Whether TSAI credentials are mandatory
-- `minimumTier` (string): Minimum trust tier accepted (T0, T1, T2, T3)
-- `trustedAuthorities` (array): List of accepted TA DIDs
-
-**Client behavior:**
-- If `tsai.required: true` and client lacks credential: Fail initialization
-- If `tsai.required: false`: TSAI is optional, proceed without credential
-- Client SHOULD request credential at appropriate tier before connecting
-
-### 4.2.5 stdio Transport Integration
-
-For local MCP servers using stdio transport:
-
-**Challenge:** No HTTP headers available for credential transmission.
-
-**Solution:** Include TSAI credential in initialization message:
-
-```json
-{
-  "jsonrpc": "2.0",
-  "method": "initialize",
-  "params": {
-    "protocolVersion": "2025-11-25",
-    "capabilities": {...},
-    "clientInfo": {...},
-    "tsaiCredential": "<vp-jwt>"
-  }
-}
-```
-
-**Verification:**
-- Server verifies `tsaiCredential` during initialization
-- Credential remains valid for session duration (within expiry time)
-- Server MAY request credential refresh if expiry approaches
-
-### 4.2.6 OAuth 2.1 Coexistence
-
-TSAI and OAuth 2.1 serve different purposes:
-
-| Aspect | TSAI | OAuth 2.1 |
-|--------|------|-----------|
-| **Purpose** | Agent identity & trust | User authorization & resource access |
-| **Issued by** | Trust Authority | Authorization Server |
-| **Verifies** | Agent operator legitimacy | User consent & permissions |
-| **Lifetime** | 30 min - 4 hours | Hours to days (with refresh) |
-| **Scope** | Agent-level trust signals | Resource-specific permissions |
-
-**Combined flow:**
-
-1. **Agent obtains TSAI credential** from Trust Authority
-2. **Agent presents TSAI credential** to MCP server
-3. **Server verifies agent identity** via TSAI
-4. **Server initiates OAuth flow** for user authorization
-5. **User grants permissions** via OAuth consent screen
-6. **Agent receives OAuth access token**
-7. **Agent makes requests** with both TSAI credential and OAuth token
-
-**Example request:**
-```http
-POST /mcp HTTP/1.1
-Host: mcp.example.com
-Authorization: Bearer <oauth-access-token>
-TSAI-Credential: <vp-jwt>
-
-{...}
-```
-
-**Verification order:**
-1. Verify TSAI credential (agent identity)
-2. Verify OAuth token (user authorization)
-3. Check both are valid and not expired
-4. Process request
+Over HTTP the presentation travels in the `TSAI-Credential` header on requests; over stdio it travels in a `tsaiCredential` field of the authenticated request following the unauthenticated capability exchange, with the key-binding JWT `aud` set to the audience identifier the capability exchange declared. A server verifies per Section 3 before acting, and on each request, since credentials are short-lived. What the signals justify is the server's policy over the signals (Section 3), not a tier.
 
 ---
 
 ## 4.3 A2A Integration
 
-### 4.3.1 A2A Architecture Context
+### 4.3.1 Context
 
-A2A uses a client-server architecture:
-- **A2A Client:** Agent initiating requests
-- **A2A Server:** Remote agent providing capabilities
+A2A has a client agent and a server agent, with an Agent Card fetched unauthenticated at `/.well-known/agent-card.json`, so the accepted issuers are readable before connecting and A2A has no circularity.
 
-**Trust verification point:** Server verifies client credentials before processing tasks.
+### 4.3.2 Declaring TSAI as an extension
 
-**Key characteristics:**
-- Transport: HTTP with JSON-RPC, gRPC, or REST
-- Discovery: Agent Cards at `/.well-known/agent-card.json`
-- State management: Task-based with lifecycle
-- Authentication: OAuth 2.0, Bearer tokens, API keys
-
-### 4.3.2 Integration Approach
-
-**TSAI role:** Verify client agent identity and trustworthiness before task processing.
-
-**Integration pattern:**
-```
-User → A2A Client (verified via TSAI) → A2A Server (trusts client based on TSAI signals)
-```
-
-### 4.3.3 Agent Card Enhancement
-
-A2A servers declare TSAI requirements in Agent Card using `HTTPAuthSecurityScheme`:
-
-**JSON Schema for TSAI security scheme:** [`schemas/a2a-agent-card-tsai.schema.json`](schemas/a2a-agent-card-tsai.schema.json)
+TSAI is declared as an A2A extension, not by adding fields to a built-in security scheme. A2A's `httpAuthSecurityScheme` defines only `scheme`, `bearerFormat`, and `description`, so the TSAI-specific fields go in `capabilities.extensions`, where each entry has a `uri`, an optional `description`, a `required` flag, and free-form `params`. Schema: [`schemas/a2a-agent-card-tsai.schema.json`](schemas/a2a-agent-card-tsai.schema.json).
 
 ```json
 {
-  "protocolVersions": ["0.3"],
-  "name": "Research Assistant Agent",
-  "description": "AI agent for academic research",
-  "supportedInterfaces": [
-    {
-      "url": "https://research-agent.example.com/a2a/v1",
-      "protocolBinding": "HTTP+JSON"
-    }
-  ],
-  "securitySchemes": {
-    "oauth2": {
-      "oauth2SecurityScheme": {
-        "flows": {...}
-      }
-    },
-    "tsai": {
-      "httpAuthSecurityScheme": {
-        "scheme": "bearer",
-        "bearerFormat": "VP-JWT",
-        "description": "TSAI Verifiable Presentation (T1+ required)",
-        "minimumTier": "T1",
-        "trustedAuthorities": [
-          "did:web:trust-authority-a.example:tsai:ta",
-          "did:web:trust-authority-b.example:tsai:ta"
-        ]
-      }
-    }
-  },
-  "security": [
-    {"oauth2": [], "tsai": []}
-  ],
   "capabilities": {
-    "streaming": true,
-    "pushNotifications": false
+    "extensions": [
+      {
+        "uri": "https://tsaiprotocol.org/a2a/ext/1",
+        "required": true,
+        "params": { "trustedAuthorities": ["https://trust-authority-a.example"] }
+      }
+    ]
   },
-  "skills": [...]
-}
-```
-
-**TSAI security scheme structure:**
-- Uses A2A's `HTTPAuthSecurityScheme` (bearer token authentication)
-- `scheme`: "bearer" (RFC7235)
-- `bearerFormat`: "VP-JWT" (Verifiable Presentation JWT)
-- `minimumTier`: Minimum trust tier required (TSAI extension)
-- `trustedAuthorities`: Accepted TA DIDs (TSAI extension)
-
-**Security combinations:**
-- `{"oauth2": [], "tsai": []}` - Both required
-- `{"tsai": []}` - TSAI only
-- `{"oauth2": []}` - OAuth only (no TSAI)
-
-### 4.3.4 HTTP Transport Integration
-
-For A2A HTTP+JSON binding:
-
-**Credential presentation:**
-
-```http
-POST /a2a/v1/message:send HTTP/1.1
-Host: research-agent.example.com
-Content-Type: application/a2a+json
-Authorization: Bearer <oauth-token>
-TSAI-Credential: <vp-jwt>
-A2A-Version: 0.3
-
-{
-  "message": {
-    "role": "user",
-    "parts": [{"text": "Find research papers on AI safety"}],
-    "messageId": "msg-uuid"
+  "securitySchemes": {
+    "tsai": { "httpAuthSecurityScheme": { "scheme": "bearer", "bearerFormat": "dc+sd-jwt" } }
   }
 }
 ```
 
-**Header specification:**
-- `TSAI-Credential`: Verifiable Presentation JWT
-- Included on all A2A requests (SendMessage, GetTask, etc.)
-- Verified before task creation or retrieval
+The `httpAuthSecurityScheme` entry stays a plain `bearer`/`dc+sd-jwt` declaration, which is valid A2A; the accepted issuers live in the extension params.
 
-**Error responses:**
+### 4.3.3 Transport and errors
 
-```http
-HTTP/1.1 403 Forbidden
-Content-Type: application/problem+json
+Over HTTP+JSON the presentation travels in the `TSAI-Credential` header; over gRPC in the `tsai-credential` metadata key. A failure returns an A2A-appropriate error carrying the `tsaiError` object (Section 4.1.2).
 
-{
-  "type": "https://a2a-protocol.org/errors/tsai-verification-failed",
-  "title": "TSAI Credential Verification Failed",
-  "status": 403,
-  "detail": "Agent credential could not be verified",
-  "tsaiError": "EXPIRED",
-  "minimumTier": "T1"
-}
-```
+### 4.3.4 Webhooks and direction
 
-### 4.3.5 gRPC Transport Integration
-
-For A2A gRPC binding:
-
-**Credential presentation via metadata:**
-
-```
-TSAI-Credential: <vp-jwt>
-```
-
-**gRPC metadata:**
-- Key: `tsai-credential`
-- Value: Base64url-encoded VP-JWT
-- Included in request metadata for all RPCs
-
-**Error responses:**
-
-```
-Status: PERMISSION_DENIED
-Message: "TSAI credential verification failed: SIGNATURE_INVALID"
-Details: {
-  "tsaiError": "SIGNATURE_INVALID",
-  "minimumTier": "T1"
-}
-```
-
-### 4.3.6 Task Authorization
-
-TSAI credentials scope task access:
-
-**Task creation:**
-- Server verifies TSAI credential before creating task
-- Task is associated with agent DID from credential
-- Trust tier determines allowed operations
-
-**Task retrieval:**
-- Server verifies agent DID matches task owner
-- Prevents cross-agent task access
-- Trust tier may affect task visibility
-
-**Example authorization logic:**
-```
-if (credential.tier < "T1"):
-    reject "Insufficient trust tier for this operation"
-
-if (credential.subject.id != task.ownerId):
-    reject "Agent does not own this task"
-
-if (credential.expired):
-    reject "Credential expired"
-
-allow
-```
-
-### 4.3.7 Discovery Integration
-
-**Registry filtering:**
-
-Agent registries can filter by trust tier:
-
-```http
-GET /registry/agents?minimumTier=T1&trustedAuthority=did:web:trust-authority.example:tsai:ta
-```
-
-**Agent Card serving:**
-
-Servers MAY serve different Agent Cards based on client trust tier:
-
-```http
-GET /.well-known/agent-card.json
-TSAI-Credential: <vp-jwt>
-```
-
-Response includes skills available to that trust tier.
-
-### 4.3.8 Push Notification Security
-
-For A2A push notifications:
-
-**Webhook registration:**
-
-Client provides TSAI credential when creating push notification config:
-
-```http
-POST /a2a/v1/tasks/{id}/pushNotificationConfigs
-TSAI-Credential: <vp-jwt>
-
-{
-  "webhookUrl": "https://client.example.com/webhook",
-  "events": ["status-update", "artifact-update"]
-}
-```
-
-**Webhook delivery:**
-
-Server includes TSAI credential when POSTing to webhook:
-
-```http
-POST /webhook HTTP/1.1
-Host: client.example.com
-Content-Type: application/a2a+json
-TSAI-Credential: <server-vp-jwt>
-
-{
-  "statusUpdate": {...}
-}
-```
-
-**Mutual verification:**
-- Client verifies server's TSAI credential on webhook delivery
-- Prevents spoofed notifications
-- Ensures notifications come from legitimate agents
+When a server delivers a webhook and presents its own TSAI credential so the client can confirm the sender, the `aud` of that presentation is the HTTPS origin of the client's webhook endpoint, since `aud` always names the party that verifies. The receiving client is not in a position to issue a challenge in advance, so the presentation carries an agent-generated `nonce` and, for a state-changing notification, a `req` digest over the notification payload (ADR 014).
 
 ---
 
 ## 4.4 General HTTP Integration
 
-For protocols not explicitly covered:
+A service carries the presentation in a `TSAI-Credential` header over HTTPS, and MAY advertise its requirement at `/.well-known/tsai-config.json`:
 
-### 4.4.1 HTTP Header Pattern
-
-**Standard approach:**
-
-```http
-<METHOD> <PATH> HTTP/1.1
-Host: <host>
-TSAI-Credential: <vp-jwt>
-<other-headers>
-
-<body>
-```
-
-**Header specification:**
-- Name: `TSAI-Credential`
-- Value: Base64url-encoded VP-JWT
-- Included on requests requiring trust verification
-
-### 4.4.2 Discovery Endpoint
-
-Services MAY expose TSAI requirements at well-known URI:
-
-```http
-GET /.well-known/tsai-config.json
-```
-
-**Response:**
 ```json
-{
-  "tsaiVersion": "1.0",
-  "required": true,
-  "minimumTier": "T1",
-  "trustedAuthorities": [
-    "did:web:trust-authority.example:tsai:ta"
-  ],
-  "verificationEndpoint": "https://api.example.com/tsai/verify"
-}
+{ "required": true, "trustedAuthorities": ["https://trust-authority.example"] }
 ```
 
-### 4.4.3 Verification Endpoint
+The document conforms to [`schemas/tsai-config.schema.json`](schemas/tsai-config.schema.json). The `aud` a Service Provider expects is its HTTPS origin by default; a service reachable at several hostnames, or an MCP server on a path, includes the exact expected `aud` value so an agent constructs an acceptable presentation.
 
-Services MAY expose verification endpoint for testing:
+### 4.4.1 Soft-fail postures
 
-```http
-POST /tsai/verify
-Content-Type: application/json
+Verification need not be all-or-nothing while a Service Provider builds confidence. A Service Provider advertises one of three postures, and the posture governs what it does with an absent or failing credential:
 
-{
-  "credential": "<vp-jwt>"
-}
-```
+- **log-only** — verify and record the outcome, gate nothing;
+- **annotate** — attach the verified signals to the request for downstream use, gate nothing;
+- **enforce** — reject on an absent or failing credential where TSAI is required.
 
-**Response:**
-```json
-{
-  "verified": true,
-  "tier": "T1",
-  "agentDid": "did:web:acme-corp.com:agents:agent123",
-  "operatorDid": "did:web:acme-corp.com",
-  "issuer": "did:web:trust-authority.example:tsai:ta",
-  "expiresAt": "2026-01-23T14:00:00Z",
-  "signals": {
-    "operator": {
-      "name": "Acme Corporation GmbH",
-      "jurisdiction": "DE",
-      "kycLevel": "enhanced",
-      "certifications": ["ISO27001", "SOC2"]
-    },
-    "agent": {
-      "interactionCount": 1247,
-      "successRate": 0.94
-    }
-  }
-}
-```
+This lets a Service Provider run TSAI in observation before enforcing.
 
 ---
 
 ## 4.5 Security Considerations
 
-### 4.5.1 Credential Exposure
+**Exposure.** Presentations travel over HTTPS; a server SHOULD NOT log the `TSAI-Credential` value, and proxies SHOULD NOT cache requests carrying it.
 
-**Risk:** TSAI credentials transmitted in HTTP headers may be logged or cached.
+**Replay and substitution.** A presentation is bound to one Service Provider by `aud` and carries a fresh key-binding JWT. Within the freshness window, a component that observes a presentation inside the audience's own boundary could attach it to a different action unless the presentation binds the request; for state-changing actions a Service Provider requires `req` (Section 3.4, ADR 014). A captured credential is unusable without the holder's `cnf` private key.
 
-**Mitigation:**
-- Always use HTTPS for credential transmission
-- Servers SHOULD NOT log `TSAI-Credential` header values
-- Proxies SHOULD NOT cache requests with TSAI credentials
-- Credentials are short-lived (limits exposure window)
+**Payments boundary.** Assurance says what backing stands behind an agent; it does not say the agent is authorised to spend a given amount. A mandate and its value limits ride on the payment protocol (AP2 or equivalent); TSAI carries identity, standing, and recourse. A payment request therefore carries both: the TSAI presentation for who the agent is and what backs it, and the payment protocol's mandate for what it may spend.
 
-### 4.5.2 Replay Attacks
-
-**Risk:** Attacker intercepts and replays credential.
-
-**Mitigation:**
-- VP timestamp limits replay window to ~1 minute
-- Servers MAY track recently seen VP signatures
-- Short credential expiry limits stolen credential lifetime
-- T2/T3 use challenge-response (future specification)
-
-### 4.5.3 Credential Theft
-
-**Risk:** Attacker steals credential from client storage.
-
-**Mitigation:**
-- Clients SHOULD store credentials in memory only
-- Clients SHOULD encrypt credentials if persisted
-- Short expiry limits stolen credential lifetime
-- Revocation provides emergency invalidation
-
-### 4.5.4 Trust Authority Compromise
-
-**Risk:** Compromised TA issues fraudulent credentials.
-
-**Mitigation:**
-- Multiple TAs provide redundancy
-- Service Providers can pin trusted TA DIDs
-- Governance body monitors TA behavior
-- Credential transparency logs (future consideration)
+**Trust Authority compromise.** Several Trust Authorities give redundancy, a Service Provider pins the issuers it trusts, and the governance body monitors behaviour.
 
 ---
 
-## 4.6 Future Extensions
+## 4.6 Integration with the W3C AI Agent Protocol
 
-### 4.6.1 Challenge-Response Protocol
+The W3C AI Agent Protocol handles agent discovery, description, and agent-to-agent communication, and authenticates an agent with its own DIDWba scheme, which uses a `did:wba` identifier. TSAI does not use `did:wba`; it identifies the registered agent by HTTPS `sub` and verifies its current holder-binding key through `cnf`. The layers are orthogonal: the W3C proof establishes control of the W3C identity, and the TSAI presentation carries the trust signals, as TSAI also composes with Web Bot Auth (ADR 014). A request may carry both.
 
-Future versions will specify challenge-response for T2/T3:
-
-**Flow:**
-1. Server sends random nonce
-2. Agent signs nonce with credential
-3. Server verifies signature freshness
-4. Eliminates replay window
-
-### 4.6.2 Credential Delegation
-
-Future versions will specify agent-to-agent delegation:
-
-**Use case:** Agent A delegates to Agent B to perform sub-task
-
-**Mechanism:** ZCAP-LD or similar delegation credential
-
-### 4.6.3 Protocol-Specific Extensions
-
-Future versions may define protocol-specific extensions:
-- MCP: Tool-level trust requirements
-- A2A: Task-level trust escalation
-- HTTP: Resource-specific trust policies
+**One hop.** Because `aud` binds a presentation to one Service Provider, a middle agent cannot forward an upstream agent's presentation, which is correct, and delegation is deferred (ADR 001). The consequence is that in a chain from a personal agent through an orchestrator to a service agent, the service agent learns the orchestrator's trust signals and nothing about the originating agent or the user. This is also recorded as a limitation in §5.11.
 
 ---
 
-## 4.7 Integration with W3C AI Agent Protocol
+## 4.7 Normative Requirements Summary
 
-### 4.7.1 Overview
+**Protocol servers MUST:**
+- Declare TSAI support, and for MCP publish accepted issuers at a well-known location so an agent can read them before presenting.
+- Accept a presentation through the transport, accept more than one credential and state the cap, apply the conflict rule (Section 4.1.1), and verify per Section 3.
+- Return an error carrying the `tsaiError` object without leaking issuer or algorithm detail.
 
-The W3C AI Agent Protocol Community Group is developing standardized protocols for agent-to-agent (A2A) communication, focusing on identity, discovery, description, and interaction mechanisms. TSAI is complementary to the W3C AI Agent Protocol:
+**Protocol servers SHOULD:**
+- Accept a fresh presentation mid-session as credentials expire, and not log the `TSAI-Credential` value.
 
-- **W3C AI Agent Protocol:** Handles agent discovery, description, and A2A communication
-- **TSAI:** Provides trust signaling for those interactions
+**Protocol clients MUST:**
+- Present a credential from an accepted issuer, that has not expired, with a key-binding JWT proving the `cnf` key, and `req` where the action requires it.
 
-**Relationship:** TSAI adds trust verification to W3C protocol interactions without modifying the W3C protocol itself.
-
-### 4.7.2 Terminology Mapping
-
-The W3C AI Agent Protocol and TSAI use different terminology for similar concepts:
-
-| W3C AI Agent Protocol | TSAI Equivalent | Description |
-|----------------------|-----------------|-------------|
-| Personal Agent | Agent | Serves individual users, acts on their behalf |
-| Service Agent | Service Provider | Provides services to other Agents |
-| Search Agent | Out of scope | Discovery service (not covered by TSAI) |
-
-**Clarification on "Agent":** When discussing both protocols together, "Agent" may refer to either a W3C Personal Agent or a TSAI Agent. Context determines meaning.
-
-**Clarification on "Service Agent" vs. "Service Provider":** These similar-sounding terms name distinct concepts. A W3C "Service Agent" is an Agent in the W3C sense; a TSAI "Service Provider" is the TSAI actor that receives and verifies credentials. When a W3C Service Agent receives a TSAI credential, it is acting as a TSAI Service Provider. The same physical component can therefore be a W3C Service Agent and a TSAI Service Provider simultaneously, depending on which protocol is being discussed.
-
-### 4.7.3 Identity Layer Compatibility
-
-**W3C AI Agent Protocol Identity:**
-- Uses `did:wba` (Web-Based Agent DID method)
-- Resolution: `did:wba:agent.example.com:alice` → `https://agent.example.com/alice/did.json`
-- Authentication: DIDWba scheme with signature in Authorization header
-
-**TSAI Identity:**
-- Supports `did:web`, `did:key`, and `did:wba`
-- All methods are W3C DID-compliant and interoperable
-- Authorization: TSAI credentials (Verifiable Presentations) with trust signals
-
-**Compatibility:** TSAI explicitly supports `did:wba` as a valid agent DID method. Agents using W3C AI Agent Protocol can obtain TSAI credentials using their `did:wba` identifiers.
-
-### 4.7.4 Combined Authentication and Authorization Flow
-
-When a Personal Agent (W3C protocol) interacts with a Service Agent that requires trust verification:
-
-**Step 1: W3C Protocol Authentication**
-```http
-GET /api/booking HTTP/1.1
-Host: hotel.example.com
-Authorization: DIDWba did="did:wba:agent.example.com:alice", nonce="abc123", timestamp="2026-01-30T10:00:00Z", verification_method="key-1", signature="base64url(signature)"
-TSAI-Credential: eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9...
-```
-
-**Step 2: Service Agent Verification**
-
-The Service Agent performs two verification steps:
-
-1. **DIDWba Authentication (W3C Protocol):**
-   - Verify timestamp is within ±1 minute
-   - Verify nonce hasn't been used (replay prevention)
-   - Resolve `did:wba:agent.example.com:alice` to get DID document
-   - Verify signature using public key from DID document
-   - **Result:** Proves Personal Agent controls the DID
-
-2. **TSAI Authorization:**
-   - Parse TSAI credential from `TSAI-Credential` header
-   - Verify TA signature on credential
-   - Verify agent signature on VP
-   - Check credential hasn't expired
-   - Check trust tier meets requirements (e.g., T1+)
-   - **Result:** Proves Personal Agent has TA-issued trust credential
-
-**Step 3: Access Token Issuance**
-
-If both verifications succeed, Service Agent returns JWT access token:
-
-```http
-HTTP/1.1 200 OK
-Authorization: Bearer eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9...
-```
-
-**Step 4: Subsequent Requests**
-
-Personal Agent uses access token for subsequent requests (no repeated DIDWba/TSAI verification):
-
-```http
-GET /api/booking/status HTTP/1.1
-Host: hotel.example.com
-Authorization: Bearer eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9...
-```
-
-### 4.7.5 Use Case: Hotel Booking with Trust Verification
-
-**Scenario:** Alice's Personal Agent wants to book a hotel using W3C AI Agent Protocol. The hotel Service Agent requires T1 credentials to prevent spam and fraud.
-
-**Process:**
-
-1. **Discovery:** Alice's Personal Agent discovers hotel Service Agent via Search Agent or `.well-known/agent-descriptions`
-
-2. **Agent Description:** Personal Agent retrieves hotel's agent description, which declares TSAI requirement:
-```json
-{
-  "@context": {
-    "@vocab": "https://schema.org/",
-    "ad": "https://example.com/ad#"
-  },
-  "@type": "ad:AgentDescription",
-  "name": "Hotel Booking Agent",
-  "did": "did:wba:hotel.example.com:booking",
-  "tsaiRequirements": {
-    "required": true,
-    "minimumTier": "T1",
-    "trustedAuthorities": [
-      "did:web:trust-authority-a.example:tsai:ta",
-      "did:web:trust-authority-b.example:tsai:ta"
-    ]
-  },
-  "interfaces": [...]
-}
-```
-
-3. **Credential Acquisition:** Personal Agent obtains T1 TSAI credential from Trust Authority (if not already cached)
-
-4. **Authentication:** Personal Agent sends request with both DIDWba authentication and TSAI credential
-
-5. **Verification:** Hotel Service Agent verifies both (identity + trust)
-
-6. **Booking:** Hotel Service Agent grants access, Personal Agent completes booking
-
-**Value:** Hotel Service Agent gets both identity proof (W3C protocol) and trust signals (TSAI), enabling risk-calibrated access decisions.
-
-### 4.7.6 Agent Description Extension for TSAI
-
-Service Agents using W3C AI Agent Protocol can declare TSAI requirements in their agent description documents:
-
-**Optional TSAI fields in agent description:**
-
-```json
-{
-  "@context": {
-    "@vocab": "https://schema.org/",
-    "ad": "https://example.com/ad#",
-    "tsai": "https://tsai.example.org/credentials/v1"
-  },
-  "@type": "ad:AgentDescription",
-  "name": "Service Agent Name",
-  "did": "did:wba:service.example.com:agent",
-  "tsaiRequirements": {
-    "required": true,
-    "minimumTier": "T1",
-    "trustedAuthorities": [
-      "did:web:trust-authority-a.example:tsai:ta"
-    ]
-  }
-}
-```
-
-**Fields:**
-- `tsaiRequirements.required` (boolean): Whether TSAI credentials are mandatory
-- `tsaiRequirements.minimumTier` (string): Minimum trust tier accepted (T0, T1, T2, T3)
-- `tsaiRequirements.trustedAuthorities` (array): List of accepted TA DIDs
-
-**Discovery:** Personal Agents can filter Service Agents by TSAI requirements during discovery.
-
-### 4.7.7 Error Handling
-
-**DIDWba Authentication Failure:**
-
-```http
-HTTP/1.1 401 Unauthorized
-WWW-Authenticate: Bearer error="invalid_signature", error_description="DIDWba signature verification failed", nonce="xyz987"
-```
-
-**TSAI Authorization Failure:**
-
-```http
-HTTP/1.1 403 Forbidden
-Content-Type: application/json
-
-{
-  "error": "insufficient_trust",
-  "error_description": "T1 or higher credential required",
-  "required_tier": "T1",
-  "provided_tier": "T0"
-}
-```
-
-**Combined Failure (both invalid):**
-
-Service Agent SHOULD return 401 (authentication takes precedence over authorization).
-
-### 4.7.8 Implementation Guidance
-
-**For Personal Agents (W3C Protocol Clients):**
-- Obtain TSAI credentials from Trust Authority
-- Include both DIDWba authentication and TSAI credential in requests
-- Handle TSAI-specific errors (insufficient trust tier, untrusted TA)
-- Cache TSAI credentials (within expiry) to reduce TA load
-
-**For Service Agents (W3C Protocol Servers):**
-- Declare TSAI requirements in agent description
-- Verify both DIDWba authentication and TSAI authorization
-- Return clear error messages for TSAI failures
-- Support degraded mode (accept lower tiers) for infrastructure failures
-
-**For Search Agents:**
-- Index TSAI requirements from agent descriptions
-- Enable filtering by trust tier ("find T2+ hotel agents")
-- Rank results by trust tier (optional)
-
-### 4.7.9 Benefits of Integration
-
-**For Personal Agents:**
-- Access to trust-sensitive Service Agents
-- Portable trust across multiple Service Agents
-- Reduced friction (one credential, many services)
-
-**For Service Agents:**
-- Reduced fraud and spam
-- Risk-calibrated access decisions
-- Legal accountability (know who to hold responsible)
-
-**For the Ecosystem:**
-- Interoperable trust infrastructure
-- Standards-based (W3C DIDs, VCs, JSON-LD)
-- Complementary protocols (discovery + trust)
-
-### 4.7.10 Future Considerations
-
-**Mutual Verification:**
-- Currently: Personal Agent proves trust to Service Agent (one-way)
-- Future: Service Agent could also present TSAI credential to Personal Agent (mutual)
-- Use case: Personal Agent verifies hotel is legitimate before sharing payment info
-
-**Search Agent Integration:**
-- Search Agents could require TSAI credentials for registration
-- Prevents spam agents from polluting discovery
-- Enables trust-based ranking in search results
-
-**Trust Authority Discovery:**
-- W3C protocol uses `.well-known/agent-descriptions` for agent discovery
-- TSAI could adopt `.well-known/trust-authorities` for TA discovery
-- Aligns discovery patterns across protocols
-
----
-
-## 4.8 Normative Requirements Summary
-
-**Protocol Servers MUST:**
-- Declare TSAI support via protocol-specific mechanism
-- Accept credentials via protocol-specific transport
-- Verify credentials according to Section 3
-- Return protocol-specific error responses on verification failure
-- Clearly indicate degraded mode operation
-
-**Protocol Servers SHOULD:**
-- Support credential refresh mid-session
-- Cache verification results appropriately
-- Log TSAI-related events for monitoring
-- Implement circuit breakers for TA infrastructure
-
-**Protocol Servers MAY:**
-- Require specific trust tiers for operations
-- Filter capabilities based on trust tier
-- Operate in degraded mode for infrastructure failures
-
-**Protocol Clients MUST:**
-- Obtain credentials at appropriate tier
-- Present credentials via protocol-specific mechanism
-- Handle verification failures gracefully
-- Refresh credentials before expiry
-
-**Protocol Clients SHOULD:**
-- Store credentials securely
-- Monitor credential lifecycle
-- Implement retry logic for transient failures
-
-**Protocol Clients MAY:**
-- Cache credentials (within expiry)
-- Pre-fetch credentials for anticipated use
-- Request multiple tiers for different operations
+Whether the signals justify an operation is the Service Provider's policy over the signals (Section 3), not a tier.
 
 ---
 
 ## References
 
-- W3C AI Agent Protocol Specification: https://w3c-cg.github.io/ai-agent-protocol/protocol.html
-- MCP Protocol Specification: https://github.com/modelcontextprotocol/modelcontextprotocol
-- A2A Protocol Specification: https://github.com/a2aproject/A2A
-- TSAI Credential Format: [Section 3](./03-credential-format.md)
-- TSAI Verification: [Section 4](./04-verification.md)
+- W3C AI Agent Protocol; MCP 2025-11-25; A2A v1.0; AP2 (Agent Payments Protocol)
+- TSAI Credential Format (Section 2), TSAI Verification (Section 3)

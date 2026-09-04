@@ -6,771 +6,334 @@ SPDX-License-Identifier: Apache-2.0
 # TSAI Architecture Specification - Credential Format
 
 **Version:** 1.0 (Draft)  
-**Date:** January 2026  
+**Date:** 2026-08  
 **Status:** Working Group Draft
 
 ---
 
 ## 2.1 Overview
 
-TSAI credentials are W3C Verifiable Credentials encoded as VC-JWT (JSON Web Tokens). This section specifies the credential structure, claim semantics, and schemas for each trust tier.
+A TSAI credential is an SD-JWT VC, as defined in draft-ietf-oauth-sd-jwt-vc-19. A Trust Authority issues it, binds it to the holder's key, and populates it with a flat list of trust signals. Every credential carries a minimum identity set, the identity floor (Section 2.5.3), so that it always names an accountable operator. The agent presents the credential with a key-binding JWT that proves possession of the bound key.
 
-T0 and T1 are normative — they define the credential format and verification protocol for TSAI 1.0. T2 and T3 are informative drafts — they describe proposed credential formats whose verification protocols are deferred to TSAI 1.1 (see Sections 2.7 and 2.8).
+This section specifies the serialisation, the payload claims, the holder binding, the trust-signal structure and its categories, selective disclosure, status and lifetime, party identity, the type-metadata document, and versioning. The verification algorithm, the freshness and replay rules, and the policy for when a Service Provider fetches status are specified in Section 3.
+
+Authorization and mandate, the constraints on what an agent is permitted to do, are not trust signals and are out of scope for this document (Section 2.12). The key words MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY are to be interpreted as described in BCP 14 (RFC 2119 and RFC 8174) when, and only when, they appear in all capitals.
 
 ---
 
-## 2.2 Base Credential Structure
+## 2.2 Serialisation
 
-All TSAI credentials MUST conform to the W3C Verifiable Credentials Data Model 2.0 and use VC-JWT encoding as specified in W3C VC-JOSE-COSE.
-
-### 2.2.1 VC-JWT Structure
-
-A TSAI credential is a JWT with the following structure:
+A credential in transit has the SD-JWT VC form
 
 ```
-<header>.<payload>.<signature>
+<issuer-signed JWT>~<disclosure 1>~...~<disclosure N>~<key-binding JWT>
 ```
 
-**JWT Header:**
+where the disclosures are present only under selective disclosure (Section 2.6); the default form is `<issuer-signed JWT>~<key-binding JWT>`. A stored, unpresented credential is the SD-JWT without a key-binding JWT: it includes any issuer-provided disclosures and ends with a trailing `~`; without disclosures it is `<issuer-signed JWT>~`. TSAI v1 supports only the compact serialisation defined in RFC 9901 §4; JWS JSON serialisation is not part of the TSAI v1 profile.
+
+---
+
+## 2.3 Issuer-signed JWT
+
+### 2.3.1 Header
+
+```json
+{ "alg": "ES256", "typ": "dc+sd-jwt", "kid": "key-1" }
+```
+
+- `alg` MUST be `ES256`. A verifier MUST reject every other value. TSAI v1 does not negotiate signature algorithms.
+- `typ` MUST be `dc+sd-jwt`, the media type `application/dc+sd-jwt`.
+- `kid` MUST identify the Trust Authority signing key within the issuer's key set (Section 2.8).
+
+### 2.3.2 Payload
+
+| Claim | Requirement | Meaning |
+|---|---|---|
+| `iss` | REQUIRED | The Trust Authority's HTTPS issuer identifier; it may include a path but no query or fragment. Keys are discovered using the SD-JWT VC well-known insertion rule (Section 2.8). |
+| `vct` | REQUIRED | The verifiable credential type, a URL identifying the type and version, resolvable to a type-metadata document (Section 2.9). |
+| `vct#integrity` | REQUIRED | Integrity metadata for the `vct` Type Metadata document, per SD-JWT VC §6; selects the exact metadata that governs the credential (Section 2.9). |
+| `aka_vcts` | CONDITIONAL | Additional credential types. REQUIRED on a derived TSAI type and MUST include the canonical TSAI `vct`; MUST NOT contain the credential's primary `vct` (Sections 2.5.7 and 2.9). |
+| `iat` | REQUIRED | Issuance time, seconds since the Unix epoch. |
+| `exp` | REQUIRED | Expiry time, 30 minutes after `iat` (Section 2.7). |
+| `sub` | REQUIRED | The registered, persistent HTTPS identifier for the agent. Its hostname is a canonical lower-case ASCII DNS name in A-label form, with no trailing dot or port, and exactly matches a `dct`. The TA copies it from the authenticated agent record; it survives binding-key rotation and is not accepted from `IssueRequest`. |
+| `cnf` | REQUIRED | The holder binding key, a JWK (Section 2.4). |
+| `status` | OPTIONAL | A reference into a status list keyed to the agent or operator identity (Section 2.7). |
+| `signals` | REQUIRED | The flat list of trust signals, carrying at least the identity floor (Sections 2.5, 2.5.3). |
+| `_sd_alg` | CONDITIONAL | The disclosure digest algorithm; present only under selective disclosure (Section 2.6). |
+
+---
+
+## 2.4 Holder Binding
+
+A TSAI credential is bound to a key the holder controls, carried in `cnf` and proven at presentation by a key-binding JWT (ADR 014).
+
+`cnf` contains the holder's public key as a JWK:
+
+```json
+"cnf": { "jwk": { "kty": "EC", "crv": "P-256", "x": "TCAER19Zvu3OHF4j4W4vfSVoHIP1ILilDls7vCeGemc", "y": "ZxjiWWbZMQGHVWKVQ4hbSIirsVfuecCE6t4jT9F2HZQ" } }
+```
+
+The `cnf` JWK MUST have `kty` `EC` and `crv` `P-256`, MUST contain the public `x` and `y` coordinates, and MUST NOT contain private key material. At presentation the holder signs a key-binding JWT with the private key matching `cnf`:
+
+**Header:** `{ "alg": "ES256", "typ": "kb+jwt" }`
+
+**Payload:**
+
+| Claim | Requirement | Meaning |
+|---|---|---|
+| `iat` | REQUIRED | Time the presentation was created. Its freshness is bounded per Section 3. |
+| `aud` | REQUIRED | The Service Provider the presentation is addressed to: the HTTPS origin of the service (Section 2.8). On a transport with no HTTP origin, such as MCP over stdio, it is the stable audience identifier the server declares in its capability exchange (Section 4.2). The Service Provider MAY publish the expected value in its discovery documents. |
+| `nonce` | REQUIRED | A value binding the presentation to a transaction. The agent generates it from a cryptographically secure source, at least 128 bits, fresh per presentation; where the risk of the action warrants, the Service Provider issues it as a challenge instead (Section 3). |
+| `sd_hash` | REQUIRED | The SHA-256 digest over the issuer-signed JWT and any forwarded disclosures, computed per RFC 9901 §4.3.1. |
+| `req` | OPTIONAL | A request binding (ADR 014): the request method and absolute target URI, and, when the request has a body, a SHA-256 content digest of the body per RFC 9530. The URI MUST match the request target by exact string equality, without normalisation. REQUIRED for a state-changing action and where the verifying and acting components differ (Section 3). |
+
+`nonce` is REQUIRED in every key-binding JWT, per RFC 9901 §4.3; the escalation decision concerns who supplies it, not whether it is present. `req` is an added claim, adopted deliberately per ADR 014. TSAI v1 defines the closed claim set shown above; a key-binding JWT MUST NOT contain additional claims.
+
+**Worked example.** The header is `{ "alg": "ES256", "typ": "kb+jwt" }`. The baseline claims set for a read, with an agent-generated `nonce`:
+
 ```json
 {
-  "alg": "ES256",
-  "typ": "vc+jwt",
-  "kid": "<TA-DID>#<key-id>"
+  "iat": 1781863250,
+  "aud": "https://service-provider.example",
+  "nonce": "9b8f2c1a7e4d6f0b3a5c8e2d1f4a6b9c",
+  "sd_hash": "X9Dd6l3aY8p2Qq7rT1uV0wZ2xN4mK6sB8cE0fH1gJ2k"
 }
 ```
 
-- `alg` MUST be a supported signature algorithm (ES256, ES384, ES512, EdDSA)
-- `typ` SHOULD be "vc+jwt" (media type `application/vc+jwt`), per W3C VC-JOSE-COSE
-- `kid` MUST reference the TA's signing key in their DID document
-
-**JWT Payload:**
-
-The payload contains the W3C VC structure with TSAI-specific claims.
-
----
-
-## 2.3 Common Claims
-
-The following claims are REQUIRED in all TSAI credentials:
-
-### 2.3.1 Standard VC Claims
-
-**`@context`** (array of strings, REQUIRED)
-- MUST include `https://www.w3.org/ns/credentials/v2`
-- MUST include `https://tsai.example.org/credentials/v1` (TSAI context)
-
-**`type`** (array of strings, REQUIRED)
-- MUST include `VerifiableCredential`
-- MUST include `TSAICredential`
-- MUST include tier-specific type (e.g., `TSAICredentialT0`)
-
-**`issuer`** (string or object, REQUIRED)
-- MUST be the TA's DID (e.g., `did:web:trust-authority.example:tsai:ta`)
-
-**`validFrom`** (string, REQUIRED)
-- ISO 8601 datetime when credential was issued
-- Format: `YYYY-MM-DDTHH:MM:SSZ`
-
-**`validUntil`** (string, REQUIRED)
-- ISO 8601 datetime when credential expires
-- MUST be after `validFrom`
-- Expiry duration by tier:
-  - T0/T1: 2-4 hours
-  - T2: 1 hour
-  - T3: 30 minutes
-
-**`credentialSubject`** (object, REQUIRED)
-- Contains claims about the agent
-- MUST include `id` field with agent's DID
-
-**`credentialStatus`** (object, OPTIONAL for T0/T1, REQUIRED for T2/T3)
-- Revocation status information
-- MUST use W3C BitstringStatusList format
-- See Section 2.9 for details
-
----
-
-### 2.3.2 TSAI-Specific Claims
-
-The following claims are defined in the TSAI context and appear within `credentialSubject`:
-
-**`id`** (string, REQUIRED)
-- Agent's DID
-- Supported DID methods:
-  - `did:key:...` - Ephemeral agents, no infrastructure (suitable for T0)
-  - `did:web:...` - Domain-linked agents, supports key rotation (suitable for T1+)
-  - `did:wba:...` - Web-based agent DIDs per W3C AI Agent Protocol (suitable for T0+)
-- All methods are W3C DID-compliant and interoperable
-- Reputation-bearing credentials (T1+) SHOULD use `did:web` or `did:wba`. `did:key` agents cannot rotate keys or revoke the DID itself — if the private key is compromised, reputation accumulated against that DID is lost.
-
-**`type`** (string, REQUIRED)
-- MUST be `Agent`
-- Enables semantic reasoning about credential subject
-
-**`tsaiVersion`** (string, REQUIRED)
-- TSAI protocol version
-- Current version: `1.0`
-
-**`tsaiTier`** (string, REQUIRED)
-- Trust tier: `T0`, `T1`, `T2`, or `T3`
-
-**`operatedBy`** (object, REQUIRED)
-- Operator (legal entity) responsible for this agent
-- Uses TSAI ontology to formally model operator/agent relationship
-- Fields:
-  - `id` (string, REQUIRED): Operator's DID (format: `did:web:...`)
-  - `type` (string, REQUIRED): MUST be `Operator`
-  - `name` (string, REQUIRED): Legal entity name
-  - `jurisdiction` (string, REQUIRED): ISO 3166-1 alpha-2 country code
-  - `kycLevel` (string, REQUIRED): `basic`, `enhanced`, or `institutional`
-  - Additional operator-level signals nested here (see Section 2.4)
-
----
-
-## 2.4 Claim Semantics
-
-This section defines the precise meaning of each claim and specifies whether it applies to the operator (legal entity) or the agent (specific program).
-
-Claims nested within `operatedBy` are operator-level — shared across all agents from that operator. Claims at the top level of `credentialSubject` are agent-level — specific to this agent DID.
-
-### 2.4.1 Identity Claims (Operator-Level)
-
-These claims describe the legal entity operating the agent. They are nested within the `operatedBy` object.
-
-**`operatedBy.id`**
-- Operator's DID
-- Format: `did:web:...` (REQUIRED for operators)
-- Enables operator to have verifiable identity
-- Supports discovery of all agents from an operator
-- Example: `did:web:acme-corp.com`
-
-**`operatedBy.type`**
-- MUST be `Operator`
-- Enables semantic reasoning about operator entity
-
-**`operatedBy.name`**
-- Legal name of the entity operating the agent
-- MUST be verified by TA through KYC process
-- Example: `Acme Corporation GmbH`
-
-**`operatedBy.jurisdiction`**
-- Country where operator is legally registered
-- ISO 3166-1 alpha-2 code (e.g., `DE`, `US`, `GB`)
-- Determines applicable legal framework
-
-**`operatedBy.kycLevel`**
-- Depth of identity verification performed by TA
-- Values:
-  - `basic`: Name, address, business registration verified
-  - `enhanced`: Basic + beneficial ownership, financial checks
-  - `institutional`: Enhanced + regulatory compliance, audits
-
-**`operatedBy.verifiedDomain`** (string, OPTIONAL)
-- Domain name controlled by operator
-- MUST be verified by TA through DNS challenge or email verification
-- Example: `acme-corp.com`
-- Enables did:web usage for agents
-- Provides web presence verification
-
-**`operatedBy.domainAge`** (integer, days, OPTIONAL)
-- Number of days since domain was first registered
-- Retrieved from WHOIS data
-- Older domains indicate more established presence
-- Example: `3650` (10 years)
-
----
-
-### 2.4.2 Reputation Claims (T1+)
-
-These claims describe the behavioral track record of a specific agent, tracked per agent DID. The component signals (`interactionCount`, `successRate`, `timeInOperation`) have standardized semantics and are comparable across TAs. The composite `reputation.score` is TA-specific and not comparable across TAs.
-
-**`reputation.score`** (number, 0-100, OPTIONAL)
-- Aggregated trust score calculated by TA for this specific agent
-- Higher is better
-- 0 = no reputation data, 100 = excellent reputation
-- TA-specific: methodology varies by TA, scores are not comparable across TAs
-- Service Providers SHOULD use the component signals below for cross-TA comparisons
-
-**`reputation.interactionCount`** (integer, ≥0)
-- Total number of interactions evaluated by TA for this Agent
-- Used to assess confidence in component signals
-
-**`reputation.successRate`** (number, 0-1)
-- Percentage of successful interactions for this agent
-- 1.0 = 100% success rate
-
-**`reputation.timeInOperation`** (integer, days, OPTIONAL)
-- Number of days this agent has been operational
-- Measured from first TA evaluation of this agent DID
-
-**`reputation.confidenceLevel`** (string, OPTIONAL)
-- Statistical confidence in component signals for this agent
-- Values: `low` (<100 interactions), `medium` (100-1000), `high` (>1000)
-- Derivable from `interactionCount`; included for convenience
-
-**`operatedBy.certifications`** (array of strings, OPTIONAL, T1+)
-- Industry certifications held by operator
-- Examples: `["ISO27001", "SOC2", "FedRAMP", "PCI-DSS", "HIPAA", "GDPR"]`
-- MUST be verified by TA through certificate validation or registry lookup
-- Easy to verify, high signal value for operational standards
-- Shared across all agents from this operator
-- Nested within `operatedBy` object
-
-**`operatedBy.organizationalAffiliation`** (string, OPTIONAL, T1+)
-- Parent organization or network membership
-- Example: `European AI Alliance`, `AWS Partner Network`
-- Provides additional context about operator's ecosystem
-- MUST be verified by TA through membership confirmation
-- Shared across all agents from this operator
-- Nested within `operatedBy` object
-
----
-
-### 2.4.3 Economic Stake Claims (T2+)
-
-These claims describe the operator's economic accountability. They are nested within the `operatedBy.economicStake` object.
-
-**`operatedBy.economicStake.collateralAmount`** (object)
-- Funds held in escrow by TA or third party
-- Fields:
-  - `value` (number, REQUIRED): Amount
-  - `currency` (string, REQUIRED): ISO 4217 currency code (e.g., `EUR`, `USD`)
-
-**`operatedBy.economicStake.insuranceCoverage`** (object, OPTIONAL)
-- Third-party liability insurance
-- Fields:
-  - `value` (number, REQUIRED): Coverage amount
-  - `currency` (string, REQUIRED): ISO 4217 currency code
-  - `provider` (string, REQUIRED): Insurance provider name
-
-**`economicStake.paymentReliability`** (number, 0-1)
-- Historical payment success rate for this agent
-- 1.0 = 100% reliable payments
-
-**`economicStake.complaintRate`** (number, 0-1, OPTIONAL)
-- Frequency of reported issues or complaints for this agent
-- 0.0 = no complaints, 1.0 = all interactions resulted in complaints
-- Lower is better
-- MUST be based on verifiable complaint data
-- Requires monitoring infrastructure
-
-**`economicStake.behavioralConsistency`** (number, 0-1, OPTIONAL)
-- Stability of performance over time for this agent
-- Measured as inverse of variance in success rate
-- 1.0 = perfectly consistent, 0.0 = highly erratic
-- Higher indicates more predictable behavior
-- Requires analytics infrastructure
-
----
-
-### 2.4.4 Authorization Claims (T3) (TBD: Operator or Agent-Level)
-
-**Note:** Whether authorization constraints apply at operator-level (all agents from this operator) or agent-level (specific to this agent program) is an open design question. Current specification assumes they can be either, depending on use case.
-
-**`authorization.constraintProfile`** (string)
-- Reference to standard constraint profile
-- Format: `<domain>-<profile>-<tier>` (e.g., `ecommerce-standard-t3`)
-- Profile definitions maintained in separate registry
-
-**`authorization.authorizedOperations`** (array of strings)
-- Explicit list of allowed operations
-- Examples: `["browse", "search", "add_to_cart", "checkout"]`
-
-**`authorization.valueLimits`** (object)
-- Maximum transaction values
-- Fields:
-  - `perTransaction` (object): `{value, currency}`
-  - `perDay` (object): `{value, currency}`
-
-**`authorization.rateLimits`** (object)
-- Request rate limits
-- Fields:
-  - `requestsPerMinute` (integer)
-  - `requestsPerHour` (integer)
-
-**`authorization.domainRestrictions`** (array of strings, OPTIONAL)
-- Domains where agent is authorized to operate
-- Examples: `["example.com", "*.example.com"]`
-
-**`authorization.humanInLoop`** (boolean, REQUIRED for T3)
-- Whether human oversight is required for agent actions
-- `true` = human must approve actions
-- `false` = agent operates autonomously
-- Critical for high-stakes operations
-
-**`authorization.authorizationChain`** (array of objects, OPTIONAL)
-- Chain of authorizations leading to this agent
-- Each entry contains:
-  - `authorizer` (string): DID of authorizing entity
-  - `scope` (string): What was authorized
-  - `timestamp` (string): ISO 8601 datetime when authorization was granted
-- Example: User → Organization → Agent
-- Provides audit trail for delegated authority
-
-**`operatedBy.auditReports`** (array of objects, OPTIONAL)
-- Third-party security audit reports
-- Each entry contains:
-  - `auditor` (string): Name of auditing organization
-  - `reportDate` (string): ISO 8601 date of audit
-  - `reportUrl` (string): URL to full audit report
-  - `scope` (string): What was audited (e.g., "security", "compliance")
-- Provides independent verification of operator practices
-- Nested within `operatedBy` object
-
----
-
-### 2.4.5 TA-Specific Signals (Extension Mechanism)
-
-TAs MAY include additional trust signals beyond the standardized claims defined in Sections 2.4.1–2.4.4. These signals appear as additional properties in `credentialSubject`, namespaced by the TA's fully qualified domain name.
-
-**Naming Convention:**
-
-```
-<ta-fqdn>:<signalName>
-```
-
-- `<ta-fqdn>`: The TA's fully qualified domain name (e.g., `trust-authority.example.com`)
-- `:` colon delimiter
-- `<signalName>`: camelCase signal name
-
-**Examples:**
-- `trust-authority.example.com:behavioralRiskIndex`
-- `trust-authority.example.com:llmSafetyScore`
-- `ta.otherprovider.io:industryComplianceLevel`
-
-**Rules:**
-
-- TA-specific signals MUST use the TA's own FQDN as namespace prefix
-- TAs MUST NOT use another TA's namespace
-- Signal values MAY be any JSON-compatible type (string, number, boolean, object, array)
-- TAs SHOULD document their custom signals at `/.well-known/tsai-ta-signals` or equivalent discoverable endpoint
-- Service Providers MUST ignore TA-specific signals they do not recognize (forward compatibility)
-- Service Providers MAY use TA-specific signals in trust decisions when they understand the issuing TA's signal semantics
-- TA-specific signals MUST NOT duplicate or contradict standardized claims
-
-**Example in credential:**
+For a state-changing action, the `nonce` is the Service-Provider-issued single-use challenge and `req` binds the method, URI, and body digest:
 
 ```json
 {
-  "credentialSubject": {
-    "id": "did:web:acme-corp.com:agents:agent123",
-    "type": "Agent",
-    "tsaiVersion": "1.0",
-    "tsaiTier": "T1",
-    "operatedBy": { "..." : "..." },
-    "reputation": {
-      "interactionCount": 1247,
-      "successRate": 0.94,
-      "timeInOperation": 180,
-      "confidenceLevel": "high"
-    },
-    "trust-authority.example.com:behavioralRiskIndex": 0.12,
-    "trust-authority.example.com:llmSafetyScore": 87
-  }
-}
-```
-
-**Rationale:** TAs compete on evaluation methodology. Proprietary signals enable differentiation without fragmenting the interoperable baseline. The FQDN namespace prevents collisions and makes signal provenance self-evident. Service Providers that trust a specific TA can leverage its custom signals; others safely ignore them.
-
----
-
-## 2.5 Tier 0 (T0): Basic Identity
-
-**Purpose:** Distinguish verified agents from random bots
-
-**Use Cases:** Browsing, search, public APIs, low-risk interactions
-
-**Required Claims:**
-- All common claims (Section 2.3)
-- Identity claims (Section 2.4.1): name, jurisdiction, KYC level
-
-**Optional Claims:**
-- Verified domain
-- Domain age
-
-**Expiry:** 2-4 hours
-
-**Revocation:** Optional
-
-### 2.5.1 T0 Example
-
-**JSON Schema:** [`schemas/tsai-credential-t0.schema.json`](schemas/tsai-credential-t0.schema.json)
-
-```json
-{
-  "@context": [
-    "https://www.w3.org/ns/credentials/v2",
-    "https://tsai.example.org/credentials/v1"
-  ],
-  "type": ["VerifiableCredential", "TSAICredential", "TSAICredentialT0"],
-  "issuer": "did:web:trust-authority.example:tsai:ta",
-  "validFrom": "2026-01-23T10:00:00Z",
-  "validUntil": "2026-01-23T14:00:00Z",
-  "credentialSubject": {
-    "id": "did:key:z6MkpTHR8VNsBxYAAWHut2Geadd9jSwuBV8xRoAnwWsdvktH",
-    "type": "Agent",
-    "tsaiVersion": "1.0",
-    "tsaiTier": "T0",
-    "operatedBy": {
-      "id": "did:web:acme-corp.com",
-      "type": "Operator",
-      "name": "Acme Corporation GmbH",
-      "jurisdiction": "DE",
-      "kycLevel": "basic",
-      "verifiedDomain": "acme-corp.com",
-      "domainAge": 3650
-    }
+  "iat": 1781863250,
+  "aud": "https://service-provider.example",
+  "nonce": "c1f4a6b9c8e2d1f49b8f2c1a7e4d6f0b",
+  "sd_hash": "X9Dd6l3aY8p2Qq7rT1uV0wZ2xN4mK6sB8cE0fH1gJ2k",
+  "req": {
+    "method": "POST",
+    "uri": "https://service-provider.example/api/orders",
+    "digest": "sha-256=:RjVcQo5Xk2n9pQ0rT1uV0wZ2xN4mK6sB8cE0fH1gJ2=:"
   }
 }
 ```
 
 ---
 
-## 2.6 Tier 1 (T1): Identity + Reputation
+## 2.5 Trust Signals
 
-**Purpose:** Enable risk-calibrated decisions based on behavioral history and verifiable credentials
+`signals` is a flat array (ADR 016). Each signal has a category, a type, and type-specific fields.
 
-**Use Cases:** Content creation, moderate-value API calls, user interactions
+The field and type codes are abbreviated (`cat`, `typ`, `prv`, `org`, `dct`, and so on) because a credential is fetched every 30 minutes and sent on every request, so wire size matters; the human-readable labels live in the type metadata (Section 2.9), and the canonical schema defines the registered categories and types.
 
-**Required Claims:**
-- All T0 claims
-- Reputation claims (Section 2.4.2): interactionCount, successRate
+Absence of a signal is not a negative assertion. It may mean the Trust Authority did not evaluate that category, not that it evaluated it unfavourably; TSAI carries no adverse signals, and the block is the sanctioned negative path. A Service Provider MUST NOT read the absence of a signal as an adverse finding, and a Trust Authority MAY indicate which categories it assessed so a Service Provider can tell silence from a gap.
 
-**Optional Claims:**
-- score (TA-specific composite, not comparable across TAs)
-- timeInOperation, confidenceLevel
-- Industry certifications
-- Organizational affiliation
-- TA-specific signals (Section 2.4.5)
+### 2.5.1 Common fields
 
-**Expiry:** 2-4 hours
+| Field | Requirement | Meaning |
+|---|---|---|
+| `cat` | REQUIRED | The category code (Sections 2.5.3–2.5.6). |
+| `typ` | REQUIRED | The type code within the category. |
+| `prv` | CONDITIONAL | The provider of a third-party signal, a `did:web` (Section 2.8); present on compliance and assurance, omitted where the Trust Authority is the source. |
+| `asof` | CONDITIONAL | The time the Trust Authority established or last confirmed the fact, seconds since the epoch. REQUIRED for reputation, compliance, assurance, and `idn/dct`; RECOMMENDED for other identity signals. It carries signal currency, which the 30-minute lifetime does not (Section 5.11). |
 
-**Revocation:** Recommended but optional
+The schema is authoritative for each type's field list.
 
-### 2.6.1 T1 Example
+### 2.5.2 Categories
 
-**JSON Schema:** [`schemas/tsai-credential-t1.schema.json`](schemas/tsai-credential-t1.schema.json)
+| `cat` | Category | Question |
+|---|---|---|
+| `idn` | Identity | Who is the agent and its operator? |
+| `rep` | Reputation | How has the agent behaved? |
+| `cmp` | Compliance | What third-party certifications does the operator hold? |
+| `asr` | Assurance | What economic backing stands behind the agent? |
 
-```json
-{
-  "@context": [
-    "https://www.w3.org/ns/credentials/v2",
-    "https://tsai.example.org/credentials/v1"
-  ],
-  "type": ["VerifiableCredential", "TSAICredential", "TSAICredentialT1"],
-  "issuer": "did:web:trust-authority.example:tsai:ta",
-  "validFrom": "2026-01-23T10:00:00Z",
-  "validUntil": "2026-01-23T14:00:00Z",
-  "credentialSubject": {
-    "id": "did:web:acme-corp.com:agents:agent123",
-    "type": "Agent",
-    "tsaiVersion": "1.0",
-    "tsaiTier": "T1",
-    "operatedBy": {
-      "id": "did:web:acme-corp.com",
-      "type": "Operator",
-      "name": "Acme Corporation GmbH",
-      "jurisdiction": "DE",
-      "kycLevel": "enhanced",
-      "verifiedDomain": "acme-corp.com",
-      "domainAge": 3650,
-      "certifications": ["ISO27001", "SOC2", "GDPR"],
-      "organizationalAffiliation": "European AI Alliance"
-    },
-    "reputation": {
-      "interactionCount": 1247,
-      "successRate": 0.94,
-      "timeInOperation": 180,
-      "confidenceLevel": "high"
-    },
-    "trust-authority.example.com:behavioralRiskIndex": 0.12
-  }
-}
-```
+### 2.5.3 Identity (`idn`) and the identity floor
 
----
+Attributes the Trust Authority verified; the provider is the Trust Authority, so `prv` is omitted. Types:
 
-## 2.7 Tier 2 (T2): Identity + Reputation + Economic Stake
+- `org` — the operator's legal entity name. `val` is the name.
+- `jur` — the operator's jurisdiction. `val` is an ISO 3166-1 alpha-2 code.
+- `kyc` — the depth of identity verification. `val` is one of:
+  - `basic` — legal name, address, and business registration verified;
+  - `enhanced` — basic, plus beneficial ownership and financial checks;
+  - `institutional` — enhanced, plus regulatory-compliance checks and audits.
+- `dct` — the single hostname anchoring the agent `sub`, verified by DNS or HTTPS challenge. `val` is the canonical lower-case ASCII DNS name in A-label form, with no trailing dot; Unicode U-labels are not carried in a credential. `asof` is REQUIRED, and freshness follows the domain-freshness window below.
+- `dag` — the optional age of that sole `dct`; it appears at most once. `val` is an ISO 8601 duration; `asof` fixes the measurement time.
 
-> **Status: Informative (Draft) — targeted for TSAI 1.1 (Phase 1)**
->
-> This section describes the proposed T2 credential format. The verification protocol for T2 credentials (challenge-response, real-time revocation) is under development. Implementers SHOULD NOT issue or verify T2 credentials until the verification protocol is specified.
+**The identity floor (ADR 016).** A Trust Authority MUST NOT issue a credential unless `signals` contains exactly one of each identity-floor signal: the operator's legal name (`org`), jurisdiction (`jur`), verification depth (`kyc`), and the verified controlled domain (`dct`) anchoring `sub`. The schema enforces their presence, and `tsai_signal_metadata` marks them `sd: never` (Section 2.9). The floor is not a tier and defines no ordering.
 
-**Purpose:** Provide accountability through economic stake for transactions
+**Domain-freshness window.** The `dct` used to anchor `sub` MUST have been verified no more than 12 hours before credential issuance. A verifier allows `dct.asof` to be up to 30 seconds later than credential `iat` for clock skew between TA components (Section 3.4).
 
-**Use Cases:** Transactions, payments, sensitive operations
+### 2.5.4 Reputation (`rep`)
 
-**Required Claims:**
-- All T1 claims
-- Economic stake claims (Section 2.4.3): collateral, payment reliability
-- Credential status (revocation)
+The agent's behavioural record, observed by the Trust Authority; `prv` is omitted, since the Trust Authority is the source (ADR 016). The following shape applies to registered TSAI reputation types under the canonical `vct`; a derived `vct` may define a custom `rep` shape through its own schema and `tsai_signal_metadata`. Fields:
 
-**Optional Claims:**
-- Insurance coverage
-- Complaint rate
-- Behavioral consistency
+- `mtd` — a versioned HTTPS identifier for the immutable methodology document. REQUIRED.
+- `mtd#integrity` — SHA-256 integrity metadata over the exact methodology-document bytes. REQUIRED.
+- `scr` — the Trust Authority's normalised score in the inclusive range 0 to 1. REQUIRED. Higher values are more favourable under the referenced methodology. Its semantics, calculation, and evidence basis are defined by `mtd`; equal values MUST NOT be treated as equivalent across methodologies without Service-Provider calibration.
+- `cnt` — the number of eligible interactions behind the score. REQUIRED.
+- `wdw` — the observation window, an ISO 8601 duration; with `asof` (the window end) it is computable. REQUIRED.
+- `scp` — the scope of the record, `agent` (the default) or `operator`. An `operator` record aggregates across the operator's agents; a Service Provider evaluating a thin agent-level record reads the operator-level one (Section 5.11, ADR 016).
 
-**Expiry:** 1 hour
+The methodology document MUST conform to [`schemas/tsai-reputation-methodology.schema.json`](schemas/tsai-reputation-methodology.schema.json), its `id` MUST equal `mtd`, and its score object MUST declare `minimum` 0, `maximum` 1, and `direction` `higher-better`. It defines the normalised score's semantics, calculation method, eligible evidence, outcome classification, minimum history, and treatment of insufficient history. A material change to any of those properties requires a new `mtd`; methodology documents are immutable. A Trust Authority serves an HTTPS `mtd` document as `application/json`. A Service Provider obtains and caches it out of band, verifies `mtd#integrity`, and keys score policy by `(iss, typ, mtd)` (Section 3.3). An unknown or invalid methodology gives no favourable reputation result.
 
-**Revocation:** Required
+`typ` names the registered domain of the record. The canonical TSAI v1 type contains `ecommerce`; adding another registered domain requires a new canonical `vct` version, while a custom domain uses a derived `vct`. Reputation signals at both scopes are `sd: never` in the type metadata (Section 2.9), so an agent cannot withhold a record it holds, including the operator-level one a washed agent would most want to hide.
 
-### 2.7.1 T2 Example
+### 2.5.5 Compliance (`cmp`)
 
-```json
-{
-  "@context": [
-    "https://www.w3.org/ns/credentials/v2",
-    "https://tsai.example.org/credentials/v1"
-  ],
-  "type": ["VerifiableCredential", "TSAICredential", "TSAICredentialT2"],
-  "issuer": "did:web:trust-authority.example:tsai:ta",
-  "validFrom": "2026-01-23T10:00:00Z",
-  "validUntil": "2026-01-23T11:00:00Z",
-  "credentialSubject": {
-    "id": "did:web:acme-corp.com:agents:agent123",
-    "type": "Agent",
-    "tsaiVersion": "1.0",
-    "tsaiTier": "T2",
-    "operatedBy": {
-      "id": "did:web:acme-corp.com",
-      "type": "Operator",
-      "name": "Acme Corporation GmbH",
-      "jurisdiction": "DE",
-      "kycLevel": "institutional",
-      "verifiedDomain": "acme-corp.com",
-      "domainAge": 3650,
-      "certifications": ["ISO27001", "SOC2", "PCI-DSS", "GDPR"],
-      "economicStake": {
-        "collateralAmount": {
-          "value": 50000,
-          "currency": "EUR"
-        },
-        "insuranceCoverage": {
-          "value": 1000000,
-          "currency": "EUR",
-          "provider": "Allianz SE"
-        }
-      }
-    },
-    "reputation": {
-      "interactionCount": 5420,
-      "successRate": 0.97,
-      "timeInOperation": 365,
-      "confidenceLevel": "high"
-    },
-    "economicStake": {
-      "paymentReliability": 0.99,
-      "complaintRate": 0.02,
-      "behavioralConsistency": 0.95
-    },
-    "trust-authority.example.com:behavioralRiskIndex": 0.05
-  },
-  "credentialStatus": {
-    "id": "https://trust-authority.example/tsai/status/1#94567",
-    "type": "BitstringStatusListEntry",
-    "statusPurpose": "revocation",
-    "statusListIndex": "94567",
-    "statusListCredential": "https://trust-authority.example/tsai/status/1"
-  }
-}
-```
+A third-party certification the operator holds. `prv` is the certifier's `did:web`. The canonical TSAI v1 registered types are `iso27001`, `soc2`, and `pci-dss`; adding another registered certification type requires a new canonical `vct` version, while a custom type uses a derived `vct`. A `vld` field MAY carry the certification's own validity end (renamed from the earlier `exp` to avoid collision with the credential's `exp`); `asof` carries when the Trust Authority confirmed it.
+
+A `prv` is attribution, not proof: it names the third party the Trust Authority asserts stands behind the claim, without a signature from that party (Section 5.11). A Service Provider relying on a compliance signal for a material decision verifies it out of band.
+
+### 2.5.6 Assurance (`asr`)
+
+Economic backing or recourse. `prv` is the backer's `did:web`. Types:
+
+- `insurance` — liability cover. Fields: `cvr` (the coverage, an object with `val` and `cur`, an ISO 4217 code), `basis` (`per-incident` or `aggregate`), `scope` (what is covered), `vld` (the cover's validity end), and an optional `lei` for the liable legal entity.
+- `collateral` — funds held in escrow. `cvr` carries the amount, `bal` an optional remaining balance.
+
+As with compliance, `prv` is attribution and not proof; a Service Provider relying on assurance for a material decision confirms the arrangement out of band (Section 5.11).
+
+### 2.5.7 Extension
+
+The canonical TSAI `vct` permits only the registered TSAI signal vocabulary. A Trust Authority that adds a signal type MUST issue a derived credential type rather than place an arbitrary type under the canonical `vct`.
+
+The derived type has its own collision-resistant `vct`. Its Type Metadata MUST `extend` an existing TSAI type, MUST integrity-pin the parent metadata, and MUST reference an integrity-protected JSON Schema that composes the parent's immutable schema, transitively preserving the canonical TSAI constraints. A derived credential MUST carry the canonical TSAI `vct` in `aka_vcts`. A verifier accepts it as TSAI only after confirming the metadata inheritance and validating the credential against both schemas (Section 2.9).
+
+Within a derived `vct`, custom signal types are short codes. They need neither an FQDN nor an `x-` prefix because `(vct, cat, typ)` is the semantic identifier. Every custom signal selector and its disclosure/display controls MUST be declared in `tsai_signal_metadata`, and its fields MUST be declared by the derived schema. Several Trust Authorities that share an extension use one community-owned derived `vct`; equal type strings under unrelated `vct` values have no implied equivalence.
 
 ---
 
-## 2.8 Tier 3 (T3): Full Trust Signals + Constraints
+## 2.6 Selective Disclosure
 
-> **Status: Informative (Draft) — targeted for TSAI 1.1 (Phase 1)**
->
-> This section describes the proposed T3 credential format. The verification protocol for T3 credentials (challenge-response, constraint enforcement, real-time revocation) is under development. The scope of authorization claims (operator-level vs agent-level) is also unresolved (see Section 2.4.4). Implementers SHOULD NOT issue or verify T3 credentials until the verification protocol is specified.
+Selective disclosure is optional and off by default. When used, the issuer replaces a signal in `signals` with a digest object `{"...": "<digest>"}`, emits the disclosure alongside the credential, and sets `_sd_alg` to `sha-256`; a TSAI verifier MUST reject any other disclosure digest algorithm. A Trust Authority MUST NOT insert decoy digests under RFC 9901 §4.2.5, because TSAI exposes unmatched signal digests as the withheld-signal count. A signal marked `sd: never` in `tsai_signal_metadata` (Section 2.9), reputation among them, MUST NOT be made disclosable by the issuer. A withheld signal remains visible to the verifier as a digest object until reconstruction, so the verifier can count how many were withheld; the verifier surfaces that count and MAY fail closed above a policy threshold (Section 3, ADR 015).
 
-**Purpose:** Maximum assurance for high-value and regulated operations
-
-**Use Cases:** High-value transactions, regulated operations, critical systems
-
-**Required Claims:**
-- All T2 claims
-- Authorization claims (Section 2.4.4): constraint profile, authorized operations, value limits, rate limits, human-in-loop indicator
-
-**Optional Claims:**
-- Domain restrictions
-- Authorization chain
-- Audit reports
-
-**Expiry:** 30 minutes
-
-**Revocation:** Required (real-time verification)
-
-### 2.8.1 T3 Example
-
-```json
-{
-  "@context": [
-    "https://www.w3.org/ns/credentials/v2",
-    "https://tsai.example.org/credentials/v1"
-  ],
-  "type": ["VerifiableCredential", "TSAICredential", "TSAICredentialT3"],
-  "issuer": "did:web:trust-authority.example:tsai:ta",
-  "validFrom": "2026-01-23T10:00:00Z",
-  "validUntil": "2026-01-23T10:30:00Z",
-  "credentialSubject": {
-    "id": "did:web:acme-corp.com:agents:agent123",
-    "type": "Agent",
-    "tsaiVersion": "1.0",
-    "tsaiTier": "T3",
-    "operatedBy": {
-      "id": "did:web:acme-corp.com",
-      "type": "Operator",
-      "name": "Acme Corporation GmbH",
-      "jurisdiction": "DE",
-      "kycLevel": "institutional",
-      "verifiedDomain": "acme-corp.com",
-      "domainAge": 3650,
-      "certifications": ["ISO27001", "SOC2", "PCI-DSS", "FedRAMP", "GDPR"],
-      "economicStake": {
-        "collateralAmount": {
-          "value": 100000,
-          "currency": "EUR"
-        },
-        "insuranceCoverage": {
-          "value": 5000000,
-          "currency": "EUR",
-          "provider": "Allianz SE"
-        }
-      },
-      "auditReports": [
-        {
-          "auditor": "TÜV SÜD",
-          "reportDate": "2025-12-15",
-          "reportUrl": "https://acme-corp.com/audits/2025-q4-security.pdf",
-          "scope": "security"
-        }
-      ]
-    },
-    "reputation": {
-      "interactionCount": 8932,
-      "successRate": 0.98,
-      "timeInOperation": 540,
-      "confidenceLevel": "high"
-    },
-    "economicStake": {
-      "paymentReliability": 0.995,
-      "complaintRate": 0.01,
-      "behavioralConsistency": 0.97
-    },
-    "authorization": {
-      "constraintProfile": "ecommerce-standard-t3",
-      "authorizedOperations": [
-        "browse",
-        "search",
-        "add_to_cart",
-        "checkout",
-        "payment"
-      ],
-      "valueLimits": {
-        "perTransaction": {
-          "value": 5000,
-          "currency": "EUR"
-        },
-        "perDay": {
-          "value": 50000,
-          "currency": "EUR"
-        }
-      },
-      "rateLimits": {
-        "requestsPerMinute": 60,
-        "requestsPerHour": 1000
-      },
-      "domainRestrictions": [
-        "shop.example.com",
-        "api.example.com"
-      ],
-      "humanInLoop": false,
-      "authorizationChain": [
-        {
-          "authorizer": "did:web:acme-corp.com:ceo",
-          "scope": "ecommerce operations up to 50k EUR/day",
-          "timestamp": "2026-01-20T09:00:00Z"
-        }
-      ]
-    }
-  },
-  "credentialStatus": {
-    "id": "https://trust-authority.example/tsai/status/1#94568",
-    "type": "BitstringStatusListEntry",
-    "statusPurpose": "revocation",
-    "statusListIndex": "94568",
-    "statusListCredential": "https://trust-authority.example/tsai/status/1"
-  }
-}
-```
+`tsai_signal_metadata` is a TSAI Type Metadata extension because standard SD-JWT VC paths cannot select array elements by their `cat` and `typ` values. A generic consumer ignores this top-level extension; a TSAI verifier processes it and enforces its `sd` controls (Section 3.3).
 
 ---
 
-## 2.9 Credential Status (Revocation)
+## 2.7 Status and Lifetime
 
-TSAI uses W3C BitstringStatusList for revocation.
+### 2.7.1 Lifetime
 
-### 2.9.1 BitstringStatusList Structure
+`exp` MUST be 30 minutes after `iat`. A flow that outlives the credential obtains a fresh one; the lifetime is the re-issue cadence, and presentation freshness is a separate clock (Section 2.4, Section 3).
 
-**`credentialStatus`** (object)
-- `id` (string, REQUIRED): URL to specific bit in status list
-- `type` (string, REQUIRED): MUST be `BitstringStatusListEntry`
-- `statusPurpose` (string, REQUIRED): MUST be `revocation`
-- `statusListIndex` (string, REQUIRED): Index of this credential's bit
-- `statusListCredential` (string, REQUIRED): URL to status list credential
+### 2.7.2 Status
 
-### 2.9.2 Status List Credential
+An individual short-lived credential is not revoked; the control is a block on the agent `sub` or operator (ADR 018). A Trust Authority MUST publish an agent-and-operator status list, so a Service Provider can depend on the mechanism existing. A credential normally carries a `status` claim referencing it, keyed to the persistent agent `sub` or operator identity, so that blocking one identity invalidates all of its credentials across key rotation. The Status List Token MUST be signed with ES256:
 
-TAs MUST publish a BitstringStatusList credential at the URL specified in `statusListCredential`.
+```json
+"status": { "status_list": { "idx": 94567, "uri": "https://trust-authority.example/status/agents-1" } }
+```
 
-The status list credential contains a compressed bitstring where:
-- Bit = 0: Credential is valid
-- Bit = 1: Credential is revoked
+A credential MAY omit `status` to avoid the additional status-index correlator, accepting that a TA block cannot reach it within the lifetime. The required `sub` remains a stable cross-Service-Provider identifier, so omitting `status` does not provide agent unlinkability; an SP can still apply its local block by `sub` (Section 5.7). When a Service Provider fetches and how it verifies the status list are specified in Section 3.
 
-Service Providers check revocation by:
-1. Fetching the status list credential
-2. Decompressing the bitstring
-3. Checking the bit at `statusListIndex`
-4. If bit = 1, credential is revoked
+---
 
-See W3C BitstringStatusList specification for full details.
+## 2.8 Party Identity
+
+Identity and key discovery follow ADR 017.
+
+- **Trust Authority.** Identified by the HTTPS `iss`, which contains a host and may contain a port and path but no query or fragment. Signing keys are discovered by inserting `/.well-known/jwt-vc-issuer` between the origin and the issuer path, after removing a terminating slash from that path; for example, `https://ta.example/tenant/acme` resolves metadata at `https://ta.example/.well-known/jwt-vc-issuer/tenant/acme`. `kid` selects an EC/P-256 key. This is the only key-discovery mechanism: a credential carrying an `x5c` header MUST be rejected, and the verifier MUST confirm that the metadata's `issuer` exactly equals the original `iss` (Section 3).
+- **Agent.** Identified persistently by required HTTPS `sub`, registered under an authenticated operator account and anchored to a current `dct`. `sub` has no port because `dct` is a hostname. The `cnf` JWK is the current holder-binding key; it may rotate without changing `sub`.
+- **Referenced third parties.** A certifier (`cmp`) or a backer (`asr`) is identified by its own `did:web` in `prv`; an assurance party MAY additionally carry an `lei`.
+
+---
+
+## 2.9 Type Metadata
+
+Each `vct` resolves to a Type Metadata document (ADR 015). SD-JWT VC Type Metadata carries display and per-claim controls, but it has carried no JSON Schema since draft `-12`; `extends` therefore inherits metadata, not field-level validation.
+
+**Schema.** TSAI adds two required top-level properties: `tsai_schema_uri`, which identifies the JSON Schema for the complete credential payload, and `tsai_schema_uri#integrity`, which pins the exact schema bytes. The schema is authoritative for the permitted claims and signals, their field shapes, and required presence. A TSAI verifier processes these properties even though a generic SD-JWT VC consumer ignores them.
+
+**Standard claim metadata.** When used, the standard `claims` array remains conformant to SD-JWT VC §5.6 and every entry is addressed by a `path`. TSAI does not add claim metadata for `aka_vcts`: SD-JWT VC already makes it non-disclosable, while the credential schema and verifier enforce its TSAI-specific content rules. The canonical TSAI metadata uses `claims` to mark `sub` as mandatory and non-disclosable because SD-JWT VC permits `sub` to be selectively disclosed, whereas TSAI requires the persistent agent identifier in every presentation. TSAI v1 does not require consumers to process standard display or rendering metadata; an implementation that chooses to process it follows the retrieval, security, and privacy requirements of SD-JWT VC draft-19.
+
+**Signal metadata.** Standard claim paths cannot select array elements by their `cat` and `typ` values, so TSAI adds the top-level `tsai_signal_metadata` property. Each entry selects every signal in a category, or one exact category/type pair, and carries `sd` plus optional display metadata. It does not define presence: the JSON Schema does that. A parent category selector governs every signal in that category unless the child defines a more specific selector. A child may narrow `sd: allowed` to `always` or `never`, but MUST NOT change an inherited `always` or `never` value. A schema-required signal MUST have an effective `tsai_signal_metadata` rule of `sd: never`, so it remains available for payload validation after disclosure processing.
+
+A derived TSAI type uses the standard `extends` and `extends#integrity` properties to inherit its parent metadata. Its schema MUST use JSON Schema `allOf` with a `$ref` to the parent's immutable schema, thereby composing the canonical TSAI base transitively. The child adds `tsai_signal_metadata` entries for its custom signals; `aka_vcts` is governed by the credential schema and verification rules.
+
+```json
+{
+  "vct": "https://ta.example/credential/tsai/1",
+  "extends": "https://tsaiprotocol.org/credential/tsai/1",
+  "extends#integrity": "sha256-VWaSSviMOFcp1vsoU3ReObfIF8+sKBiEyfkL9npfZmA=",
+  "tsai_schema_uri": "https://ta.example/schemas/credential/tsai/1.json",
+  "tsai_schema_uri#integrity": "sha256-H5gGR/iMLT9a4ajpGQBRXOEwR4E1fUMqZl1gtCuhvtQ=",
+  "tsai_signal_metadata": [
+    { "signal": { "cat": "rep", "typ": "risk" }, "sd": "never" }
+  ]
+}
+```
+
+This separation keeps any standard `claims` entries processable by generic SD-JWT VC consumers. A generic consumer ignores the unknown top-level `tsai_schema_uri` and `tsai_signal_metadata` properties; a TSAI-aware consumer processes them in addition to any standard metadata.
+
+**Integrity and caching.** The credential carries a `vct#integrity` claim (Section 2.3.2) using SHA-256 integrity metadata for its Type Metadata document, per SD-JWT VC §6. Derived metadata additionally carries `extends#integrity`; every TSAI metadata document carries `tsai_schema_uri#integrity`. To verify one of these values, a consumer hashes the exact octets of the retrieved document with SHA-256, base64-decodes the expected digest, compares the values octet for octet, and rejects a mismatch. This result is independent of CORS response headers. A Service Provider MUST obtain the complete metadata and schema chain out of band or from cache and MUST NOT fetch it on the verification path.
+
+The caches are content-addressed. A credential's `vct#integrity` selects its metadata; each metadata document's schema integrity selects its schema; and `extends#integrity` selects the parent metadata. Integrity-pinned documents MAY be cached indefinitely under their integrity values, regardless of HTTP cache directives, and different immutable versions coexist. Material without an integrity value follows HTTP caching semantics under RFC 9111. If any required document is absent, mismatched, circular, or not rooted in the canonical TSAI type, the Service Provider MUST fail the current presentation and SHOULD refresh the chain out of band. The fetch hardening in Section 3.6 applies to metadata and schema retrieval. Publishers SHOULD provide an explicit freshness lifetime for mutable documents and SHOULD serve protocol documents with `X-Content-Type-Options: nosniff` and a restrictive Content Security Policy such as `default-src 'none'`.
+
+The schema for the type-metadata document is [`schemas/tsai-type-metadata.schema.json`](schemas/tsai-type-metadata.schema.json). The canonical payload schema is [`schemas/tsai-credential.schema.json`](schemas/tsai-credential.schema.json).
 
 ---
 
 ## 2.10 Versioning
 
-**`tsaiVersion`** indicates the TSAI protocol version.
+`vct` identifies one immutable credential-type definition. The Type Metadata and JSON Schema associated with a TSAI `vct` MUST NOT change in place. Any change to the registered vocabulary, field constraints, display metadata, mandatory controls, or selective-disclosure controls mints a new `vct`, even when the change would otherwise be backward compatible.
 
-**Current version:** `1.0`
-
-**Version compatibility:**
-- Service Providers MUST reject credentials with unknown `tsaiVersion`
-- Minor version changes (e.g., 1.0 → 1.1) MUST be backward compatible
-- Major version changes (e.g., 1.0 → 2.0) MAY break compatibility
-
-**Version format:** `<major>.<minor>`
+Versioned metadata and schema URIs remain available for as long as credentials or derived types reference them. Existing derived types continue to extend their immutable parent version; adopting a newer TSAI base requires a new derived `vct`. A Service Provider MUST reject a credential whose metadata and schema chain it does not recognise or cannot validate.
 
 ---
 
-## 2.11 Normative Requirements Summary
+## 2.11 Worked Example
+
+An issued credential, flat, before presentation:
+
+```json
+{
+  "iss": "https://trust-authority.example",
+  "vct": "https://tsaiprotocol.org/credential/tsai/1",
+  "vct#integrity": "sha256-VWaSSviMOFcp1vsoU3ReObfIF8+sKBiEyfkL9npfZmA=",
+  "iat": 1781863200,
+  "exp": 1781865000,
+  "sub": "https://acme-corp.example/agents/shopper-v3",
+  "cnf": { "jwk": { "kty": "EC", "crv": "P-256", "x": "TCAER19Zvu3OHF4j4W4vfSVoHIP1ILilDls7vCeGemc", "y": "ZxjiWWbZMQGHVWKVQ4hbSIirsVfuecCE6t4jT9F2HZQ" } },
+  "status": { "status_list": { "idx": 94567, "uri": "https://trust-authority.example/status/agents-1" } },
+  "signals": [
+    { "cat": "idn", "typ": "org", "val": "Acme Corporation GmbH" },
+    { "cat": "idn", "typ": "jur", "val": "DE" },
+    { "cat": "idn", "typ": "kyc", "val": "enhanced" },
+    { "cat": "idn", "typ": "dct", "val": "acme-corp.example", "asof": 1781860000 },
+    { "cat": "idn", "typ": "dag", "val": "P850D", "asof": 1781000000 },
+    { "cat": "rep", "typ": "ecommerce", "mtd": "https://ta.example/reputation/test-vector/1", "mtd#integrity": "sha256-Td9FdWbwljmeY78DD/gKxGxPSjjV9vzvOU3oXPH4dJY=", "scr": 0.94, "cnt": 3518, "wdw": "P90D", "asof": 1781800000 },
+    { "cat": "cmp", "typ": "iso27001", "prv": "did:web:cert-corp.example", "vld": 1981863200, "asof": 1780000000 },
+    { "cat": "asr", "typ": "insurance", "prv": "did:web:cyber-insurance.example", "lei": "WDIFANOQF6AW1CXRCR17", "cvr": { "val": 100000, "cur": "EUR" }, "basis": "aggregate", "scope": "third-party liability", "vld": 1790000000, "asof": 1780000000 }
+  ]
+}
+```
+
+The first four identity signals are the floor. Presented, the holder appends a key-binding JWT carrying `iat`, `aud`, `nonce`, `sd_hash`, and, for a state-changing action, `req`.
+
+---
+
+## 2.12 Out of Scope
+
+Authorization and mandate — value limits, permitted operations, rate limits, a human-in-loop requirement — are not trust signals. They are delegation (ADR 001) and are specified separately.
+
+---
+
+## 2.13 Normative Requirements Summary
 
 **Trust Authorities MUST:**
-- Issue credentials conforming to W3C VC Data Model 2.0
-- Use VC-JWT encoding
-- Include all required claims for the specified tier
-- Sign credentials with key referenced in TA's DID document
-- Set appropriate expiry times by tier
-- Include credential status for T2/T3
-- Maintain BitstringStatusList for revocation
+- Issue SD-JWT VC credentials with `typ` `dc+sd-jwt`, `alg` `ES256`, and `exp` 30 minutes after `iat`.
+- Carry a SHA-256 `vct#integrity` claim binding the credential to its Type Metadata document, and publish an integrity-protected schema for that type (Section 2.9).
+- Include the identity floor (`org`, `jur`, `kyc`, `dct`) in every credential (ADR 016).
+- Include the registered agent `sub`, copy it from the authenticated agent record, and ensure its hostname exactly matches a `dct` within the domain-freshness window (Section 2.5.3, ADR 017).
+- Include `mtd`, `mtd#integrity`, `scr`, `cnt`, `wdw`, and `asof` in every registered TSAI reputation signal, and constrain `scr` to the inclusive range 0 to 1 with higher values more favourable; derived `rep` signals follow their own integrity-pinned schema (ADR 016).
+- Not insert decoy digests and not make an `sd: never` signal, reputation among them, selectively disclosable.
+- Publish signing-key metadata at the URL produced by the `jwt-vc-issuer` well-known insertion rule and publish an agent-and-operator status list. The publisher that defines each `vct` publishes its immutable Type Metadata and JSON Schema; TSAI publishes the canonical artefacts, while a TA or community publishes the derived artefacts it defines.
+- Advertise every `vct` the Trust Authority issues. For a derived TSAI type, extend and integrity-pin the parent metadata and schema, include the canonical base type in `aka_vcts`, and declare every custom signal.
 
 **Agents MUST:**
-- Present credentials that have not expired
-- Present credentials for appropriate tier based on use case
-- Prove possession via Verifiable Presentation (see Section 3)
+- Present a credential that has not expired, with an ES256 key-binding JWT carrying `iat`, `aud`, `nonce`, and `sd_hash`, and `req` where the action and topology require it.
 
 **Service Providers MUST:**
-- Verify credential signature against TA's DID document
-- Check credential expiry
-- Check revocation status for T2/T3
-- Reject credentials with unknown `tsaiVersion`
+- Verify per Section 3, reject any `alg` other than `ES256`, reject an unrecognised `vct` or an `x5c` header, confirm `sub` matches a fresh `dct`, and, after successful derived-schema validation, MAY ignore declared extension signals not used in policy.
+- Obtain the complete Type Metadata and schema chain out of band or from cache, never on the verification path, and verify every integrity value and inheritance rule (Section 2.9).

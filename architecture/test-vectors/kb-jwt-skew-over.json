@@ -1,0 +1,13 @@
+{
+  "$comment": "Copyright Amazon.com Inc. or its affiliates. SPDX-License-Identifier: Apache-2.0",
+  "description": "Future key-binding JWT: iat is 31 seconds after the verifier's now and is rejected by Section 3.4.",
+  "now": 1781863260,
+  "header": { "alg": "ES256", "typ": "kb+jwt" },
+  "expect": "STALE_PRESENTATION",
+  "kb": {
+    "iat": 1781863291,
+    "aud": "https://service-provider.example",
+    "nonce": "c1f4a6b9c8e2d1f49b8f2c1a7e4d6f0b",
+    "sd_hash": "X9Dd6l3aY8p2Qq7rT1uV0wZ2xN4mK6sB8cE0fH1gJ2k"
+  }
+}

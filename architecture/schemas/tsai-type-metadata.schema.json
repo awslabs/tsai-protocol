@@ -1,0 +1,100 @@
+{
+  "$comment": "Copyright Amazon.com Inc. or its affiliates. SPDX-License-Identifier: Apache-2.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tsaiprotocol.org/schemas/tsai-type-metadata.json",
+  "title": "TSAI Type Metadata",
+  "description": "The Type Metadata document for a TSAI vct. Standard SD-JWT VC claims entries remain path-based. The TSAI profile adds an integrity-protected JSON Schema and content-based signal disclosure/display metadata.",
+  "type": "object",
+  "required": ["vct", "tsai_schema_uri", "tsai_schema_uri#integrity", "tsai_signal_metadata"],
+  "properties": {
+    "vct": { "type": "string", "format": "uri", "description": "The credential type this metadata describes" },
+    "extends": { "type": "string", "format": "uri", "description": "Parent credential type metadata, for a derived TSAI vct" },
+    "extends#integrity": { "type": "string", "pattern": "^sha256-[A-Za-z0-9+/]+={0,2}$", "description": "Integrity metadata for the exact parent Type Metadata document" },
+    "tsai_schema_uri": { "type": "string", "format": "uri", "pattern": "^https://", "description": "TSAI extension: JSON Schema for the complete credential payload" },
+    "tsai_schema_uri#integrity": { "type": "string", "pattern": "^sha256-[A-Za-z0-9+/]+={0,2}$", "description": "TSAI extension: integrity metadata for the exact JSON Schema bytes" },
+    "name": { "type": "string" },
+    "description": { "type": "string" },
+    "claims": {
+      "type": "array",
+      "description": "Standards-conformant SD-JWT VC claim metadata; every entry is addressed by path",
+      "items": {
+        "type": "object",
+        "required": ["path"],
+        "properties": {
+          "path": {
+            "type": "array",
+            "minItems": 1,
+            "description": "SD-JWT VC claim path",
+            "items": {
+              "oneOf": [
+                { "type": "string" },
+                { "type": "integer", "minimum": 0 },
+                { "type": "null" }
+              ]
+            }
+          },
+          "mandatory": { "type": "boolean", "description": "The claim MUST be present in the issued credential" },
+          "sd": { "type": "string", "enum": ["always", "allowed", "never"], "description": "Selective-disclosure control" },
+          "svg_id": { "type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*$" },
+          "display": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "locale": { "type": "string" },
+                "label": { "type": "string" },
+                "description": { "type": "string" }
+              },
+              "required": ["locale", "label"],
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "tsai_signal_metadata": {
+      "type": "array",
+      "description": "TSAI extension: disclosure and display metadata for signals selected by category and optional type. JSON Schema is authoritative for signal structure and presence.",
+      "items": {
+        "type": "object",
+        "required": ["signal", "sd"],
+        "properties": {
+          "signal": {
+            "type": "object",
+            "description": "Selects every signal in cat, or one exact cat/typ pair",
+            "properties": {
+              "cat": { "type": "string" },
+              "typ": { "type": "string" }
+            },
+            "required": ["cat"],
+            "additionalProperties": false
+          },
+          "sd": { "type": "string", "enum": ["always", "allowed", "never"], "description": "Selective-disclosure control" },
+          "display": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "locale": { "type": "string" },
+                "label": { "type": "string" },
+                "description": { "type": "string" }
+              },
+              "required": ["locale", "label"],
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": { "required": ["extends"] },
+      "then": { "required": ["extends#integrity"] },
+      "else": { "not": { "required": ["extends#integrity"] } }
+    }
+  ],
+  "additionalProperties": true
+}

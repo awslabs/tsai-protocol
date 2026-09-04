@@ -5,9 +5,10 @@ SPDX-License-Identifier: Apache-2.0
 
 # ADR 004: Tiered Trust Model (T0-T3)
 
-**Status:** Accepted  
+**Status:** Superseded  
 **Date:** 2026-01-22  
 **Deciders:** TSAI Working Group  
+**Superseded by:** [ADR 016 — Trust Signal Structure](./016-trust-signal-structure.md)  
 **Amended by:** [ADR 012 — Service Provider Terminology](./012-service-provider-terminology.md)
 
 ---

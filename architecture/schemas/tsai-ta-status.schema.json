@@ -1,0 +1,21 @@
+{
+  "$comment": "Copyright Amazon.com Inc. or its affiliates. SPDX-License-Identifier: Apache-2.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tsaiprotocol.org/schemas/tsai-ta-status.json",
+  "title": "TSAI Trust Authority Operational Status Report Payload",
+  "description": "Decoded payload of the compact ES256 JWS published at /.well-known/tsai-ta-status (Section 7.10.2). Aggregate metrics only; no individual credential, agent, or operator identifier.",
+  "type": "object",
+  "required": ["iss", "iat", "exp", "version", "reportingPeriod", "activeCredentials", "issuedInPeriod", "blockedInPeriod", "lastKeyRotation"],
+  "properties": {
+    "iss": { "type": "string", "format": "uri", "pattern": "^https://(?:\\[[0-9A-Fa-f:.]+\\]|[^\\s/?#@:]+)(?::(?:[0-9]{1,4}|[0-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5]))?(?:/[^\\s?#]*)?$", "description": "Trust Authority issuer identifier; MUST equal the trusted TA iss" },
+    "iat": { "type": "integer", "description": "Whole-second JWT NumericDate when the report was issued" },
+    "exp": { "type": "integer", "description": "Whole-second JWT NumericDate after which the report MUST NOT be accepted; no more than 24 hours after iat" },
+    "version": { "const": "1.0", "description": "Report payload version" },
+    "reportingPeriod": { "type": "string", "description": "Period covered by the aggregate metrics, an ISO 8601 duration such as PT24H" },
+    "activeCredentials": { "type": "integer", "minimum": 0, "description": "Count of currently unexpired credentials" },
+    "issuedInPeriod": { "type": "integer", "minimum": 0, "description": "Credentials issued during the reporting period" },
+    "blockedInPeriod": { "type": "integer", "minimum": 0, "description": "Agents or operators blocked during the reporting period" },
+    "lastKeyRotation": { "type": "string", "format": "date-time", "description": "When the credential-signing key was last rotated, RFC 3339" }
+  },
+  "additionalProperties": true
+}

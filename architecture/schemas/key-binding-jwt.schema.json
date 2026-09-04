@@ -1,0 +1,27 @@
+{
+  "$comment": "Copyright Amazon.com Inc. or its affiliates. SPDX-License-Identifier: Apache-2.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tsaiprotocol.org/schemas/key-binding-jwt.json",
+  "title": "TSAI Key-Binding JWT Claims Set",
+  "description": "The closed TSAI v1 claims set of the key-binding JWT a holder appends when presenting a TSAI credential. The JWT header carries typ kb+jwt and alg ES256. The signature is made with the private EC/P-256 key matching the credential's cnf. Per RFC 9901 §4.3, iat, aud, nonce and sd_hash are required; req is the only TSAI extension claim.",
+  "type": "object",
+  "required": ["iat", "aud", "nonce", "sd_hash"],
+  "properties": {
+    "iat": { "type": "integer", "description": "Presentation time; freshness bounded per 04-verification" },
+    "aud": { "type": "string", "description": "The Service Provider HTTPS origin the presentation is addressed to" },
+    "nonce": { "type": "string", "description": "Agent-generated at baseline (>=128 bits, fresh per presentation) or Service-Provider-issued on escalation" },
+    "sd_hash": { "type": "string", "pattern": "^[A-Za-z0-9_-]{43}$", "description": "SHA-256 digest over the issuer-signed JWT and forwarded disclosures, per RFC 9901 §4.3.1" },
+    "req": {
+      "type": "object",
+      "description": "Optional request binding (ADR 014); required for state-changing actions and where the verifying and acting components differ. Binds the method and absolute target URI always, and the body digest when the request has a body.",
+      "required": ["method", "uri"],
+      "properties": {
+        "method": { "type": "string", "description": "The HTTP method of the bound request" },
+        "uri": { "type": "string", "format": "uri", "description": "Absolute target URI; compared with the request target by exact string equality without normalisation" },
+        "digest": { "type": "string", "pattern": "^sha-256=:[A-Za-z0-9+/]+={0,2}:$", "description": "SHA-256 Content-Digest of the request body per RFC 9530; present only when the request has a body" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

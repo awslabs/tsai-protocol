@@ -1,0 +1,120 @@
+{
+  "$comment": "Copyright Amazon.com Inc. or its affiliates. SPDX-License-Identifier: Apache-2.0",
+  "vct": "https://tsaiprotocol.org/credential/tsai/1",
+  "name": "TSAI Credential",
+  "description": "Type Metadata for the canonical TSAI credential. Standard claims metadata is path-based; TSAI signal disclosure and display controls use tsai_signal_metadata because signals are selected by content.",
+  "tsai_schema_uri": "https://tsaiprotocol.org/schemas/tsai-credential/1.json",
+  "tsai_schema_uri#integrity": "sha256-JH9e7q/KFepBsjVw8/avmvEOpELyOQlTbpQU4rmgwm8=",
+  "claims": [
+    {
+      "path": [
+        "sub"
+      ],
+      "mandatory": true,
+      "sd": "never"
+    }
+  ],
+  "tsai_signal_metadata": [
+    {
+      "signal": {
+        "cat": "idn",
+        "typ": "org"
+      },
+      "sd": "never",
+      "display": [
+        {
+          "locale": "en",
+          "label": "Operator legal name"
+        }
+      ]
+    },
+    {
+      "signal": {
+        "cat": "idn",
+        "typ": "jur"
+      },
+      "sd": "never",
+      "display": [
+        {
+          "locale": "en",
+          "label": "Operator jurisdiction"
+        }
+      ]
+    },
+    {
+      "signal": {
+        "cat": "idn",
+        "typ": "kyc"
+      },
+      "sd": "never",
+      "display": [
+        {
+          "locale": "en",
+          "label": "Verification depth"
+        }
+      ]
+    },
+    {
+      "signal": {
+        "cat": "idn",
+        "typ": "dct"
+      },
+      "sd": "never",
+      "display": [
+        {
+          "locale": "en",
+          "label": "Verified controlled domain"
+        }
+      ]
+    },
+    {
+      "signal": {
+        "cat": "idn",
+        "typ": "dag"
+      },
+      "sd": "allowed",
+      "display": [
+        {
+          "locale": "en",
+          "label": "Domain age"
+        }
+      ]
+    },
+    {
+      "signal": {
+        "cat": "rep"
+      },
+      "sd": "never",
+      "display": [
+        {
+          "locale": "en",
+          "label": "Reputation"
+        }
+      ]
+    },
+    {
+      "signal": {
+        "cat": "cmp"
+      },
+      "sd": "allowed",
+      "display": [
+        {
+          "locale": "en",
+          "label": "Compliance certification"
+        }
+      ]
+    },
+    {
+      "signal": {
+        "cat": "asr"
+      },
+      "sd": "allowed",
+      "display": [
+        {
+          "locale": "en",
+          "label": "Assurance"
+        }
+      ]
+    }
+  ]
+}

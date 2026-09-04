@@ -1,0 +1,36 @@
+{
+  "$comment": "Copyright Amazon.com Inc. or its affiliates. SPDX-License-Identifier: Apache-2.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tsaiprotocol.org/schemas/tsai-ta-hsm-attestation.json",
+  "title": "TSAI Trust Authority HSM Attestation Payload",
+  "description": "Decoded payload of the compact ES256 JWS published at /.well-known/tsai-ta-hsm-attestation (Section 7.11).",
+  "type": "object",
+  "required": ["iss", "iat", "exp", "version", "attestationType", "auditDate", "scope"],
+  "properties": {
+    "iss": { "type": "string", "format": "uri", "pattern": "^https://(?:\\[[0-9A-Fa-f:.]+\\]|[^\\s/?#@:]+)(?::(?:[0-9]{1,4}|[0-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5]))?(?:/[^\\s?#]*)?$", "description": "Trust Authority issuer identifier; MUST equal the trusted TA iss" },
+    "iat": { "type": "integer", "description": "Whole-second JWT NumericDate when the attestation was issued" },
+    "exp": { "type": "integer", "description": "Whole-second attestation expiry; self-attestation MUST NOT exceed 30 days after iat" },
+    "version": { "const": "1.0", "description": "Attestation payload version" },
+    "attestationType": { "type": "string", "enum": ["independent-audit", "vendor-attestation", "self-attestation"], "description": "Assurance level: independent audit, vendor attestation, or transitional self-attestation" },
+    "auditor": { "type": "string", "description": "Third party that performed the audit; required for independent-audit" },
+    "auditDate": { "type": "string", "format": "date", "description": "Date on which the audit or attestation evidence was established" },
+    "auditStandard": { "type": "string", "description": "Standard against which the audit was performed; required for independent-audit" },
+    "scope": { "type": "string", "description": "Signing-key generation, storage, and use covered by the evidence" },
+    "reportDigest": { "type": "string", "pattern": "^sha256-[A-Za-z0-9+/]+={0,2}$", "description": "SHA-256 integrity metadata over the exact audit-report bytes; required for independent-audit" },
+    "reportUrl": { "type": "string", "format": "uri", "pattern": "^https://[^\\s#]+$", "description": "Optional HTTPS location where the independent audit report can be requested; access need not be public or unauthenticated" }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "attestationType": { "const": "independent-audit" } }, "required": ["attestationType"] },
+      "then": { "required": ["auditor", "auditStandard", "reportDigest"] }
+    },
+    {
+      "if": { "required": ["reportUrl"] },
+      "then": {
+        "properties": { "attestationType": { "const": "independent-audit" } },
+        "required": ["reportDigest"]
+      }
+    }
+  ],
+  "additionalProperties": true
+}

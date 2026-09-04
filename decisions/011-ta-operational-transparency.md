@@ -91,3 +91,5 @@ See Architecture Section 7.7 for the normative specification.
 - Architecture Section 5.8: Trust Authority Security
 - Architecture Section 7.7: Operational Transparency (normative)
 - Threat Model: TA signing key compromise, TA insider fraudulent issuance, TA standards lowering
+
+> Note: architecture section numbers in this ADR refer to the pre-2026-08 structure, before the specification was renumbered.

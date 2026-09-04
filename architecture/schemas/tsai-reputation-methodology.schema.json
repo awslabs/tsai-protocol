@@ -1,0 +1,84 @@
+{
+  "$comment": "Copyright Amazon.com Inc. or its affiliates. SPDX-License-Identifier: Apache-2.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tsaiprotocol.org/schemas/tsai-reputation-methodology.json",
+  "title": "TSAI Reputation Methodology",
+  "description": "An immutable, versioned definition of a Trust Authority reputation score methodology.",
+  "type": "object",
+  "required": ["id", "version", "name", "score", "semantics", "calculation", "evidence"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uri",
+      "pattern": "^https://(?:\\[[0-9A-Fa-f:.]+\\]|[^\\s/?#@:]+)(?::(?:[0-9]{1,4}|[0-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5]))?(?:/[^\\s?#]*)?$",
+      "description": "Versioned HTTPS identifier; MUST equal the mtd value in the reputation signal"
+    },
+    "version": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Publisher-defined methodology version"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Human-readable methodology name"
+    },
+    "score": {
+      "type": "object",
+      "required": ["minimum", "maximum", "direction"],
+      "properties": {
+        "minimum": { "type": "number", "const": 0, "description": "Inclusive minimum for a normalised TSAI score" },
+        "maximum": { "type": "number", "const": 1, "description": "Inclusive maximum for a normalised TSAI score" },
+        "direction": {
+          "type": "string",
+          "const": "higher-better",
+          "description": "Higher values represent the more favourable result under the methodology"
+        }
+      },
+      "additionalProperties": false
+    },
+    "semantics": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Meaning of the score and what it does and does not assert"
+    },
+    "calculation": {
+      "type": "string",
+      "minLength": 1,
+      "description": "How observations are transformed into the score"
+    },
+    "evidence": {
+      "type": "object",
+      "required": ["eligibleInteractions", "outcomes", "minimumHistory", "insufficientHistory"],
+      "properties": {
+        "eligibleInteractions": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Which interactions enter the methodology"
+        },
+        "outcomes": {
+          "type": "string",
+          "minLength": 1,
+          "description": "How observed outcomes are defined and classified"
+        },
+        "minimumHistory": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Minimum evidence needed before a score is issued"
+        },
+        "insufficientHistory": {
+          "type": "string",
+          "minLength": 1,
+          "description": "How insufficient evidence affects issuance and scoring"
+        },
+        "qualityControls": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Optional controls for fraud, bias, disputes, and data quality"
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

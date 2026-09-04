@@ -6,22 +6,24 @@ SPDX-License-Identifier: Apache-2.0
 # Trust Signals for Agent Evaluation
 
 **Version:** 1.0  
-**Date:** January 2026  
+**Date:** 2026-08  
 **Status:** Working Group Draft
 
 ---
 
 ## Overview
 
-This document catalogs potential trust signals available in an agent trust ecosystem. It serves as a comprehensive reference of possible signals, though not all will be included in the TSAI protocol specification. The architecture specification defines which signals are normative for each tier.
+This document explores the trust signals that could inform agent trust decisions. It is a broad reference of possible signals; the architecture specification selects which are normative and defines their wire form.
 
-Trust signals fall into six categories: identity (who the Agent and Operator are), behavioral (how the Agent has performed), economic (what's at stake), authorization (what the Agent is allowed to do), technical (cryptographic proofs), and third-party (external endorsements). Each category provides different dimensions of trustworthiness that Service Providers can use to make risk-calibrated decisions.
+The normative protocol groups the signals it adopts into four categories: identity (who the agent and operator are), reputation (how the agent has behaved), compliance (third-party certifications the operator holds), and assurance (economic backing that stands behind the agent). There are no tiers. Authorization, the constraints on what an agent may do, is treated as delegation rather than a trust signal (ADR 001).
+
+The groupings below are exploratory rather than normative. Reputation subsumes the behavioural signals, assurance subsumes the economic ones, and compliance and assurance together cover the third-party endorsements. The technical proofs map to identity attributes where the Trust Authority verifies them, or fall outside the credential.
 
 ---
 
 ## 1. Identity Signals
 
-- **Persistent identifier** - DID or similar stable identifier
+- **Persistent identifier** - a stable key or identifier
 - **Operator identity** - Legal entity operating the agent
 - **Operator jurisdiction** - Geographic location and legal framework
 - **KYC level** - Verification depth (basic, enhanced, institutional)
@@ -43,7 +45,7 @@ Trust signals fall into six categories: identity (who the Agent and Operator are
 - **Complaint rate** - Frequency of reported issues
 - **Time in operation** - How long agent has been active
 - **Behavioral consistency** - Stability of performance over time (variance metrics)
-- **Reputation score** - Aggregated trust score (e.g., 0-100)
+- **Reputation score** - Normalised value from 0 to 1, where higher values are more favourable under the referenced methodology
 - **Confidence level** - Statistical confidence in score (based on sample size)
 - **Trend** - Improving, stable, or declining
 - **Recovery patterns** - How agent responds to failures
@@ -63,6 +65,8 @@ Trust signals fall into six categories: identity (who the Agent and Operator are
 ---
 
 ## 4. Authorization Signals (Constraints)
+
+> These describe what an agent is permitted to do, not how trustworthy it is. TSAI treats authorization as delegation (ADR 001), separate from the four trust-signal categories. They are listed here for completeness.
 
 - **Authorized operations** - Explicit list of allowed actions
 - **Value limits** - Maximum transaction amounts

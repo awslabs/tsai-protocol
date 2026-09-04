@@ -1,15 +1,15 @@
 {
   "$comment": "Copyright Amazon.com Inc. or its affiliates. SPDX-License-Identifier: Apache-2.0",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://tsaiprotocol.org/schemas/mcp-capability-tsai.json",
-  "title": "MCP TSAI Capability Declaration",
-  "description": "TSAI capability declaration in an MCP initialization response",
+  "$id": "https://tsaiprotocol.org/schemas/tsai-config.json",
+  "title": "TSAI Service Provider Configuration",
+  "description": "Discovery document served at /.well-known/tsai-config.json by an HTTPS Service Provider.",
   "type": "object",
   "required": ["required", "trustedAuthorities"],
   "properties": {
     "required": {
       "type": "boolean",
-      "description": "Whether TSAI credentials are mandatory"
+      "description": "Whether the Service Provider requires a TSAI credential"
     },
     "trustedAuthorities": {
       "type": "array",
@@ -19,12 +19,13 @@
         "format": "uri",
         "pattern": "^https://",
         "description": "Accepted Trust Authority HTTPS issuer identifier"
-      },
-      "description": "List of accepted Trust Authority issuers"
+      }
     },
     "aud": {
       "type": "string",
-      "description": "The audience identifier an agent places in the key-binding JWT aud on a transport with no HTTP origin (MCP over stdio). Stable across the server's sessions. Omitted where the HTTPS origin is the audience."
+      "format": "uri",
+      "pattern": "^https://",
+      "description": "Exact key-binding JWT audience; omitted when the Service Provider HTTPS origin is used"
     }
   },
   "additionalProperties": false
