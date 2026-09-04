@@ -17,8 +17,8 @@ The following documents are required for conformance to this specification. Impl
 
 **[SD-JWT-VC]**  
 SD-JWT-based Verifiable Credentials  
-IETF, draft-ietf-oauth-sd-jwt-vc-18  
-https://datatracker.ietf.org/doc/html/draft-ietf-oauth-sd-jwt-vc-18
+IETF, draft-ietf-oauth-sd-jwt-vc-19  
+https://datatracker.ietf.org/doc/html/draft-ietf-oauth-sd-jwt-vc-19
 
 **[SD-JWT]**  
 Selective Disclosure for JWTs (SD-JWT)  
@@ -94,6 +94,21 @@ https://datatracker.ietf.org/doc/html/rfc7515
 The JavaScript Object Notation (JSON) Data Interchange Format  
 IETF RFC 8259, December 2017  
 https://datatracker.ietf.org/doc/html/rfc8259
+
+**[RFC6890]**  
+Special-Purpose IP Address Registries  
+IETF BCP 153 / RFC 6890  
+https://www.rfc-editor.org/rfc/rfc6890
+
+**[RFC9110]**  
+HTTP Semantics  
+IETF RFC 9110  
+https://www.rfc-editor.org/rfc/rfc9110
+
+**[RFC9111]**  
+HTTP Caching  
+IETF RFC 9111  
+https://www.rfc-editor.org/rfc/rfc9111
 
 ---
 
@@ -247,6 +262,7 @@ https://datatracker.ietf.org/doc/html/rfc3986
 
 **Version 1.0 (Draft), revised - 2026-09**
 - Moved the credential to SD-JWT VC with a key-binding JWT, replaced the T0–T3 tiers with a flat four-category signal list, normalised registered reputation scores to the range 0 to 1 and bound them to versioned integrity-pinned methodologies, and defined party identity as an HTTPS issuer, a required registered agent `sub` with rotating `cnf`, and `did:web` for referenced third parties (ADRs 014–018)
+- Updated the SD-JWT VC basis to draft-19 and aligned HTTP retrieval, caching, integrity verification, and protected-subclaim rules
 
 ---
 

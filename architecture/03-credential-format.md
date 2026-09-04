@@ -13,11 +13,11 @@ SPDX-License-Identifier: Apache-2.0
 
 ## 2.1 Overview
 
-A TSAI credential is an SD-JWT VC, as defined in draft-ietf-oauth-sd-jwt-vc-18. A Trust Authority issues it, binds it to the holder's key, and populates it with a flat list of trust signals. Every credential carries a minimum identity set, the identity floor (Section 2.5.3), so that it always names an accountable operator. The agent presents the credential with a key-binding JWT that proves possession of the bound key.
+A TSAI credential is an SD-JWT VC, as defined in draft-ietf-oauth-sd-jwt-vc-19. A Trust Authority issues it, binds it to the holder's key, and populates it with a flat list of trust signals. Every credential carries a minimum identity set, the identity floor (Section 2.5.3), so that it always names an accountable operator. The agent presents the credential with a key-binding JWT that proves possession of the bound key.
 
 This section specifies the serialisation, the payload claims, the holder binding, the trust-signal structure and its categories, selective disclosure, status and lifetime, party identity, the type-metadata document, and versioning. The verification algorithm, the freshness and replay rules, and the policy for when a Service Provider fetches status are specified in Section 3.
 
-Authorization and mandate, the constraints on what an agent is permitted to do, are not trust signals and are out of scope for this document (Section 2.12). The keywords MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY are to be interpreted as described in RFC 2119.
+Authorization and mandate, the constraints on what an agent is permitted to do, are not trust signals and are out of scope for this document (Section 2.12). The key words MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY are to be interpreted as described in BCP 14 (RFC 2119 and RFC 8174) when, and only when, they appear in all capitals.
 
 ---
 
@@ -29,7 +29,7 @@ A credential in transit has the SD-JWT VC form
 <issuer-signed JWT>~<disclosure 1>~...~<disclosure N>~<key-binding JWT>
 ```
 
-where the disclosures are present only under selective disclosure (Section 2.6); the default form is `<issuer-signed JWT>~<key-binding JWT>`. A stored, unpresented credential is the SD-JWT without a key-binding JWT: it includes any issuer-provided disclosures and ends with a trailing `~`; without disclosures it is `<issuer-signed JWT>~`.
+where the disclosures are present only under selective disclosure (Section 2.6); the default form is `<issuer-signed JWT>~<key-binding JWT>`. A stored, unpresented credential is the SD-JWT without a key-binding JWT: it includes any issuer-provided disclosures and ends with a trailing `~`; without disclosures it is `<issuer-signed JWT>~`. TSAI v1 supports only the compact serialisation defined in RFC 9901 §4; JWS JSON serialisation is not part of the TSAI v1 profile.
 
 ---
 
@@ -51,7 +51,7 @@ where the disclosures are present only under selective disclosure (Section 2.6);
 |---|---|---|
 | `iss` | REQUIRED | The Trust Authority's HTTPS issuer identifier; it may include a path but no query or fragment. Keys are discovered using the SD-JWT VC well-known insertion rule (Section 2.8). |
 | `vct` | REQUIRED | The verifiable credential type, a URL identifying the type and version, resolvable to a type-metadata document (Section 2.9). |
-| `vct#integrity` | REQUIRED | Integrity metadata for the `vct` Type Metadata document, per SD-JWT VC §5; selects the exact metadata that governs the credential (Section 2.9). |
+| `vct#integrity` | REQUIRED | Integrity metadata for the `vct` Type Metadata document, per SD-JWT VC §6; selects the exact metadata that governs the credential (Section 2.9). |
 | `aka_vcts` | CONDITIONAL | Additional credential types. REQUIRED on a derived TSAI type and MUST include the canonical TSAI `vct`; MUST NOT contain the credential's primary `vct` (Sections 2.5.7 and 2.9). |
 | `iat` | REQUIRED | Issuance time, seconds since the Unix epoch. |
 | `exp` | REQUIRED | Expiry time, 30 minutes after `iat` (Section 2.7). |
@@ -245,7 +245,7 @@ Each `vct` resolves to a Type Metadata document (ADR 015). SD-JWT VC Type Metada
 
 **Schema.** TSAI adds two required top-level properties: `tsai_schema_uri`, which identifies the JSON Schema for the complete credential payload, and `tsai_schema_uri#integrity`, which pins the exact schema bytes. The schema is authoritative for the permitted claims and signals, their field shapes, and required presence. A TSAI verifier processes these properties even though a generic SD-JWT VC consumer ignores them.
 
-**Standard claim metadata.** When used, the standard `claims` array remains conformant to SD-JWT VC §4.6 and every entry is addressed by a `path`. TSAI does not add claim metadata for `aka_vcts`: SD-JWT VC already makes it non-disclosable, while the credential schema and verifier enforce its TSAI-specific content rules. The canonical TSAI metadata uses `claims` to mark `sub` as mandatory and non-disclosable because SD-JWT VC permits `sub` to be selectively disclosed, whereas TSAI requires the persistent agent identifier in every presentation.
+**Standard claim metadata.** When used, the standard `claims` array remains conformant to SD-JWT VC §5.6 and every entry is addressed by a `path`. TSAI does not add claim metadata for `aka_vcts`: SD-JWT VC already makes it non-disclosable, while the credential schema and verifier enforce its TSAI-specific content rules. The canonical TSAI metadata uses `claims` to mark `sub` as mandatory and non-disclosable because SD-JWT VC permits `sub` to be selectively disclosed, whereas TSAI requires the persistent agent identifier in every presentation. TSAI v1 does not require consumers to process standard display or rendering metadata; an implementation that chooses to process it follows the retrieval, security, and privacy requirements of SD-JWT VC draft-19.
 
 **Signal metadata.** Standard claim paths cannot select array elements by their `cat` and `typ` values, so TSAI adds the top-level `tsai_signal_metadata` property. Each entry selects every signal in a category, or one exact category/type pair, and carries `sd` plus optional display metadata. It does not define presence: the JSON Schema does that. A parent category selector governs every signal in that category unless the child defines a more specific selector. A child may narrow `sd: allowed` to `always` or `never`, but MUST NOT change an inherited `always` or `never` value. A schema-required signal MUST have an effective `tsai_signal_metadata` rule of `sd: never`, so it remains available for payload validation after disclosure processing.
 
@@ -255,7 +255,7 @@ A derived TSAI type uses the standard `extends` and `extends#integrity` properti
 {
   "vct": "https://ta.example/credential/tsai/1",
   "extends": "https://tsaiprotocol.org/credential/tsai/1",
-  "extends#integrity": "sha256-TlXnQgvmjbrYiaBBCe7CJr5u1kN8EKlAfJphROLDYBI=",
+  "extends#integrity": "sha256-VWaSSviMOFcp1vsoU3ReObfIF8+sKBiEyfkL9npfZmA=",
   "tsai_schema_uri": "https://ta.example/schemas/credential/tsai/1.json",
   "tsai_schema_uri#integrity": "sha256-H5gGR/iMLT9a4ajpGQBRXOEwR4E1fUMqZl1gtCuhvtQ=",
   "tsai_signal_metadata": [
@@ -266,9 +266,9 @@ A derived TSAI type uses the standard `extends` and `extends#integrity` properti
 
 This separation keeps any standard `claims` entries processable by generic SD-JWT VC consumers. A generic consumer ignores the unknown top-level `tsai_schema_uri` and `tsai_signal_metadata` properties; a TSAI-aware consumer processes them in addition to any standard metadata.
 
-**Integrity and caching.** The credential carries a `vct#integrity` claim (Section 2.3.2) using SHA-256 integrity metadata for its Type Metadata document, per SD-JWT VC §5. Derived metadata additionally carries `extends#integrity`; every TSAI metadata document carries `tsai_schema_uri#integrity`. A Service Provider MUST obtain the complete metadata and schema chain out of band or from cache and MUST NOT fetch it on the verification path.
+**Integrity and caching.** The credential carries a `vct#integrity` claim (Section 2.3.2) using SHA-256 integrity metadata for its Type Metadata document, per SD-JWT VC §6. Derived metadata additionally carries `extends#integrity`; every TSAI metadata document carries `tsai_schema_uri#integrity`. To verify one of these values, a consumer hashes the exact octets of the retrieved document with SHA-256, base64-decodes the expected digest, compares the values octet for octet, and rejects a mismatch. This result is independent of CORS response headers. A Service Provider MUST obtain the complete metadata and schema chain out of band or from cache and MUST NOT fetch it on the verification path.
 
-Both caches are content-addressed. A credential's `vct#integrity` selects its metadata; each metadata document's schema integrity selects its schema; and `extends#integrity` selects the parent metadata. Documents for different immutable `vct` versions coexist under their integrity values. If any required document is absent, mismatched, circular, or not rooted in the canonical TSAI type, the Service Provider MUST fail the current presentation and SHOULD refresh the chain out of band. The fetch hardening in Section 3.6 applies to metadata and schema retrieval.
+The caches are content-addressed. A credential's `vct#integrity` selects its metadata; each metadata document's schema integrity selects its schema; and `extends#integrity` selects the parent metadata. Integrity-pinned documents MAY be cached indefinitely under their integrity values, regardless of HTTP cache directives, and different immutable versions coexist. Material without an integrity value follows HTTP caching semantics under RFC 9111. If any required document is absent, mismatched, circular, or not rooted in the canonical TSAI type, the Service Provider MUST fail the current presentation and SHOULD refresh the chain out of band. The fetch hardening in Section 3.6 applies to metadata and schema retrieval. Publishers SHOULD provide an explicit freshness lifetime for mutable documents and SHOULD serve protocol documents with `X-Content-Type-Options: nosniff` and a restrictive Content Security Policy such as `default-src 'none'`.
 
 The schema for the type-metadata document is [`schemas/tsai-type-metadata.schema.json`](schemas/tsai-type-metadata.schema.json). The canonical payload schema is [`schemas/tsai-credential.schema.json`](schemas/tsai-credential.schema.json).
 
@@ -290,7 +290,7 @@ An issued credential, flat, before presentation:
 {
   "iss": "https://trust-authority.example",
   "vct": "https://tsaiprotocol.org/credential/tsai/1",
-  "vct#integrity": "sha256-TlXnQgvmjbrYiaBBCe7CJr5u1kN8EKlAfJphROLDYBI=",
+  "vct#integrity": "sha256-VWaSSviMOFcp1vsoU3ReObfIF8+sKBiEyfkL9npfZmA=",
   "iat": 1781863200,
   "exp": 1781865000,
   "sub": "https://acme-corp.example/agents/shopper-v3",

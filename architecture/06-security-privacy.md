@@ -96,7 +96,7 @@ A presentation is bound to one Service Provider by `aud`, carries a fresh key-bi
 
 **Agent correlation.** Every credential carries a required, persistent `sub`, so the same agent is correlatable across Service Providers by design. This enables agent-level allow/deny decisions and blocks that survive key rotation; TSAI v1 chooses that property over pairwise agent unlinkability. Distinct `cnf` keys still limit key-based linkage and compromise scope but do not hide `sub`. A `status` claim adds a second correlator through its stable `uri` and `idx`; omitting it removes that additional handle but does not make the agent unlinkable, and the TA block then cannot reach the credential within its 30-minute lifetime. An SP can always apply its local block by `sub`.
 
-**What each party learns.** A Service Provider learns the persistent agent `sub`, operator identity, signals, and issuing Trust Authority, but not the agent's activity elsewhere from the protocol itself; cross-SP comparison of `sub` can correlate presentations. A Trust Authority learns which agents it registers and issues to and, under holder-directed issuance (ADR 015), their pattern of signal requests, but not which Service Provider an agent visits on the offline path. A status fetch reveals only that someone read a list, not which credential or Service Provider.
+**What each party learns.** A Service Provider learns the persistent agent `sub`, operator identity, signals, and issuing Trust Authority, but not the agent's activity elsewhere from the protocol itself; cross-SP comparison of `sub` can correlate presentations. A Trust Authority learns which agents it registers and issues to and, under holder-directed issuance (ADR 015), their pattern of signal requests, but not which Service Provider an agent visits on the offline path. A status fetch reveals only that someone read a list, not which credential or Service Provider. Fetching Type Metadata or rendering resources at presentation time can likewise reveal credential use to their publishers; implementations SHOULD obtain and cache such material out of band.
 
 **Users** are out of scope; a credential carries no user identity, and a Service Provider MUST NOT conflate agent trust with user trust.
 
@@ -128,7 +128,7 @@ TSAI does not protect against LLM-specific attacks, poor output quality, an agen
 
 - **`prv` is attribution, not proof.** A compliance or assurance `prv` names the third party the Trust Authority asserts stands behind a claim, without a signature from that party. A Service Provider relying on such a signal for a material decision verifies it out of band.
 - **Signal currency.** The 30-minute lifetime bounds the binding and the presentation, not the assertions; a signal's currency is carried by `asof` (§2.5.1), and a Service Provider should read it rather than assume a freshly minted credential carries fresh facts.
-- **Derived-type trust.** A derived `vct`, `aka_vcts`, or `extends` assertion does not authorise its issuer (SD-JWT VC §6.6). A Service Provider accepts a derived TSAI type only from an issuer it trusts and only after validating the integrity-pinned metadata and schema chain to the canonical TSAI type.
+- **Derived-type trust.** A derived `vct`, `aka_vcts`, or `extends` assertion does not authorise its issuer (SD-JWT VC §7.7). A Service Provider accepts a derived TSAI type only from an issuer it trusts and only after validating the integrity-pinned metadata and schema chain to the canonical TSAI type.
 - **Reputation washing.** Agent-level reputation lets an operator register a new agent to shed a poor record; an operator-level reputation signal (`rep` with `scp: operator`, ADR 016) and the identity floor bound this, but do not close it. End-user-level Sybil resistance is deferred (ADR 008).
 - **Agent key compromise.** A stolen registered binding key lets an attacker present existing credentials until they expire. It cannot register a new identity or key without the authenticated operator management channel. The operator repudiates the key; where issued credentials may be affected, the TA blocks the persistent agent `sub` (§7.6).
 - **Operator-session compromise.** An agent host that holds both a binding key and the `operatorAuth` bearer session can request challenges, issuance, and refresh until that session is revoked. Operators SHOULD keep management and refresh credentials outside the agent runtime where practical; Trust Authorities SHOULD scope sessions to the required agent and operations, limit their lifetime, and support immediate revocation (§7.2).
@@ -152,6 +152,6 @@ TSAI does not protect against LLM-specific attacks, poor output quality, an agen
 
 ## References
 
-- draft-ietf-oauth-sd-jwt-vc-18; RFC 9901 (§10.1 correlation, §10.2 key storage); draft-ietf-oauth-status-list-21
+- draft-ietf-oauth-sd-jwt-vc-19; RFC 9901 (§10.1 correlation, §10.2 key storage); draft-ietf-oauth-status-list-21
 - RFC 7519, RFC 7518, RFC 7515, RFC 7638, RFC 8725, RFC 6979, RFC 9530; NIST SP 800-57
 - ADR 007, ADR 014, ADR 016, ADR 017, ADR 018

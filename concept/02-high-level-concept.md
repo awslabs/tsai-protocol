@@ -102,7 +102,7 @@ This replaces the earlier tiered model, where the credential carried a tier and 
 
 ## Standards Base
 
-TSAI builds on SD-JWT VC (draft-ietf-oauth-sd-jwt-vc-18) for the credential, the key-binding JWT for holder binding, and the IETF Token Status List for a block. A Trust Authority is identified by an HTTPS issuer, an agent by required registered HTTPS `sub` with its current key in `cnf`, and a referenced third party by its own `did:web` (ADR 017). This keeps TSAI within the JWT and JOSE idiom shared by Web Bot Auth and OpenID4VC, and away from a second identifier scheme.
+TSAI builds on SD-JWT VC (draft-ietf-oauth-sd-jwt-vc-19) for the credential, the key-binding JWT for holder binding, and the IETF Token Status List for a block. A Trust Authority is identified by an HTTPS issuer, an agent by required registered HTTPS `sub` with its current key in `cnf`, and a referenced third party by its own `did:web` (ADR 017). This keeps TSAI within the JWT and JOSE idiom shared by Web Bot Auth and OpenID4VC, and away from a second identifier scheme.
 
 ---
 

@@ -74,6 +74,6 @@ The four identity signals and the compliance signal describe the operator. The t
 
 ## References
 
-- draft-ietf-oauth-sd-jwt-vc-18 — SD-JWT-based Verifiable Credentials
+- draft-ietf-oauth-sd-jwt-vc-19 — SD-JWT-based Verifiable Credentials
 - TSAI ADR 014 (Holder Binding), ADR 016 (Trust Signal Structure), ADR 017 (Party Identity)
 - TSAI Credential Format (architecture/03-credential-format.md)

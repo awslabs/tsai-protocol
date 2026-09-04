@@ -15,7 +15,7 @@ SPDX-License-Identifier: Apache-2.0
 
 This section specifies how TSAI integrates with agentic protocols. TSAI is additive, transport-agnostic, complementary to existing authentication, and adoptable incrementally; it does not modify the semantics of the protocols it sits beside.
 
-A TSAI presentation is a credential (SD-JWT VC) with a key-binding JWT appended, in the compact form `<issuer-signed JWT>~<key-binding JWT>`. It travels in a `TSAI-Credential` header or an equivalent field, and verification follows Section 3. The keywords MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY are to be interpreted as described in RFC 2119.
+A TSAI presentation is a credential (SD-JWT VC) with a key-binding JWT appended, in the compact form `<issuer-signed JWT>~<key-binding JWT>`. It travels in a `TSAI-Credential` header or an equivalent field, and verification follows Section 3. The key words MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY are to be interpreted as described in BCP 14 (RFC 2119 and RFC 8174) when, and only when, they appear in all capitals.
 
 ### 4.1.1 Carrying more than one credential
 

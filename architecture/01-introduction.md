@@ -23,7 +23,7 @@ TSAI defines the credential format (SD-JWT VC), the meaning of the signals, the 
 
 ## 1.2 Conformance
 
-This specification uses RFC 2119 terminology: MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY.
+The key words MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY are to be interpreted as described in BCP 14 (RFC 2119 and RFC 8174) when, and only when, they appear in all capitals.
 
 **A conforming Trust Authority** MUST issue credentials conforming to Section 2, implement the APIs of Section 7, and comply with Section 5.
 
@@ -92,11 +92,11 @@ The domain model behind the credential is in `02-tsai-ontology.md`. The JSON sch
 
 ## 1.5 Normative References
 
-- **[SD-JWT-VC]** SD-JWT-based Verifiable Credentials, draft-ietf-oauth-sd-jwt-vc-18
+- **[SD-JWT-VC]** SD-JWT-based Verifiable Credentials, draft-ietf-oauth-sd-jwt-vc-19
 - **[SD-JWT]** Selective Disclosure for JWTs (SD-JWT), RFC 9901
 - **[STATUS-LIST]** Token Status List, draft-ietf-oauth-status-list-21
 - **[RFC7519]** JSON Web Token (JWT); **[RFC7515]** JSON Web Signature (JWS); **[RFC7638]** JWK Thumbprint; **[RFC7800]** Proof-of-Possession Key Semantics (`cnf`); **[RFC7517]** JSON Web Key (JWK); **[RFC7518]** JSON Web Algorithms (ES256)
-- **[RFC2119]** Requirement-level keywords; **[RFC8259]** JSON
+- **[RFC2119]** and **[RFC8174]** BCP 14 requirement-level keywords; **[RFC8259]** JSON
 
 ---
 

@@ -24,11 +24,11 @@ First, the holder binding decided in ADR 014 rests on a key the agent controls a
 
 ### Two credential models, not one
 
-W3C VC and SD-JWT VC are two different credential data models from two different bodies, not layers of one another. W3C VC 2.0 is a W3C Recommendation, JSON-LD based, identifying issuer and subject by DID and securing the credential with VC-JOSE-COSE or Data Integrity proofs. SD-JWT VC (IETF `draft-ietf-oauth-sd-jwt-vc-18`) is a JWT-based credential: the type is the `vct` claim, holder binding is the `cnf` key, and it does not use the W3C `@context` or `credentialSubject` structure. Choosing between them is choosing a data model, not adjusting a securing mechanism, so this decision changes the credential, the presentation, the revocation mechanism, and the identity model together.
+W3C VC and SD-JWT VC are two different credential data models from two different bodies, not layers of one another. W3C VC 2.0 is a W3C Recommendation, JSON-LD based, identifying issuer and subject by DID and securing the credential with VC-JOSE-COSE or Data Integrity proofs. SD-JWT VC (IETF `draft-ietf-oauth-sd-jwt-vc-19`) is a JWT-based credential: the type is the `vct` claim, holder binding is the `cnf` key, and it does not use the W3C `@context` or `credentialSubject` structure. Choosing between them is choosing a data model, not adjusting a securing mechanism, so this decision changes the credential, the presentation, the revocation mechanism, and the identity model together.
 
 ### Maturity
 
-The two are at different stages, and the distinction matters. The SD-JWT mechanism is published as RFC 9901. The SD-JWT VC profile built on it is working-group draft revision 18 (`draft-ietf-oauth-sd-jwt-vc-18`), not yet an RFC. W3C VC 2.0 is a finalised W3C Recommendation. So on formal finality W3C leads, while for SD-JWT the security-critical mechanism is finalised and only the credential profile is still a late-stage draft, sitting on finalised primitives (JWT, JWS, JWK, RFC 7638 thumbprints, RFC 9901, and the Token Status List).
+The two are at different stages, and the distinction matters. The SD-JWT mechanism is published as RFC 9901. The SD-JWT VC profile built on it is working-group draft revision 19 (`draft-ietf-oauth-sd-jwt-vc-19`), not yet an RFC. W3C VC 2.0 is a finalised W3C Recommendation. So on formal finality W3C leads, while for SD-JWT the security-critical mechanism is finalised and only the credential profile is still a late-stage draft, sitting on finalised primitives (JWT, JWS, JWK, RFC 7638 thumbprints, RFC 9901, and the Token Status List).
 
 ### Adoption
 
@@ -70,7 +70,7 @@ The credential is a W3C VC 2.0 secured as VC-JWT; the self-contained binding is 
 
 ### Option B: SD-JWT VC
 
-The credential is an SD-JWT VC (`draft-ietf-oauth-sd-jwt-vc-18`, on RFC 9901); the self-contained binding is the key-binding JWT, and the holder key is the `cnf` claim.
+The credential is an SD-JWT VC (`draft-ietf-oauth-sd-jwt-vc-19`, on RFC 9901); the self-contained binding is the key-binding JWT, and the holder key is the `cnf` claim.
 
 **Pros.** JWT-native, so the binding is the key-binding JWT and the holder key is a JWK identified by a thumbprint, the same material Web Bot Auth uses (criteria 1 and 3). It shares one idiom with the binding and with the surrounding protocols, so the credential, the binding, the keys, and revocation are all JWT and JWK, with nothing to translate (criterion 8). Selective disclosure is available if needed (criterion 2). Revocation uses the IETF Token Status List, and can be omitted where short expiry suffices, since credentials are short-lived (criterion 4). Lighter than the JSON-LD model, and a flat JWT when disclosure is unused (criterion 5). The mechanism beneath it, RFC 9901, is finalised (criterion 6).
 
@@ -148,7 +148,7 @@ The residual cost is that TSAI depends on a credential profile that is not yet a
 ## Consequences
 
 - ADR 003 is superseded.
-- The self-contained binding of ADR 014 is realised as an ES256-signed SD-JWT key-binding JWT, and the holder key is the EC/P-256 `cnf` JWK.
+- The self-contained binding of ADR 014 is realised as an ES256-signed SD-JWT key-binding JWT, and the holder key is the EC/P-256 `cnf` JWK. TSAI v1 uses the compact serialisation defined by RFC 9901 and does not support JWS JSON serialisation.
 - Revocation uses the IETF Token Status List, referenced by an optional `status` claim. Where a Service Provider relies on short expiry, `status` may be omitted.
 - Trust-Authority blindness is preserved. Holder-directed issuance provides coarse minimisation without revealing the destination; selective disclosure provides fine minimisation at presentation.
 - A Trust Authority does not insert decoy digests; a verifier surfaces the resulting withheld-signal count and may fail closed above its policy threshold.
@@ -214,7 +214,7 @@ On the wire the presentation is `‹issuer-JWT›~‹KB-JWT›`. The issuer sign
 - ADR 014 — Holder Binding and Web Bot Auth Integration
 - ADR 016 — Trust Signal Structure
 - ADR 017 — Party Identity and Key Discovery
-- [draft-ietf-oauth-sd-jwt-vc-18](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-sd-jwt-vc-18)
+- [draft-ietf-oauth-sd-jwt-vc-19](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-sd-jwt-vc-19)
 - [RFC 9901 — Selective Disclosure for JSON Web Tokens (SD-JWT)](https://www.rfc-editor.org/rfc/rfc9901)
 - [RFC 7638 — JSON Web Key (JWK) Thumbprint](https://www.rfc-editor.org/rfc/rfc7638)
 - [RFC 7518 — JSON Web Algorithms](https://www.rfc-editor.org/rfc/rfc7518)

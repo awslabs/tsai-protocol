@@ -23,7 +23,7 @@ A **User** may direct the agent, but the TSAI credential does not identify that 
 
 An Operator enrols with a Trust Authority, establishes its legal identity and controlled domains, and registers each agent under a persistent HTTPS identifier. The agent also registers a P-256 binding key. The identifier remains stable when that key rotates, so reputation, status, and Service Provider policy remain attached to the same agent.
 
-The Trust Authority issues a short-lived [SD-JWT VC](https://www.ietf.org/archive/id/draft-ietf-oauth-sd-jwt-vc-18.html) only after establishing the claims it contains. Every credential identifies the accountable Operator through a required identity floor: legal name, jurisdiction, verification depth, and a recently verified controlled domain.
+The Trust Authority issues a short-lived [SD-JWT VC](https://www.ietf.org/archive/id/draft-ietf-oauth-sd-jwt-vc-19.html) only after establishing the claims it contains. Every credential identifies the accountable Operator through a required identity floor: legal name, jurisdiction, verification depth, and a recently verified controlled domain.
 
 ### Credential and evidence
 
