@@ -115,6 +115,8 @@ The decoded payload conforms to [`schemas/tsai-ta-status.schema.json`](schemas/t
 }
 ```
 
+`blockedInPeriod` counts the distinct agents and operators newly blocked during the reporting period. A repeated block of the same identity counts once, and a block of an operator counts as one regardless of how many agents it has.
+
 The HSM attestation in Section 7.11 uses the same envelope with its own `typ` and payload schema. For both documents, the signer serialises the protected header and payload as UTF-8 JSON, base64url-encodes each without padding, and signs the RFC 7515 JWS Signing Input `BASE64URL(header) || "." || BASE64URL(payload)` with ES256. The compact signature is the base64url encoding of the 64-octet `R || S` value required by JWA. No JSON canonicalisation is required because the signature covers the exact encoded payload bytes.
 
 A verifier MUST require three compact-JWS segments, `alg` `ES256`, the expected `typ`, and a `kid` selecting the current TA signing key from `jwt-vc-issuer`. It MUST validate the decoded payload against the applicable schema, confirm `iss` is the trusted TA issuer, verify the signature, reject `iat` in the future beyond allowed clock skew, and reject at or after `exp`. TSAI encodes `iat` and `exp` as whole-second integer NumericDates.

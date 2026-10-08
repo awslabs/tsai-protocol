@@ -14,7 +14,7 @@
     "reportingPeriod": { "type": "string", "description": "Period covered by the aggregate metrics, an ISO 8601 duration such as PT24H" },
     "activeCredentials": { "type": "integer", "minimum": 0, "description": "Count of currently unexpired credentials" },
     "issuedInPeriod": { "type": "integer", "minimum": 0, "description": "Credentials issued during the reporting period" },
-    "blockedInPeriod": { "type": "integer", "minimum": 0, "description": "Agents or operators blocked during the reporting period" },
+    "blockedInPeriod": { "type": "integer", "minimum": 0, "description": "Distinct agents and operators newly blocked during the reporting period; a block of an operator counts once" },
     "lastKeyRotation": { "type": "string", "format": "date-time", "description": "When the credential-signing key was last rotated, RFC 3339" }
   },
   "additionalProperties": true

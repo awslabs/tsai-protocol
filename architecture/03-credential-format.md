@@ -225,6 +225,8 @@ An individual short-lived credential is not revoked; the control is a block on t
 "status": { "status_list": { "idx": 94567, "uri": "https://trust-authority.example/status/agents-1" } }
 ```
 
+A status list holds entries for many agents and operators, so `uri` identifies the list and `idx` the entry within it. A list MUST NOT be dedicated to a single identity, because its `uri` would then identify that identity, and a Trust Authority SHOULD keep each list large enough that its size does not reveal how many identities it serves (draft-ietf-oauth-status-list-21 §12.1). An identity keeps the same `uri` and `idx` across credentials and key rotation, and a Trust Authority MUST NOT assign an `idx` to a different identity (draft-ietf-oauth-status-list-21 §13.3). TSAI uses a `bits` value of 1, where 1 means blocked.
+
 A credential MAY omit `status` to avoid the additional status-index correlator, accepting that a TA block cannot reach it within the lifetime. The required `sub` remains a stable cross-Service-Provider identifier, so omitting `status` does not provide agent unlinkability; an SP can still apply its local block by `sub` (Section 5.7). When a Service Provider fetches and how it verifies the status list are specified in Section 3.
 
 ---
