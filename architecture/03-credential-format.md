@@ -222,7 +222,7 @@ Selective disclosure is optional and off by default. When used, the issuer repla
 An individual short-lived credential is not revoked; the control is a block on the agent `sub` or operator (ADR 018). A Trust Authority MUST publish an agent-and-operator status list, so a Service Provider can depend on the mechanism existing. A credential normally carries a `status` claim referencing it, keyed to the persistent agent `sub` or operator identity, so that blocking one identity invalidates all of its credentials across key rotation. The Status List Token MUST be signed with ES256:
 
 ```json
-"status": { "status_list": { "idx": 94567, "uri": "https://trust-authority.example/status/agents-1" } }
+"status": { "status_list": { "idx": 94567, "uri": "https://trust-authority.example/status/1" } }
 ```
 
 A status list holds entries for many agents and operators, so `uri` identifies the list and `idx` the entry within it. A list MUST NOT be dedicated to a single identity, because its `uri` would then identify that identity, and a Trust Authority SHOULD keep each list large enough that its size does not reveal how many identities it serves (draft-ietf-oauth-status-list-21 §12.1). An identity keeps the same `uri` and `idx` across credentials and key rotation, and a Trust Authority MUST NOT assign an `idx` to a different identity (draft-ietf-oauth-status-list-21 §13.3). TSAI uses a `bits` value of 1, where 1 means blocked.
@@ -297,7 +297,7 @@ An issued credential, flat, before presentation:
   "exp": 1781865000,
   "sub": "https://acme-corp.example/agents/shopper-v3",
   "cnf": { "jwk": { "kty": "EC", "crv": "P-256", "x": "TCAER19Zvu3OHF4j4W4vfSVoHIP1ILilDls7vCeGemc", "y": "ZxjiWWbZMQGHVWKVQ4hbSIirsVfuecCE6t4jT9F2HZQ" } },
-  "status": { "status_list": { "idx": 94567, "uri": "https://trust-authority.example/status/agents-1" } },
+  "status": { "status_list": { "idx": 94567, "uri": "https://trust-authority.example/status/1" } },
   "signals": [
     { "cat": "idn", "typ": "org", "val": "Acme Corporation GmbH" },
     { "cat": "idn", "typ": "jur", "val": "DE" },
